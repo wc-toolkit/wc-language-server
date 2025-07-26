@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   CodeMapping,
   forEachEmbeddedCode,
@@ -9,163 +10,218 @@ import type * as ts from "typescript";
 import * as html from "vscode-html-languageservice";
 import { URI } from "vscode-uri";
 
+// Constants for better maintainability
+const SUPPORTED_EXTENSIONS = {
+  HTML: ".html",
+} as const;
+
+const LANGUAGE_IDS = {
+  HTML: "html",
+  CSS: "css",
+  JAVASCRIPT: "javascript",
+  TYPESCRIPT: "typescript",
+} as const;
+
+const SCRIPT_KINDS = {
+  JS: 1 satisfies ts.ScriptKind.JS,
+  TS: 3 satisfies ts.ScriptKind.TS,
+  DEFERRED: 7 satisfies ts.ScriptKind.Deferred,
+} as const;
+
+// Default code mapping capabilities
+const DEFAULT_CAPABILITIES = {
+  completion: true,
+  format: true,
+  navigation: true,
+  semantic: true,
+  structure: true,
+  verification: true,
+} as const;
+
 export const wcLanguagePlugin: LanguagePlugin<URI> = {
   getLanguageId(uri) {
-    if (uri.path.endsWith(".html")) {
-      return "html";
-    }
+    return uri.path.endsWith(SUPPORTED_EXTENSIONS.HTML)
+      ? LANGUAGE_IDS.HTML
+      : undefined;
   },
+
   createVirtualCode(_uri, languageId, snapshot) {
-    if (languageId === "html") {
-      return new WcLanguageServerVirtualCode(snapshot);
-    }
+    return languageId === LANGUAGE_IDS.HTML
+      ? new WcLanguageServerVirtualCode(snapshot)
+      : undefined;
   },
+
   typescript: {
     extraFileExtensions: [
       {
         extension: "html",
         isMixedContent: true,
-        scriptKind: 7 satisfies ts.ScriptKind.Deferred,
+        scriptKind: SCRIPT_KINDS.DEFERRED,
       },
     ],
-    getServiceScript() {
-      return undefined;
-    },
+    getServiceScript: () => undefined,
     getExtraServiceScripts(fileName, root) {
       const scripts: TypeScriptExtraServiceScript[] = [];
+
       for (const code of forEachEmbeddedCode(root)) {
-        if (code.languageId === "javascript") {
-          scripts.push({
-            fileName: fileName + "." + code.id + ".js",
-            code,
-            extension: ".js",
-            scriptKind: 1 satisfies ts.ScriptKind.JS,
-          });
-        } else if (code.languageId === "typescript") {
-          scripts.push({
-            fileName: fileName + "." + code.id + ".ts",
-            code,
-            extension: ".ts",
-            scriptKind: 3 satisfies ts.ScriptKind.TS,
-          });
+        const scriptConfig = getScriptConfig(
+          code.languageId,
+          fileName,
+          code.id
+        );
+        if (scriptConfig) {
+          scripts.push({ ...scriptConfig, code });
         }
       }
+
       return scripts;
     },
   },
 };
 
+// Helper function for script configuration
+function getScriptConfig(languageId: string, fileName: string, codeId: string) {
+  switch (languageId) {
+    case LANGUAGE_IDS.JAVASCRIPT:
+      return {
+        fileName: `${fileName}.${codeId}.js`,
+        extension: ".js",
+        scriptKind: SCRIPT_KINDS.JS,
+      };
+    case LANGUAGE_IDS.TYPESCRIPT:
+      return {
+        fileName: `${fileName}.${codeId}.ts`,
+        extension: ".ts",
+        scriptKind: SCRIPT_KINDS.TS,
+      };
+    default:
+      return null;
+  }
+}
+
 const htmlLs = html.getLanguageService();
 
 export class WcLanguageServerVirtualCode implements VirtualCode {
   id = "root";
-  languageId = "html";
+  languageId = LANGUAGE_IDS.HTML;
   mappings: CodeMapping[];
-  embeddedCodes: VirtualCode[] = [];
-
-  // Reuse in custom language service plugin
+  embeddedCode: VirtualCode[] = [];
   htmlDocument: html.HTMLDocument;
 
   constructor(public snapshot: ts.IScriptSnapshot) {
-    this.mappings = [
-      {
-        sourceOffsets: [0],
-        generatedOffsets: [0],
-        lengths: [snapshot.getLength()],
-        data: {
-          completion: true,
-          format: true,
-          navigation: true,
-          semantic: true,
-          structure: true,
-          verification: true,
-        },
-      },
-    ];
+    const text = snapshot.getText(0, snapshot.getLength());
+
+    this.mappings = [createFullDocumentMapping(snapshot.getLength())];
     this.htmlDocument = htmlLs.parseHTMLDocument(
-      html.TextDocument.create(
-        "",
-        "html",
-        0,
-        snapshot.getText(0, snapshot.getLength()),
-      ),
+      html.TextDocument.create("", LANGUAGE_IDS.HTML, 0, text)
     );
-    this.embeddedCodes = [
-      ...getWcLanguageServerEmbeddedCodes(snapshot, this.htmlDocument),
-    ];
+    this.embeddedCode = [...this.extractEmbeddedCode(snapshot)];
+  }
+
+  private *extractEmbeddedCode(
+    snapshot: ts.IScriptSnapshot
+  ): Generator<VirtualCode> {
+    const { styles, scripts } = this.categorizeElements();
+
+    yield* this.createStyleCode(snapshot, styles);
+    yield* this.createScriptCode(snapshot, scripts);
+  }
+
+  private categorizeElements() {
+    return {
+      styles: this.htmlDocument.roots.filter((root) => root.tag === "style"),
+      scripts: this.htmlDocument.roots.filter((root) => root.tag === "script"),
+    };
+  }
+
+  private *createStyleCode(
+    snapshot: ts.IScriptSnapshot,
+    styles: any[]
+  ): Generator<VirtualCode> {
+    for (const [index, style] of styles.entries()) {
+      const code = this.createEmbeddedCode(
+        snapshot,
+        style,
+        `style_${index}`,
+        LANGUAGE_IDS.CSS
+      );
+      if (code) yield code;
+    }
+  }
+
+  private *createScriptCode(
+    snapshot: ts.IScriptSnapshot,
+    scripts: any[]
+  ): Generator<VirtualCode> {
+    for (const [index, script] of scripts.entries()) {
+      const languageId = this.getScriptLanguageId(script);
+      const code = this.createEmbeddedCode(
+        snapshot,
+        script,
+        `script_${index}`,
+        languageId
+      );
+      if (code) yield code;
+    }
+  }
+
+  private getScriptLanguageId(script: any): string {
+    const lang = script.attributes?.lang;
+    const isTypeScript = lang === "ts" || lang === '"ts"' || lang === "'ts'";
+    return isTypeScript ? LANGUAGE_IDS.TYPESCRIPT : LANGUAGE_IDS.JAVASCRIPT;
+  }
+
+  private createEmbeddedCode(
+    snapshot: ts.IScriptSnapshot,
+    element: any,
+    id: string,
+    languageId: string
+  ): VirtualCode | null {
+    if (
+      element.startTagEnd === undefined ||
+      element.endTagStart === undefined
+    ) {
+      return null;
+    }
+
+    const text = snapshot.getText(element.startTagEnd, element.endTagStart);
+
+    return {
+      id,
+      languageId,
+      snapshot: createTextSnapshot(text),
+      mappings: [createEmbeddedMapping(element.startTagEnd, text.length)],
+      embeddedCode: [],
+    };
   }
 }
 
-function* getWcLanguageServerEmbeddedCodes(
-  snapshot: ts.IScriptSnapshot,
-  htmlDocument: html.HTMLDocument,
-): Generator<VirtualCode> {
-  const styles = htmlDocument.roots.filter((root) => root.tag === "style");
-  const scripts = htmlDocument.roots.filter((root) => root.tag === "script");
+// Helper functions
+function createFullDocumentMapping(length: number): CodeMapping {
+  return {
+    sourceOffsets: [0],
+    generatedOffsets: [0],
+    lengths: [length],
+    data: DEFAULT_CAPABILITIES,
+  };
+}
 
-  for (let i = 0; i < styles.length; i++) {
-    const style = styles[i];
-    if (style.startTagEnd !== undefined && style.endTagStart !== undefined) {
-      const styleText = snapshot.getText(style.startTagEnd, style.endTagStart);
-      yield {
-        id: "style_" + i,
-        languageId: "css",
-        snapshot: {
-          getText: (start, end) => styleText.substring(start, end),
-          getLength: () => styleText.length,
-          getChangeRange: () => undefined,
-        },
-        mappings: [
-          {
-            sourceOffsets: [style.startTagEnd],
-            generatedOffsets: [0],
-            lengths: [styleText.length],
-            data: {
-              completion: true,
-              format: true,
-              navigation: true,
-              semantic: true,
-              structure: true,
-              verification: true,
-            },
-          },
-        ],
-        embeddedCodes: [],
-      };
-    }
-  }
+function createEmbeddedMapping(
+  sourceOffset: number,
+  length: number
+): CodeMapping {
+  return {
+    sourceOffsets: [sourceOffset],
+    generatedOffsets: [0],
+    lengths: [length],
+    data: DEFAULT_CAPABILITIES,
+  };
+}
 
-  for (let i = 0; i < scripts.length; i++) {
-    const script = scripts[i];
-    if (script.startTagEnd !== undefined && script.endTagStart !== undefined) {
-      const text = snapshot.getText(script.startTagEnd, script.endTagStart);
-      const lang = script.attributes?.lang;
-      const isTs = lang === "ts" || lang === '"ts"' || lang === "'ts'";
-      yield {
-        id: "script_" + i,
-        languageId: isTs ? "typescript" : "javascript",
-        snapshot: {
-          getText: (start, end) => text.substring(start, end),
-          getLength: () => text.length,
-          getChangeRange: () => undefined,
-        },
-        mappings: [
-          {
-            sourceOffsets: [script.startTagEnd],
-            generatedOffsets: [0],
-            lengths: [text.length],
-            data: {
-              completion: true,
-              format: true,
-              navigation: true,
-              semantic: true,
-              structure: true,
-              verification: true,
-            },
-          },
-        ],
-        embeddedCodes: [],
-      };
-    }
-  }
+function createTextSnapshot(text: string) {
+  return {
+    getText: (start: number, end: number) => text.substring(start, end),
+    getLength: () => text.length,
+    getChangeRange: () => undefined,
+  };
 }
