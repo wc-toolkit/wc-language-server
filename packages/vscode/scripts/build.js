@@ -1,7 +1,5 @@
 /* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-require-imports */
-/* eslint-env node */
-/* global process */
 require("esbuild")
   .context({
     entryPoints: {
