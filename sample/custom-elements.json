@@ -305,9 +305,7 @@
           "documentation": "https://shoelace.style/components/alert",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon-button"
-          ],
+          "dependencies": ["sl-icon-button"],
           "animations": [
             {
               "name": "alert.show",
@@ -501,9 +499,7 @@
           "documentation": "https://shoelace.style/components/animated-image",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -1056,9 +1052,7 @@
           "documentation": "https://shoelace.style/components/avatar",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -1285,9 +1279,7 @@
           "documentation": "https://shoelace.style/components/breadcrumb",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -1958,10 +1950,7 @@
           "documentation": "https://shoelace.style/components/button",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon",
-            "sl-spinner"
-          ]
+          "dependencies": ["sl-icon", "sl-spinner"]
         }
       ],
       "exports": [
@@ -2949,9 +2938,7 @@
           "jsDoc": "/**\n * @summary Carousels display an arbitrary number of content slides along a horizontal or vertical axis.\n *\n * @since 2.2\n * @status experimental\n *\n * @dependency sl-icon\n *\n * @event {{ index: number, slide: SlCarouselItem }} sl-slide-change - Emitted when the active slide changes.\n *\n * @slot - The carousel's main content, one or more `<sl-carousel-item>` elements.\n * @slot next-icon - Optional next icon to use instead of the default. Works best with `<sl-icon>`.\n * @slot previous-icon - Optional previous icon to use instead of the default. Works best with `<sl-icon>`.\n *\n * @csspart base - The carousel's internal wrapper.\n * @csspart scroll-container - The scroll container that wraps the slides.\n * @csspart pagination - The pagination indicators wrapper.\n * @csspart pagination-item - The pagination indicator.\n * @csspart pagination-item--active - Applied when the item is active.\n * @csspart navigation - The navigation wrapper.\n * @csspart navigation-button - The navigation button.\n * @csspart navigation-button--previous - Applied to the previous button.\n * @csspart navigation-button--next - Applied to the next button.\n *\n * @cssproperty --slide-gap - The space between each slide.\n * @cssproperty [--aspect-ratio=16/9] - The aspect ratio of each slide.\n * @cssproperty --scroll-hint - The amount of padding to apply to the scroll area, allowing adjacent slides to become\n *  partially visible as a scroll hint.\n */",
           "since": "2.2",
           "status": "experimental",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -3460,9 +3447,7 @@
           "documentation": "https://shoelace.style/components/checkbox",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -4832,10 +4817,7 @@
           "documentation": "https://shoelace.style/components/copy",
           "status": "experimental",
           "since": "2.7",
-          "dependencies": [
-            "sl-icon",
-            "sl-tooltip"
-          ],
+          "dependencies": ["sl-icon", "sl-tooltip"],
           "animations": [
             {
               "name": "copy.in",
@@ -5097,9 +5079,7 @@
           "documentation": "https://shoelace.style/components/details",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ],
+          "dependencies": ["sl-icon"],
           "animations": [
             {
               "name": "details.show",
@@ -5435,9 +5415,7 @@
           "documentation": "https://shoelace.style/components/dialog",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon-button"
-          ],
+          "dependencies": ["sl-icon-button"],
           "animations": [
             {
               "name": "dialog.show",
@@ -5904,9 +5882,7 @@
           "documentation": "https://shoelace.style/components/drawer",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon-button"
-          ],
+          "dependencies": ["sl-icon-button"],
           "animations": [
             {
               "name": "drawer.showTop",
@@ -6345,9 +6321,7 @@
           "documentation": "https://shoelace.style/components/dropdown",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-popup"
-          ],
+          "dependencies": ["sl-popup"],
           "animations": [
             {
               "name": "dropdown.show",
@@ -7528,9 +7502,7 @@
           "documentation": "https://shoelace.style/components/icon-button",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -7702,9 +7674,7 @@
           "documentation": "https://shoelace.style/components/image-comparer",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -8718,9 +8688,7 @@
           "documentation": "https://shoelace.style/components/input",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -9370,11 +9338,7 @@
           "documentation": "https://shoelace.style/components/menu-item",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon",
-            "sl-popup",
-            "sl-spinner"
-          ]
+          "dependencies": ["sl-icon", "sl-popup", "sl-spinner"]
         }
       ],
       "exports": [
@@ -9576,9 +9540,7 @@
           "documentation": "https://shoelace.style/components/option",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -10616,9 +10578,7 @@
           "documentation": "https://shoelace.style/components/radio",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -11499,9 +11459,7 @@
           "documentation": "https://shoelace.style/components/radio-group",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-button-group"
-          ]
+          "dependencies": ["sl-button-group"]
         }
       ],
       "exports": [
@@ -12523,9 +12481,7 @@
           "documentation": "https://shoelace.style/components/rating",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon"
-          ]
+          "dependencies": ["sl-icon"]
         }
       ],
       "exports": [
@@ -13850,11 +13806,7 @@
           "documentation": "https://shoelace.style/components/select",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon",
-            "sl-popup",
-            "sl-tag"
-          ]
+          "dependencies": ["sl-icon", "sl-popup", "sl-tag"]
         }
       ],
       "exports": [
@@ -15257,9 +15209,7 @@
           "documentation": "https://shoelace.style/components/tab-group",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon-button"
-          ]
+          "dependencies": ["sl-icon-button"]
         }
       ],
       "exports": [
@@ -15466,9 +15416,7 @@
           "documentation": "https://shoelace.style/components/tab",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon-button"
-          ]
+          "dependencies": ["sl-icon-button"]
         }
       ],
       "exports": [
@@ -16536,9 +16484,7 @@
           "documentation": "https://shoelace.style/components/tag",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-icon-button"
-          ]
+          "dependencies": ["sl-icon-button"]
         }
       ],
       "exports": [
@@ -16916,9 +16862,7 @@
           "documentation": "https://shoelace.style/components/tooltip",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-popup"
-          ],
+          "dependencies": ["sl-popup"],
           "animations": [
             {
               "name": "tooltip.show",
@@ -17623,11 +17567,7 @@
           "documentation": "https://shoelace.style/components/tree-item",
           "status": "stable",
           "since": "2.0",
-          "dependencies": [
-            "sl-checkbox",
-            "sl-icon",
-            "sl-spinner"
-          ]
+          "dependencies": ["sl-checkbox", "sl-icon", "sl-spinner"]
         }
       ],
       "exports": [

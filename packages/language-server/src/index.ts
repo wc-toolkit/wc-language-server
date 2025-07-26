@@ -49,7 +49,7 @@ connection.onInitialize((params) => {
           return {
             provideDiagnostics(document) {
               const decoded = context.decodeEmbeddedDocumentUri(
-                URI.parse(document.uri)
+                URI.parse(document.uri),
               );
               if (!decoded) {
                 // Not a embedded document
@@ -62,7 +62,7 @@ connection.onInitialize((params) => {
                 return;
               }
               const styleNodes = virtualCode.htmlDocument.roots.filter(
-                (root) => root.tag === "style"
+                (root) => root.tag === "style",
               );
               if (styleNodes.length <= 1) {
                 return;
@@ -84,7 +84,7 @@ connection.onInitialize((params) => {
           };
         },
       },
-    ]
+    ],
   );
 });
 

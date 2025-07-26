@@ -1,2 +1,2 @@
-export * from './vscode';
-export * from './types';
+export * from "./vscode";
+export * from "./types";

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 import { CustomElementsService } from "./custom-elements-service";
@@ -25,7 +26,7 @@ export function createCustomHtmlService() {
       const adapter = new VSCodeAdapter();
       const customElementsService = new CustomElementsService(
         workspaceRoot,
-        adapter
+        adapter,
       );
 
       // Get HTML data provider from custom elements service
@@ -41,7 +42,8 @@ export function createCustomHtmlService() {
         provideCompletionItems(
           document: any,
           position: any,
-          completionContext: any
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          completionContext: any,
         ) {
           const text = document.getText();
           const offset = document.offsetAt(position);
@@ -52,7 +54,7 @@ export function createCustomHtmlService() {
             document.uri,
             "html",
             0,
-            text
+            text,
           );
           const htmlDocument =
             htmlLanguageService.parseHTMLDocument(textDocument);
@@ -64,7 +66,7 @@ export function createCustomHtmlService() {
             const htmlCompletions = htmlLanguageService.doComplete(
               textDocument,
               position,
-              htmlDocument
+              htmlDocument,
             );
 
             // Add custom element completions
@@ -78,7 +80,7 @@ export function createCustomHtmlService() {
           // Case 2: Handle attribute name completion
           // Match: <tag-name |, <tag-name a|, or <tag-name attr="value" |
           const attrNameMatch = beforeText.match(
-            /<([a-zA-Z0-9-]+)(?:\s+[a-zA-Z0-9-]+(=(?:["'][^"']*["'])?))*\s+([a-zA-Z0-9-]*)$/
+            /<([a-zA-Z0-9-]+)(?:\s+[a-zA-Z0-9-]+(=(?:["'][^"']*["'])?))*\s+([a-zA-Z0-9-]*)$/,
           );
           if (attrNameMatch) {
             const tagName = attrNameMatch[1];
@@ -87,7 +89,7 @@ export function createCustomHtmlService() {
             const htmlCompletions = htmlLanguageService.doComplete(
               textDocument,
               position,
-              htmlDocument
+              htmlDocument,
             );
 
             // Add custom element attribute completions
@@ -101,7 +103,7 @@ export function createCustomHtmlService() {
           // Case 3: Handle attribute value completion
           // Match: <tag attr="|, <tag attr=|, <tag attr='|
           const attrValueMatch = beforeText.match(
-            /<([a-zA-Z0-9-]+)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
+            /<([a-zA-Z0-9-]+)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/,
           );
           if (attrValueMatch) {
             const tagName = attrValueMatch[1];
@@ -111,14 +113,14 @@ export function createCustomHtmlService() {
             const htmlCompletions = htmlLanguageService.doComplete(
               textDocument,
               position,
-              htmlDocument
+              htmlDocument,
             );
 
             // Add custom attribute value completions
             const customValueCompletions =
               customElementsService.getAttributeValueCompletions(
                 tagName,
-                attrName
+                attrName,
               );
 
             // Set the range for each completion item for proper replacement
@@ -148,7 +150,7 @@ export function createCustomHtmlService() {
           return htmlLanguageService.doComplete(
             textDocument,
             position,
-            htmlDocument
+            htmlDocument,
           );
         },
 
@@ -158,7 +160,7 @@ export function createCustomHtmlService() {
             document.uri,
             "html",
             0,
-            document.getText()
+            document.getText(),
           );
           const htmlDocument =
             htmlLanguageService.parseHTMLDocument(textDocument);
@@ -166,7 +168,7 @@ export function createCustomHtmlService() {
           return htmlLanguageService.doHover(
             textDocument,
             position,
-            htmlDocument
+            htmlDocument,
           );
         },
 
@@ -178,7 +180,7 @@ export function createCustomHtmlService() {
             document.uri,
             "html",
             0,
-            text
+            text,
           );
 
           // Get the current word under cursor
@@ -237,7 +239,7 @@ export function createCustomHtmlService() {
             const attributeDefinition =
               customElementsService.getAttributeDefinition(
                 tagName,
-                currentWord
+                currentWord,
               );
 
             if (attributeDefinition) {
@@ -252,7 +254,12 @@ export function createCustomHtmlService() {
         // Add diagnostic support
         provideDiagnostics(document: any) {
           const text = document.getText();
-          const textDocument = html.TextDocument.create(document.uri, "html", 0, text);
+          const textDocument = html.TextDocument.create(
+            document.uri,
+            "html",
+            0,
+            text,
+          );
           const htmlDocument =
             htmlLanguageService.parseHTMLDocument(textDocument);
 
@@ -261,7 +268,12 @@ export function createCustomHtmlService() {
 
           // Process each element in the document
           for (const node of htmlDocument.roots) {
-            this.validateNode(node, document, diagnostics, customElementsService);
+            this.validateNode(
+              node,
+              document,
+              diagnostics,
+              customElementsService,
+            );
           }
 
           return diagnostics;
@@ -272,7 +284,7 @@ export function createCustomHtmlService() {
           node: any,
           document: any,
           diagnostics: html.Diagnostic[],
-          customElementsService: CustomElementsService
+          customElementsService: CustomElementsService,
         ) {
           // Only process element nodes
           if (node.tag) {
@@ -282,14 +294,17 @@ export function createCustomHtmlService() {
             if (customElementsService.getTagNames().includes(tagName)) {
               // Validate each attribute
               if (node.attributes) {
-                for (const [attrName, attrValue] of Object.entries(node.attributes)) {
+                for (const [attrName, attrValue] of Object.entries(
+                  node.attributes,
+                )) {
                   if (typeof attrValue === "string") {
                     // Validate the attribute value
-                    const errorMessage = customElementsService.validateAttributeValue(
-                      tagName,
-                      attrName,
-                      attrValue
-                    );
+                    const errorMessage =
+                      customElementsService.validateAttributeValue(
+                        tagName,
+                        attrName,
+                        attrValue,
+                      );
 
                     // If there's an error, add a diagnostic
                     if (errorMessage) {
@@ -297,13 +312,13 @@ export function createCustomHtmlService() {
                       const startOffset = this.findAttributeOffset(
                         document.getText(),
                         node,
-                        attrName
+                        attrName,
                       );
 
                       if (startOffset !== -1) {
                         const startPos = document.positionAt(startOffset);
                         const endPos = document.positionAt(
-                          startOffset + attrName.length + attrValue.length + 3
+                          startOffset + attrName.length + attrValue.length + 3,
                         ); // +3 for ="
                         diagnostics.push({
                           severity: DiagnosticSeverity.Error,
@@ -325,7 +340,12 @@ export function createCustomHtmlService() {
           // Process child nodes recursively
           if (node.children) {
             for (const child of node.children) {
-              this.validateNode(child, document, diagnostics, customElementsService);
+              this.validateNode(
+                child,
+                document,
+                diagnostics,
+                customElementsService,
+              );
             }
           }
         },

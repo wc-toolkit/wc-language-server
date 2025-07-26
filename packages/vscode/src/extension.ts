@@ -17,7 +17,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const serverModule = vscode.Uri.joinPath(
     context.extensionUri,
     "dist",
-    "server.js"
+    "server.js",
   );
 
   const serverOptions: ServerOptions = {
@@ -54,7 +54,7 @@ export async function activate(context: vscode.ExtensionContext) {
     "wcLanguageServer",
     "Web Components Language Server",
     serverOptions,
-    clientOptions
+    clientOptions,
   );
 
   try {

@@ -24,31 +24,31 @@
 // /**
 //  * Maps all locations of elements and APIs in a custom elements manifest
 //  * This is useful for implementing definition providers and other navigation features
-//  * 
+//  *
 //  * @param manifestPath Path to the custom elements manifest file
 //  * @returns A map of API names to their locations in the manifest
 //  */
 // export function mapCemLocations(manifestPath: string): Map<string, CemLocation> {
 //   const locations = new Map<string, CemLocation>();
-  
+
 //   if (!fs.existsSync(manifestPath)) {
 //     return locations;
 //   }
-  
+
 //   try {
 //     const manifestContent = fs.readFileSync(manifestPath, 'utf8');
 //     const manifest: cem.Package = JSON.parse(manifestContent);
-    
+
 //     // Create line map for more accurate position information
 //     const lines = manifestContent.split('\n');
 //     const lineStartPositions: number[] = [];
 //     let position = 0;
-    
+
 //     for (const line of lines) {
 //       lineStartPositions.push(position);
 //       position += line.length + 1; // +1 for newline character
 //     }
-    
+
 //     // Helper function to find line/character from position
 //     const getLineInfo = (position: number): { line: number, character: number } => {
 //       for (let i = 1; i < lineStartPositions.length; i++) {
@@ -61,27 +61,27 @@
 //       }
 //       return { line: lineStartPositions.length - 1, character: 0 };
 //     };
-    
+
 //     // Find positions of all elements and their APIs
 //     if (manifest.modules) {
 //       for (const module of manifest.modules) {
 //         if (!module.declarations) continue;
-        
+
 //         for (const declaration of module.declarations) {
 //           // Handle custom elements
 //           if (isCustomElement(declaration)) {
 //             const customElement = declaration as cem.CustomElement;
 //             const tagName = customElement.tagName;
-            
+
 //             if (tagName) {
 //               // Find tag position
 //               const tagPattern = `"tagName"\\s*:\\s*"${escapeRegExp(tagName)}"`;
 //               const tagMatch = new RegExp(tagPattern, 'g').exec(manifestContent);
-              
+
 //               if (tagMatch) {
 //                 const tagPosition = tagMatch.index;
 //                 const { line, character } = getLineInfo(tagPosition);
-                
+
 //                 const tagLocation: CemLocation = {
 //                   type: 'tag',
 //                   tagName,
@@ -91,10 +91,10 @@
 //                   character,
 //                   original: customElement
 //                 };
-                
+
 //                 // Store the tag location
 //                 locations.set(tagName, tagLocation);
-                
+
 //                 // Process members if available
 //                 if (customElement.members) {
 //                   for (const member of customElement.members) {
@@ -103,7 +103,7 @@
 //                     }
 //                   }
 //                 }
-                
+
 //                 // Process slots
 //                 if (customElement.slots) {
 //                   for (const slot of customElement.slots) {
@@ -111,11 +111,11 @@
 //                       const slotName = slot.name || 'default';
 //                       const slotPattern = `"name"\\s*:\\s*"${escapeRegExp(slotName)}"`;
 //                       const slotMatch = new RegExp(slotPattern, 'g').exec(manifestContent);
-                      
+
 //                       if (slotMatch) {
 //                         const slotPosition = slotMatch.index;
 //                         const { line, character } = getLineInfo(slotPosition);
-                        
+
 //                         locations.set(`${tagName}.slot.${slotName}`, {
 //                           type: 'slot',
 //                           tagName,
@@ -129,18 +129,18 @@
 //                     }
 //                   }
 //                 }
-                
+
 //                 // Process CSS parts
 //                 if (customElement.cssParts) {
 //                   for (const part of customElement.cssParts) {
 //                     if (part.name) {
 //                       const partPattern = `"name"\\s*:\\s*"${escapeRegExp(part.name)}"`;
 //                       const partMatch = new RegExp(partPattern, 'g').exec(manifestContent);
-                      
+
 //                       if (partMatch) {
 //                         const partPosition = partMatch.index;
 //                         const { line, character } = getLineInfo(partPosition);
-                        
+
 //                         locations.set(`${tagName}.part.${part.name}`, {
 //                           type: 'css-property',
 //                           tagName,
@@ -160,7 +160,7 @@
 //         }
 //       }
 //     }
-    
+
 //     return locations;
 //   } catch (error) {
 //     console.error('Error mapping locations in CEM file:', error);
@@ -179,11 +179,11 @@
 //   locations: Map<string, CemLocation>
 // ): void {
 //   const memberName = member.name;
-  
+
 //   // Determine member type and search pattern
 //   let memberType: CemLocation['type'];
 //   let searchName: string = memberName;
-  
+
 //   switch (member.kind) {
 //     case 'field':
 //       memberType = 'field';
@@ -193,11 +193,11 @@
 //         if (typeof attrName === 'string') {
 //           const attrPattern = `"attribute"\\s*:\\s*"${escapeRegExp(attrName)}"`;
 //           const attrMatch = new RegExp(attrPattern, 'g').exec(manifestContent);
-          
+
 //           if (attrMatch) {
 //             const attrPosition = attrMatch.index;
 //             const { line, character } = getLineInfo(attrPosition);
-            
+
 //             // Store attribute location
 //             locations.set(`${tagName}.attr.${attrName}`, {
 //               type: 'attribute',
@@ -218,15 +218,15 @@
 //     default:
 //       memberType = 'field'; // Default to field
 //   }
-  
+
 //   // Find the member's position in the manifest
 //   const memberPattern = `"name"\\s*:\\s*"${escapeRegExp(memberName)}"`;
 //   const memberMatch = new RegExp(memberPattern, 'g').exec(manifestContent);
-  
+
 //   if (memberMatch) {
 //     const memberPosition = memberMatch.index;
 //     const { line, character } = getLineInfo(memberPosition);
-    
+
 //     // Store member location
 //     locations.set(`${tagName}.${memberType}.${memberName}`, {
 //       type: memberType,
@@ -244,7 +244,7 @@
 //  * Checks if a declaration is a custom element
 //  */
 // function isCustomElement(declaration: any): boolean {
-//   return declaration.kind === 'class' && 
+//   return declaration.kind === 'class' &&
 //          declaration.customElement === true &&
 //          declaration.tagName;
 // }

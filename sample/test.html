@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>Web Components Test</title>
@@ -17,7 +17,6 @@
     <sl-alert></sl-alert>
     <sl-badge></sl-badge>
 
-    
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -27,7 +26,10 @@
 
     <script>
       console.log("Web components test page loaded");
-      const taggedTemplate = html`<sl-alert duration="3000" variant="blah"></sl-alert>`;
+      const taggedTemplate = html`<sl-alert
+        duration="3000"
+        variant="blah"
+      ></sl-alert>`;
       const template = `<sl-avatar label="User Avatar" shape="circle"></sl-avatar><sl-button variant="blah">Click Me!</sl-button>`;
     </script>
   </body>

@@ -1,17 +1,38 @@
-import type * as cem from 'custom-elements-manifest/schema' with { 'resolution-mode': 'require' };
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
 
 export interface LanguageServerAdapter {
-  createCompletionItem(tag: string, description: string, attributes?: HTMLDataAttribute[]): any;
+  createCompletionItem(
+    tag: string,
+    description: string,
+    attributes?: HTMLDataAttribute[],
+  ): any;
   createHTMLDataProvider?(tags: HTMLDataTag[]): any;
   createHoverInfo?(tag: string, description: string): any;
-  
+
   // Existing methods for attribute completion
-  createAttributeCompletionItem?(attribute: HTMLDataAttribute, tagName: string): any;
-  createAttributeValueCompletionItem?(attribute: HTMLDataAttribute, value: HTMLDataAttributeValue, tagName: string): any;
-  
+  createAttributeCompletionItem?(
+    attribute: HTMLDataAttribute,
+    tagName: string,
+  ): any;
+  createAttributeValueCompletionItem?(
+    attribute: HTMLDataAttribute,
+    value: HTMLDataAttributeValue,
+    tagName: string,
+  ): any;
+
   // New methods for definition provider
-  createTagDefinitionLocation?(tagName: string, manifestPath: string, position: number): any;
-  createAttributeDefinitionLocation?(tagName: string, attributeName: string, manifestPath: string, position: number): any;
+  createTagDefinitionLocation?(
+    tagName: string,
+    manifestPath: string,
+    position: number,
+  ): any;
+  createAttributeDefinitionLocation?(
+    tagName: string,
+    attributeName: string,
+    manifestPath: string,
+    position: number,
+  ): any;
 
   // New method for completion list
   createCompletionList(elements: cem.CustomElement[]): any;
