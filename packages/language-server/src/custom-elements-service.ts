@@ -11,13 +11,31 @@ import {
 } from "./adapters";
 import * as html from "vscode-html-languageservice";
 
+/**
+ * Service for managing custom elements manifest data and providing language features
+ * for custom elements including completions, validation, and definitions.
+ */
 export class CustomElementsService {
+  /** Map of custom element tag names to their definitions */
   private customElements: Map<string, cem.CustomElement> = new Map();
+
+  /** File watcher for the custom elements manifest file */
   private manifestWatcher?: fs.StatWatcher;
+
+  /** HTML data provider for VS Code HTML language service integration */
   private htmlDataProvider: any = null;
+
+  /** Absolute path to the custom elements manifest file */
   private manifestPath: string | null = null;
+
+  /** Content of the manifest file as a string for position finding */
   private manifestContent: string = "";
 
+  /**
+   * Creates a new CustomElementsService instance.
+   * @param workspaceRoot - Root directory of the workspace
+   * @param adapter - Language server adapter for creating completions and definitions
+   */
   constructor(
     private workspaceRoot: string,
     private adapter: LanguageServerAdapter = new VSCodeAdapter()
@@ -26,6 +44,10 @@ export class CustomElementsService {
     this.watchManifestFile();
   }
 
+  /**
+   * Loads and parses the custom elements manifest file.
+   * Searches for the manifest in common locations and initializes the service.
+   */
   private loadCustomElementsManifest() {
     console.log("Loading custom elements manifest...");
     this.manifestPath = this.findManifestFile();
@@ -45,6 +67,10 @@ export class CustomElementsService {
     }
   }
 
+  /**
+   * Searches for a custom elements manifest file in common locations.
+   * @returns The path to the manifest file or null if not found
+   */
   private findManifestFile(): string | null {
     const possiblePaths = [
       path.join(this.workspaceRoot, "custom-elements.json"),
@@ -61,6 +87,10 @@ export class CustomElementsService {
     return null;
   }
 
+  /**
+   * Parses the custom elements manifest and extracts element definitions.
+   * @param manifest - The parsed custom elements manifest package
+   */
   private parseManifest(manifest: cem.Package) {
     this.customElements.clear();
     if (!manifest.modules) return;
@@ -89,6 +119,11 @@ export class CustomElementsService {
     }
   }
 
+  /**
+   * Checks if a declaration is a custom element class.
+   * @param declaration - The declaration to check
+   * @returns True if the declaration is a custom element
+   */
   private isCustomElementDeclaration(declaration: any): boolean {
     return (
       declaration.kind === "class" &&
@@ -97,6 +132,11 @@ export class CustomElementsService {
     );
   }
 
+  /**
+   * Extracts attribute definitions from a custom element.
+   * @param element - The custom element to extract attributes from
+   * @returns Array of HTML data attributes with metadata
+   */
   private extractAttributes(element: cem.CustomElement): HTMLDataAttribute[] {
     const attributes: HTMLDataAttribute[] = [];
 
@@ -134,7 +174,11 @@ export class CustomElementsService {
     return attributes;
   }
 
-  // Helper to extract enum values from type string
+  /**
+   * Extracts possible values from a type string for enum-like types.
+   * @param typeText - The type string to parse
+   * @returns Array of possible attribute values or undefined if not an enum
+   */
   private extractPossibleValues(
     typeText: string
   ): HTMLDataAttributeValue[] | undefined {
@@ -156,6 +200,10 @@ export class CustomElementsService {
     return undefined;
   }
 
+  /**
+   * Creates HTML data for VS Code HTML language service integration.
+   * Converts custom element definitions to HTML data format.
+   */
   private createHTMLData() {
     const tags: HTMLDataTag[] = [];
 
@@ -176,6 +224,10 @@ export class CustomElementsService {
     });
   }
 
+  /**
+   * Sets up file watching for the custom elements manifest.
+   * Automatically reloads the manifest when it changes.
+   */
   private watchManifestFile() {
     const manifestPath = this.findManifestFile();
     if (!manifestPath) return;
@@ -190,7 +242,10 @@ export class CustomElementsService {
     }
   }
 
-  // Public methods
+  /**
+   * Gets completion items for all custom elements.
+   * @returns Array of completion items for custom element tags
+   */
   public getCompletionItems(): any[] {
     const items: any[] = [];
 
@@ -215,6 +270,11 @@ export class CustomElementsService {
     return items;
   }
 
+  /**
+   * Gets hover information for a specific custom element tag.
+   * @param tagName - The tag name to get hover info for
+   * @returns Hover information object or null if not found
+   */
   public getHoverInfo(tagName: string): any | null {
     const element = this.customElements.get(tagName);
     if (!element) return null;
@@ -228,26 +288,45 @@ export class CustomElementsService {
     };
   }
 
-  // Legacy methods for backwards compatibility
+  /**
+   * Gets all custom element definitions (legacy method for backwards compatibility).
+   * @returns Array of all custom element definitions
+   */
   public getCustomElements(): cem.CustomElement[] {
     return Array.from(this.customElements.values());
   }
 
+  /**
+   * Gets the HTML data provider for VS Code integration.
+   * @returns The HTML data provider instance
+   */
   public getHTMLDataProvider(): any {
     return this.htmlDataProvider;
   }
 
+  /**
+   * Gets all custom element tag names.
+   * @returns Array of custom element tag names
+   */
   public getTagNames(): string[] {
     return Array.from(this.customElements.keys());
   }
 
+  /**
+   * Disposes of the service and cleans up resources.
+   * Stops file watching and clears data.
+   */
   public dispose() {
     if (this.manifestWatcher) {
       this.manifestWatcher.unref();
     }
   }
 
-  // Add a method to get attribute completions for a specific tag
+  /**
+   * Gets attribute completion items for a specific custom element tag.
+   * @param tagName - The tag name to get attribute completions for
+   * @returns Array of attribute completion items
+   */
   public getAttributeCompletions(tagName: string): any[] {
     const element = this.customElements.get(tagName);
     if (!element || !this.adapter.createAttributeCompletionItem) return [];
@@ -264,7 +343,12 @@ export class CustomElementsService {
     return completions;
   }
 
-  // Add a method to get attribute value completions
+  /**
+   * Gets attribute value completion items for a specific attribute.
+   * @param tagName - The tag name containing the attribute
+   * @param attributeName - The attribute name to get value completions for
+   * @returns Array of attribute value completion items
+   */
   public getAttributeValueCompletions(
     tagName: string,
     attributeName: string
@@ -286,7 +370,11 @@ export class CustomElementsService {
     );
   }
 
-  // Add a helper to find a string's position in the manifest content
+  /**
+   * Finds the character position of a search string in the manifest content.
+   * @param searchText - The text to search for
+   * @returns The character position or 0 if not found
+   */
   private findPositionInManifest(searchText: string): number {
     if (!this.manifestContent) return 0;
 
@@ -294,7 +382,11 @@ export class CustomElementsService {
     return position >= 0 ? position : 0;
   }
 
-  // Add methods for definition provider
+  /**
+   * Gets definition location for a custom element tag.
+   * @param tagName - The tag name to get definition for
+   * @returns Definition location or null if not found
+   */
   public getTagDefinition(tagName: string) {
     if (!this.manifestPath) {
       return null;
@@ -318,6 +410,12 @@ export class CustomElementsService {
     return location;
   }
 
+  /**
+   * Gets definition location for a custom element attribute.
+   * @param tagName - The tag name containing the attribute
+   * @param attributeName - The attribute name to get definition for
+   * @returns Definition location or null if not found
+   */
   public getAttributeDefinition(tagName: string, attributeName: string) {
     if (!this.manifestPath) return null;
 
@@ -338,7 +436,11 @@ export class CustomElementsService {
   }
 
   /**
-   * Validates attribute values against their schema
+   * Validates an attribute value against the custom element schema.
+   * @param tagName - The tag name containing the attribute
+   * @param attributeName - The attribute name to validate
+   * @param value - The value to validate
+   * @returns Error message if validation fails, null if valid
    */
   public validateAttributeValue(
     tagName: string,
@@ -357,7 +459,9 @@ export class CustomElementsService {
     if (attribute.values && attribute.values.length > 0) {
       const allowedValues = attribute.values.map((v) => v.name);
       if (!allowedValues.includes(value)) {
-        return `Invalid value "${value}" for attribute "${attributeName}". Allowed values: ${allowedValues.join(", ")}`;
+        return `Invalid value "${value}" for attribute "${attributeName}". Allowed values: ${allowedValues.join(
+          ", "
+        )}`;
       }
     }
 
@@ -373,7 +477,10 @@ export class CustomElementsService {
   }
 
   /**
-   * Validates that a value matches a specified type
+   * Validates that a value matches a specified type definition.
+   * @param value - The value to validate
+   * @param typeText - The type definition to validate against
+   * @returns Error message if validation fails, null if valid
    */
   private validateTypeMatch(value: string, typeText: string): string | null {
     // Handle boolean type
@@ -398,7 +505,9 @@ export class CustomElementsService {
           match.replace(/'/g, "")
         );
         if (!allowedValues.includes(value)) {
-          return `Invalid enum value "${value}". Expected one of: ${allowedValues.join(", ")}`;
+          return `Invalid enum value "${value}". Expected one of: ${allowedValues.join(
+            ", "
+          )}`;
         }
       }
     }
@@ -410,6 +519,7 @@ export class CustomElementsService {
 /**
  * Creates a simple completion service for custom elements that triggers on any character.
  * This ensures custom element completions work even without the opening `<` bracket.
+ * @returns Service plugin configuration object
  */
 export function createCustomElementsCompletionService() {
   return {
