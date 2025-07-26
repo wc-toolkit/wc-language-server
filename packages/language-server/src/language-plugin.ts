@@ -4,19 +4,19 @@ import type * as ts from 'typescript';
 import * as html from 'vscode-html-languageservice';
 import { URI } from 'vscode-uri';
 
-export const html1LanguagePlugin: LanguagePlugin<URI> = {
+export const wcLanguagePlugin: LanguagePlugin<URI> = {
 	getLanguageId(uri) {
-		if (uri.path.endsWith('.html1')) {
-			return 'html1';
+		if (uri.path.endsWith('.html')) {
+			return 'html';
 		}
 	},
 	createVirtualCode(_uri, languageId, snapshot) {
-		if (languageId === 'html1') {
-			return new Html1VirtualCode(snapshot);
+		if (languageId === 'html') {
+			return new WcLanguageServerVirtualCode(snapshot);
 		}
 	},
 	typescript: {
-		extraFileExtensions: [{ extension: 'html1', isMixedContent: true, scriptKind: 7 satisfies ts.ScriptKind.Deferred }],
+		extraFileExtensions: [{ extension: 'html', isMixedContent: true, scriptKind: 7 satisfies ts.ScriptKind.Deferred }],
 		getServiceScript() {
 			return undefined;
 		},
@@ -47,7 +47,7 @@ export const html1LanguagePlugin: LanguagePlugin<URI> = {
 
 const htmlLs = html.getLanguageService();
 
-export class Html1VirtualCode implements VirtualCode {
+export class WcLanguageServerVirtualCode implements VirtualCode {
 	id = 'root';
 	languageId = 'html';
 	mappings: CodeMapping[];
@@ -71,11 +71,11 @@ export class Html1VirtualCode implements VirtualCode {
 			},
 		}];
 		this.htmlDocument = htmlLs.parseHTMLDocument(html.TextDocument.create('', 'html', 0, snapshot.getText(0, snapshot.getLength())));
-		this.embeddedCodes = [...getHtml1EmbeddedCodes(snapshot, this.htmlDocument)];
+		this.embeddedCodes = [...getWcLanguageServerEmbeddedCodes(snapshot, this.htmlDocument)];
 	}
 }
 
-function* getHtml1EmbeddedCodes(snapshot: ts.IScriptSnapshot, htmlDocument: html.HTMLDocument): Generator<VirtualCode> {
+function* getWcLanguageServerEmbeddedCodes(snapshot: ts.IScriptSnapshot, htmlDocument: html.HTMLDocument): Generator<VirtualCode> {
 	const styles = htmlDocument.roots.filter(root => root.tag === 'style');
 	const scripts = htmlDocument.roots.filter(root => root.tag === 'script');
 

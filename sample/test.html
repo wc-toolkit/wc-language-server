@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Web Components Test</title>
+  </head>
+  <body>
+    <!-- Try typing < to see custom element autocomplete -->
+    <h1>Web Components Test Page</h1>
+
+    <!-- These should appear in autocomplete: my-element, custom-button -->
+    <my-element></my-element>
+    <custom-button>Click Me!</custom-button>
+    <sl-alert variant="name"></sl-alert>
+    <sl-button variant="neutral"></sl-button>
+    <sl-animation></sl-animation>
+    <sl-alert duration="3000"></sl-alert>
+    <sl-alert></sl-alert>
+    <sl-badge></sl-badge>
+
+    
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+    </style>
+
+    <script>
+      console.log("Web components test page loaded");
+      const taggedTemplate = html`<sl-alert duration="3000" variant="blah"></sl-alert>`;
+      const template = `<sl-avatar label="User Avatar" shape="circle"></sl-avatar><sl-button variant="blah">Click Me!</sl-button>`;
+    </script>
+  </body>
+</html>

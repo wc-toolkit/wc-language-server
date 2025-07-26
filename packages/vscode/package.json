@@ -1,7 +1,7 @@
 {
 	"private": true,
-	"name": "vscode-html1",
-	"version": "0.0.1",
+	"name": "web-components-language-server",
+	"version": "0.1.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/volarjs/starter.git",
@@ -10,26 +10,18 @@
 	"categories": [
 		"Programming Languages"
 	],
-	"displayName": "HTML1 Language Features",
-	"description": "HTML1 Language Features",
+	"displayName": "Web Component Language Features",
+	"description": "Web Component Language Features",
 	"author": "volarjs",
-	"publisher": "volarjs",
+	"publisher": "web-components-toolkit",
 	"engines": {
 		"vscode": "^1.82.0"
 	},
 	"activationEvents": [
-		"onLanguage:html1"
+		"onLanguage:html"
 	],
 	"main": "./dist/client.js",
 	"contributes": {
-		"languages": [
-			{
-				"id": "html1",
-				"extensions": [
-					".html1"
-				]
-			}
-		]
 	},
 	"scripts": {
 		"build": "node scripts/build -- --minify",
@@ -37,8 +29,11 @@
 		"pack": "npm run build && vsce package --pre-release",
 		"release": "npm run build && vsce publish --pre-release"
 	},
+	"dependencies": {
+		"vscode-languageclient": "^8.1.0"
+	},
 	"devDependencies": {
-		"@html1/language-server": "workspace:*",
+		"@wc-toolkit/language-server": "workspace:*",
 		"@types/vscode": "^1.82.0",
 		"@volar/language-server": "~2.4.0",
 		"@volar/vscode": "~2.4.0",

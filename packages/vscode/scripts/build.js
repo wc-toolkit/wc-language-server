@@ -7,7 +7,10 @@ require('esbuild').context({
 	bundle: true,
 	metafile: process.argv.includes('--metafile'),
 	outdir: './dist',
-	external: ['vscode'],
+	external: [
+		'vscode',
+		'vscode-languageclient'
+	],
 	format: 'cjs',
 	platform: 'node',
 	tsconfig: './tsconfig.json',

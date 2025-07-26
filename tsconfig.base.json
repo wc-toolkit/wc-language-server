@@ -3,6 +3,7 @@
 		"target": "ES2021",
 		"lib": [
 			"ES2021",
+			"DOM"
 		],
 		"module": "Node16",
 		"sourceMap": true,
@@ -14,7 +15,7 @@
 		"noUnusedParameters": true,
 		"baseUrl": "./",
 		"paths": {
-			"@html1/language-server": [
+			"@wc-toolkit/language-server": [
 				"packages/language-server/src"
 			],
 		},
