@@ -4,10 +4,23 @@ import { DiagnosticSeverity } from "vscode-languageserver-types";
 import { CustomElementsService } from "./custom-elements-service";
 import { VSCodeAdapter } from "./adapters";
 
+/**
+ * Service that provides HTML language features with custom element support.
+ * Extends the VS Code HTML language service with custom element definitions,
+ * completions, hover information, and diagnostics.
+ */
 export class CustomHtmlService {
+  /** Service for managing custom element definitions and data */
   private customElementsService: CustomElementsService;
+  
+  /** VS Code HTML language service instance */
   private htmlLanguageService: html.LanguageService;
 
+  /**
+   * Creates a new CustomHtmlService instance.
+   * @param workspaceRoot - Root directory of the workspace
+   * @param adapter - Optional VS Code adapter for file system operations
+   */
   constructor(workspaceRoot: string, adapter?: VSCodeAdapter) {
     // Create custom elements service with adapter
     this.customElementsService = new CustomElementsService(
@@ -25,7 +38,13 @@ export class CustomHtmlService {
     });
   }
 
-  // Public API methods
+  /**
+   * Provides completion items for HTML documents with custom element support.
+   * @param document - The text document being edited
+   * @param position - The cursor position where completion was triggered
+   * @param _completionContext - Optional completion context (unused)
+   * @returns Completion list containing both standard HTML and custom element completions
+   */
   public provideCompletionItems(
     document: any,
     position: any,
@@ -77,6 +96,12 @@ export class CustomHtmlService {
     );
   }
 
+  /**
+   * Provides hover information for HTML elements and attributes.
+   * @param document - The text document being hovered over
+   * @param position - The cursor position where hover was triggered
+   * @returns Hover information or null if no hover data is available
+   */
   public provideHover(document: any, position: any) {
     const textDocument = html.TextDocument.create(
       document.uri,
@@ -94,6 +119,12 @@ export class CustomHtmlService {
     );
   }
 
+  /**
+   * Provides definition links for custom elements and their attributes.
+   * @param document - The text document containing the symbol
+   * @param position - The cursor position on the symbol
+   * @returns Definition location or null if no definition is found
+   */
   public provideDefinition(document: any, position: any) {
     const text = document.getText();
     const offset = document.offsetAt(position);
@@ -120,6 +151,11 @@ export class CustomHtmlService {
     return attributeDefinition || null;
   }
 
+  /**
+   * Provides diagnostic information for HTML documents with custom element validation.
+   * @param document - The text document to validate
+   * @returns Array of diagnostic messages for validation errors
+   */
   public provideDiagnostics(document: any) {
     const text = document.getText();
     const textDocument = html.TextDocument.create(
@@ -141,27 +177,51 @@ export class CustomHtmlService {
     return diagnostics;
   }
 
+  /**
+   * Disposes of the service and cleans up resources.
+   */
   public dispose() {
     this.customElementsService.dispose();
   }
 
-  // Private helper methods
+  /**
+   * Checks if the current completion context is for HTML tag completion.
+   * @param beforeText - Text content before the cursor position
+   * @returns True if this is a tag completion scenario
+   */
   private isTagCompletion(beforeText: string): boolean {
     return !!beforeText.match(/<([a-zA-Z0-9-]*)$/);
   }
 
+  /**
+   * Checks if the current completion context is for HTML attribute name completion.
+   * @param beforeText - Text content before the cursor position
+   * @returns True if this is an attribute name completion scenario
+   */
   private isAttributeNameCompletion(beforeText: string): boolean {
     return !!beforeText.match(
       /<([a-zA-Z0-9-]+)(?:\s+[a-zA-Z0-9-]+(=(?:["'][^"']*["'])?))*\s+([a-zA-Z0-9-]*)$/
     );
   }
 
+  /**
+   * Checks if the current completion context is for HTML attribute value completion.
+   * @param beforeText - Text content before the cursor position
+   * @returns True if this is an attribute value completion scenario
+   */
   private isAttributeValueCompletion(beforeText: string): boolean {
     return !!beforeText.match(
       /<([a-zA-Z0-9-]+)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
     );
   }
 
+  /**
+   * Handles completion for HTML tags, including custom elements.
+   * @param textDocument - The HTML text document
+   * @param position - The cursor position
+   * @param htmlDocument - Parsed HTML document structure
+   * @returns Completion list with both standard and custom element tags
+   */
   private handleTagCompletion(
     textDocument: html.TextDocument,
     position: any,
@@ -174,13 +234,28 @@ export class CustomHtmlService {
       htmlDocument
     );
 
-    // Add custom element completions
+    // Add custom element completions without the opening '<' since it's already typed
     const customCompletions = this.customElementsService.getCompletionItems();
-    htmlCompletions.items.push(...customCompletions);
+    
+    // Modify custom completions to not include the opening '<'
+    const modifiedCustomCompletions = customCompletions.map(item => ({
+      ...item,
+      insertText: item.insertText?.replace(/^</, '') || item.label,
+    }));
+
+    htmlCompletions.items.push(...modifiedCustomCompletions);
 
     return htmlCompletions;
   }
 
+  /**
+   * Handles completion for HTML attribute names on custom elements.
+   * @param beforeText - Text content before the cursor position
+   * @param textDocument - The HTML text document
+   * @param position - The cursor position
+   * @param htmlDocument - Parsed HTML document structure
+   * @returns Completion list with attribute names or null if not applicable
+   */
   private handleAttributeNameCompletion(
     beforeText: string,
     textDocument: html.TextDocument,
@@ -212,6 +287,14 @@ export class CustomHtmlService {
     return htmlCompletions;
   }
 
+  /**
+   * Handles completion for HTML attribute values on custom elements.
+   * @param beforeText - Text content before the cursor position
+   * @param textDocument - The HTML text document
+   * @param position - The cursor position
+   * @param htmlDocument - Parsed HTML document structure
+   * @returns Completion list with attribute values or null if not applicable
+   */
   private handleAttributeValueCompletion(
     beforeText: string,
     textDocument: html.TextDocument,
@@ -265,6 +348,12 @@ export class CustomHtmlService {
     return htmlCompletions;
   }
 
+  /**
+   * Extracts the current word at the specified offset in the text.
+   * @param text - The full text content
+   * @param offset - The character offset position
+   * @returns The word at the offset or null if no word is found
+   */
   private getCurrentWord(text: string, offset: number): string | null {
     const wordPattern = /[a-zA-Z0-9-]+/;
     let wordStart = offset;
@@ -287,6 +376,13 @@ export class CustomHtmlService {
     return text.substring(wordStart, wordEnd);
   }
 
+  /**
+   * Finds the HTML tag that contains the specified position.
+   * @param text - The full text content
+   * @param position - The cursor position
+   * @param offset - The character offset position
+   * @returns The tag name containing the position or null if not found
+   */
   private findContainingTag(
     text: string,
     position: any,
@@ -325,6 +421,12 @@ export class CustomHtmlService {
     return tagName || null;
   }
 
+  /**
+   * Validates an HTML node and its attributes for custom element compliance.
+   * @param node - The HTML node to validate
+   * @param document - The text document containing the node
+   * @param diagnostics - Array to append diagnostic messages to
+   */
   private validateNode(
     node: any,
     document: any,
@@ -409,6 +511,13 @@ export class CustomHtmlService {
     }
   }
 
+  /**
+   * Finds the character offset of a specific attribute within an HTML element.
+   * @param text - The full text content
+   * @param node - The HTML node containing the attribute
+   * @param attrName - The name of the attribute to find
+   * @returns The character offset of the attribute or -1 if not found
+   */
   private findAttributeOffset(
     text: string,
     node: any,
@@ -433,12 +542,15 @@ export class CustomHtmlService {
   }
 }
 
-// Add a static method to create the service plugin
+/**
+ * Creates a language service plugin for custom HTML features.
+ * @returns Plugin object with capabilities and service creation function
+ */
 export function createCustomHtmlServicePlugin() {
   return {
     capabilities: {
       completionProvider: {
-        triggerCharacters: ["<", " ", "=", '"', "'", ">"],
+        triggerCharacters: ["<", " ", "=", '"', "'", ">", "-", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"],
       },
       hoverProvider: true,
       definitionProvider: true,
@@ -447,6 +559,11 @@ export function createCustomHtmlServicePlugin() {
         workspaceDiagnostics: false,
       },
     },
+    /**
+     * Creates the custom HTML service instance.
+     * @param context - Language service context containing workspace information
+     * @returns Service instance with bound methods
+     */
     create(context: any) {
       const workspaceFolders = context.env?.workspaceFolders;
       const workspaceRoot = workspaceFolders?.[0]?.uri || "";
