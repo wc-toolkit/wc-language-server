@@ -2,6 +2,7 @@
   "private": true,
   "name": "web-components-language-server",
   "version": "0.1.0",
+  "icon": "assets/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/volarjs/starter.git",

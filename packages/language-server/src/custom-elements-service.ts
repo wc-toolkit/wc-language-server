@@ -50,7 +50,7 @@ export class CustomElementsService {
       path.join(this.workspaceRoot, "custom-elements.json"),
       path.join(this.workspaceRoot, "dist", "custom-elements.json"),
       path.join(this.workspaceRoot, "src", "custom-elements.json"),
-      path.join(this.workspaceRoot, "sample", "custom-elements.json"),
+      path.join(this.workspaceRoot, "demo", "html", "custom-elements.json"),
     ];
 
     for (const manifestPath of possiblePaths) {
@@ -199,12 +199,6 @@ export class CustomElementsService {
         element.description || element.summary || `Custom element: ${tagName}`;
 
       items.push({
-        // label: tagName,
-        // kind: html.CompletionItemKind.Property,
-        // documentation: description,
-        // insertText: `${tagName}>$0</${tagName}>`,
-        // insertTextFormat: html.InsertTextFormat.Snippet,
-        // detail: 'Custom Element',
         label: tagName,
         kind: html.CompletionItemKind.Property,
         documentation: {

@@ -8,7 +8,7 @@
   "scripts": {
     "build": "cd ./packages/vscode && npm run build",
     "watch": "cd ./packages/vscode && npm run watch",
-    "pack": "cd ./packages/vscode && npm run pack",
+    "vscode:pack": "cd ./packages/vscode && npm run pack",
     "release": "cd ./packages/vscode && npm run release",
     "clean": "git clean -fdX",
     "format": "prettier . --write",

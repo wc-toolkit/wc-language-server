@@ -43,7 +43,7 @@ export function createCustomHtmlService() {
           document: any,
           position: any,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          completionContext: any,
+          _completionContext: any,
         ) {
           const text = document.getText();
           const offset = document.offsetAt(position);
