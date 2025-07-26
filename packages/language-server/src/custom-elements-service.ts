@@ -205,7 +205,7 @@ export class CustomElementsService {
           kind: "markdown",
           value: description,
         },
-        insertText: `<${tagName}>$0</${tagName}>`,
+        insertText: `${tagName}>$0</${tagName}>`,
         insertTextFormat: html.InsertTextFormat.Snippet,
         detail: "Custom Element",
         sortText: "0" + tagName, // Sort custom elements first
@@ -407,16 +407,19 @@ export class CustomElementsService {
   }
 }
 
+/**
+ * Creates a simple completion service for custom elements that triggers on any character.
+ * This ensures custom element completions work even without the opening `<` bracket.
+ */
 export function createCustomElementsCompletionService() {
   return {
     capabilities: {
       completionProvider: {
-        triggerCharacters: ["<"],
+        triggerCharacters: [], // Empty array means trigger on any character
       },
     },
     create(context: any) {
       const workspaceRoot = context.env?.workspaceFolders?.[0]?.uri || "";
-      // Create adapter first, then pass it to the service
       const adapter = new VSCodeAdapter();
       const customElementsService = new CustomElementsService(
         workspaceRoot,
@@ -425,15 +428,22 @@ export function createCustomElementsCompletionService() {
 
       return {
         provideCompletionItems(
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          _document: any,
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          _position: any,
+          document: any,
+          position: any,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           _completionContext: any
         ) {
+          // Only provide completions in HTML-like contexts
+          const text = document.getText();
+          const offset = document.offsetAt(position);
+          const beforeText = text.substring(0, offset);
+
+          // Don't provide completions if we're clearly in an attribute context
+          if (beforeText.match(/\s+\w+=[^>]*$/)) {
+            return { items: [] };
+          }
+
           const customElements = customElementsService.getCustomElements();
-          // Use the adapter to create the completion list
           return adapter.createCompletionList(customElements);
         },
 
