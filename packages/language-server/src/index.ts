@@ -8,8 +8,8 @@ import { create as createCssService } from "volar-service-css";
 import { create as createEmmetService } from "volar-service-emmet";
 import { create as createTypeScriptServices } from "volar-service-typescript";
 import { wcLanguagePlugin } from "./language-plugin";
-import { createCustomElementsCompletionService } from "./custom-elements-service";
 import { createCustomHtmlServicePlugin } from "./html-service";
+import { createCustomElementsCompletionService } from "./custom-elements-service";
 
 const connection = createConnection();
 const server = createServer(connection);
@@ -28,10 +28,10 @@ connection.onInitialize((params) => {
       languagePlugins: [wcLanguagePlugin],
     })),
     [
-      createCustomHtmlServicePlugin(), // HTML service now includes definition provider
+      createCustomElementsCompletionService(), // Broader custom element completions
+      createCustomHtmlServicePlugin(), // Comprehensive HTML service with custom elements
       createCssService(),
       createEmmetService(),
-      createCustomElementsCompletionService(),
       ...createTypeScriptServices(tsdk.typescript),
     ]
   );
