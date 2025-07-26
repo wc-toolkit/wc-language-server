@@ -12,7 +12,7 @@ export class CustomHtmlService {
     // Create custom elements service with adapter
     this.customElementsService = new CustomElementsService(
       workspaceRoot,
-      adapter || new VSCodeAdapter(),
+      adapter || new VSCodeAdapter()
     );
 
     // Get HTML data provider from custom elements service
@@ -30,7 +30,7 @@ export class CustomHtmlService {
     document: any,
     position: any,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _completionContext?: any,
+    _completionContext?: any
   ) {
     const text = document.getText();
     const offset = document.offsetAt(position);
@@ -41,9 +41,10 @@ export class CustomHtmlService {
       document.uri,
       "html",
       0,
-      text,
+      text
     );
-    const htmlDocument = this.htmlLanguageService.parseHTMLDocument(textDocument);
+    const htmlDocument =
+      this.htmlLanguageService.parseHTMLDocument(textDocument);
 
     // Handle different completion scenarios
     if (this.isTagCompletion(beforeText)) {
@@ -55,7 +56,7 @@ export class CustomHtmlService {
         beforeText,
         textDocument,
         position,
-        htmlDocument,
+        htmlDocument
       );
     }
 
@@ -64,12 +65,16 @@ export class CustomHtmlService {
         beforeText,
         textDocument,
         position,
-        htmlDocument,
+        htmlDocument
       );
     }
 
     // Default: Let HTML service handle all other completion scenarios
-    return this.htmlLanguageService.doComplete(textDocument, position, htmlDocument);
+    return this.htmlLanguageService.doComplete(
+      textDocument,
+      position,
+      htmlDocument
+    );
   }
 
   public provideHover(document: any, position: any) {
@@ -77,11 +82,16 @@ export class CustomHtmlService {
       document.uri,
       "html",
       0,
-      document.getText(),
+      document.getText()
     );
-    const htmlDocument = this.htmlLanguageService.parseHTMLDocument(textDocument);
+    const htmlDocument =
+      this.htmlLanguageService.parseHTMLDocument(textDocument);
 
-    return this.htmlLanguageService.doHover(textDocument, position, htmlDocument);
+    return this.htmlLanguageService.doHover(
+      textDocument,
+      position,
+      htmlDocument
+    );
   }
 
   public provideDefinition(document: any, position: any) {
@@ -89,7 +99,9 @@ export class CustomHtmlService {
     const offset = document.offsetAt(position);
     const currentWord = this.getCurrentWord(text, offset);
 
-    if (!currentWord) return null;
+    if (!currentWord) {
+      return null;
+    }
 
     // Check if the word is a custom element tag
     if (this.customElementsService.getTagNames().includes(currentWord)) {
@@ -98,24 +110,26 @@ export class CustomHtmlService {
 
     // Check if the word is an attribute
     const tagName = this.findContainingTag(text, position, offset);
-    if (tagName && currentWord) {
-      const attributeDefinition = this.customElementsService.getAttributeDefinition(
-        tagName,
-        currentWord,
-      );
-
-      if (attributeDefinition) {
-        return attributeDefinition;
-      }
+    if (!tagName) {
+      return null;
     }
 
-    return null;
+    const attributeDefinition =
+      this.customElementsService.getAttributeDefinition(tagName, currentWord);
+
+    return attributeDefinition || null;
   }
 
   public provideDiagnostics(document: any) {
     const text = document.getText();
-    const textDocument = html.TextDocument.create(document.uri, "html", 0, text);
-    const htmlDocument = this.htmlLanguageService.parseHTMLDocument(textDocument);
+    const textDocument = html.TextDocument.create(
+      document.uri,
+      "html",
+      0,
+      text
+    );
+    const htmlDocument =
+      this.htmlLanguageService.parseHTMLDocument(textDocument);
 
     const diagnostics: html.Diagnostic[] = [];
 
@@ -138,24 +152,26 @@ export class CustomHtmlService {
 
   private isAttributeNameCompletion(beforeText: string): boolean {
     return !!beforeText.match(
-      /<([a-zA-Z0-9-]+)(?:\s+[a-zA-Z0-9-]+(=(?:["'][^"']*["'])?))*\s+([a-zA-Z0-9-]*)$/,
+      /<([a-zA-Z0-9-]+)(?:\s+[a-zA-Z0-9-]+(=(?:["'][^"']*["'])?))*\s+([a-zA-Z0-9-]*)$/
     );
   }
 
   private isAttributeValueCompletion(beforeText: string): boolean {
-    return !!beforeText.match(/<([a-zA-Z0-9-]+)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/);
+    return !!beforeText.match(
+      /<([a-zA-Z0-9-]+)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
+    );
   }
 
   private handleTagCompletion(
     textDocument: html.TextDocument,
     position: any,
-    htmlDocument: html.HTMLDocument,
+    htmlDocument: html.HTMLDocument
   ) {
     // Get completions from HTML service
     const htmlCompletions = this.htmlLanguageService.doComplete(
       textDocument,
       position,
-      htmlDocument,
+      htmlDocument
     );
 
     // Add custom element completions
@@ -169,81 +185,84 @@ export class CustomHtmlService {
     beforeText: string,
     textDocument: html.TextDocument,
     position: any,
-    htmlDocument: html.HTMLDocument,
+    htmlDocument: html.HTMLDocument
   ) {
     const attrNameMatch = beforeText.match(
-      /<([a-zA-Z0-9-]+)(?:\s+[a-zA-Z0-9-]+(=(?:["'][^"']*["'])?))*\s+([a-zA-Z0-9-]*)$/,
+      /<([a-zA-Z0-9-]+)(?:\s+[a-zA-Z0-9-]+(=(?:["'][^"']*["'])?))*\s+([a-zA-Z0-9-]*)$/
     );
 
-    if (attrNameMatch) {
-      const tagName = attrNameMatch[1];
-
-      // Get default HTML attribute completions
-      const htmlCompletions = this.htmlLanguageService.doComplete(
-        textDocument,
-        position,
-        htmlDocument,
-      );
-
-      // Add custom element attribute completions
-      const customAttrCompletions = this.customElementsService.getAttributeCompletions(tagName);
-      htmlCompletions.items.push(...customAttrCompletions);
-
-      return htmlCompletions;
+    if (!attrNameMatch) {
+      return null;
     }
 
-    return null;
+    const tagName = attrNameMatch[1];
+
+    // Get default HTML attribute completions
+    const htmlCompletions = this.htmlLanguageService.doComplete(
+      textDocument,
+      position,
+      htmlDocument
+    );
+
+    // Add custom element attribute completions
+    const customAttrCompletions =
+      this.customElementsService.getAttributeCompletions(tagName);
+    htmlCompletions.items.push(...customAttrCompletions);
+
+    return htmlCompletions;
   }
 
   private handleAttributeValueCompletion(
     beforeText: string,
     textDocument: html.TextDocument,
     position: any,
-    htmlDocument: html.HTMLDocument,
+    htmlDocument: html.HTMLDocument
   ) {
     const attrValueMatch = beforeText.match(
-      /<([a-zA-Z0-9-]+)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/,
+      /<([a-zA-Z0-9-]+)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
     );
 
-    if (attrValueMatch) {
-      const tagName = attrValueMatch[1];
-      const attrName = attrValueMatch[2];
+    if (!attrValueMatch) {
+      return null;
+    }
 
-      // Let HTML service handle it first for standard attributes
-      const htmlCompletions = this.htmlLanguageService.doComplete(
-        textDocument,
-        position,
-        htmlDocument,
-      );
+    const tagName = attrValueMatch[1];
+    const attrName = attrValueMatch[2];
 
-      // Add custom attribute value completions
-      const customValueCompletions = this.customElementsService.getAttributeValueCompletions(
+    // Let HTML service handle it first for standard attributes
+    const htmlCompletions = this.htmlLanguageService.doComplete(
+      textDocument,
+      position,
+      htmlDocument
+    );
+
+    // Add custom attribute value completions
+    const customValueCompletions =
+      this.customElementsService.getAttributeValueCompletions(
         tagName,
-        attrName,
+        attrName
       );
 
-      // Set the range for each completion item for proper replacement
-      if (customValueCompletions.length > 0) {
-        const attrValuePos = position.character - (attrValueMatch[3]?.length || 0);
-        const valueRange = {
-          start: { line: position.line, character: attrValuePos },
-          end: position,
-        };
-
-        // Apply the range to each completion item's textEdit
-        customValueCompletions.forEach((item) => {
-          if (item.textEdit) {
-            item.textEdit.range = valueRange;
-          }
-        });
-
-        htmlCompletions.items.push(...customValueCompletions);
-      }
-
+    // Set the range for each completion item for proper replacement
+    if (customValueCompletions.length === 0) {
       return htmlCompletions;
     }
 
-    return null;
+    const attrValuePos = position.character - (attrValueMatch[3]?.length || 0);
+    const valueRange = {
+      start: { line: position.line, character: attrValuePos },
+      end: position,
+    };
+
+    // Apply the range to each completion item's textEdit
+    customValueCompletions.forEach((item) => {
+      if (item.textEdit) {
+        item.textEdit.range = valueRange;
+      }
+    });
+
+    htmlCompletions.items.push(...customValueCompletions);
+    return htmlCompletions;
   }
 
   private getCurrentWord(text: string, offset: number): string | null {
@@ -261,88 +280,124 @@ export class CustomHtmlService {
       wordEnd++;
     }
 
-    if (wordStart === wordEnd) return null;
+    if (wordStart === wordEnd) {
+      return null;
+    }
 
     return text.substring(wordStart, wordEnd);
   }
 
-  private findContainingTag(text: string, position: any, offset: number): string | null {
+  private findContainingTag(
+    text: string,
+    position: any,
+    offset: number
+  ): string | null {
     const textDocument = html.TextDocument.create("", "html", 0, text);
     const scanner = this.htmlLanguageService.createScanner(text);
     let tagName = "";
     let token = scanner.scan();
 
     while (token !== html.TokenType.EOS) {
-      if (token === html.TokenType.StartTag) {
-        const currentTagName = scanner.getTokenText();
-        const tagRange = {
-          start: textDocument.positionAt(scanner.getTokenOffset()),
-          end: textDocument.positionAt(scanner.getTokenEnd()),
-        };
-
-        // If the tag contains our position
-        if (
-          position.line >= tagRange.start.line &&
-          position.character >= tagRange.start.character &&
-          scanner.getTokenEnd() > offset
-        ) {
-          tagName = currentTagName;
-          break;
-        }
+      if (token !== html.TokenType.StartTag) {
+        token = scanner.scan();
+        continue;
       }
+
+      const currentTagName = scanner.getTokenText();
+      const tagRange = {
+        start: textDocument.positionAt(scanner.getTokenOffset()),
+        end: textDocument.positionAt(scanner.getTokenEnd()),
+      };
+
+      // If the tag contains our position
+      if (
+        position.line >= tagRange.start.line &&
+        position.character >= tagRange.start.character &&
+        scanner.getTokenEnd() > offset
+      ) {
+        tagName = currentTagName;
+        break;
+      }
+
       token = scanner.scan();
     }
 
     return tagName || null;
   }
 
-  private validateNode(node: any, document: any, diagnostics: html.Diagnostic[]) {
+  private validateNode(
+    node: any,
+    document: any,
+    diagnostics: html.Diagnostic[]
+  ) {
     // Only process element nodes
-    if (node.tag) {
-      const tagName = node.tag;
-
-      // Check if this is a custom element we know about
-      if (this.customElementsService.getTagNames().includes(tagName)) {
-        // Validate each attribute
-        if (node.attributes) {
-          for (const [attrName, attrValue] of Object.entries(node.attributes)) {
-            if (typeof attrValue === "string") {
-              // Validate the attribute value
-              const errorMessage = this.customElementsService.validateAttributeValue(
-                tagName,
-                attrName,
-                attrValue,
-              );
-
-              // If there's an error, add a diagnostic
-              if (errorMessage) {
-                // Find the attribute position in the document
-                const startOffset = this.findAttributeOffset(
-                  document.getText(),
-                  node,
-                  attrName,
-                );
-
-                if (startOffset !== -1) {
-                  const startPos = document.positionAt(startOffset);
-                  const endPos = document.positionAt(
-                    startOffset + attrName.length + attrValue.length + 3,
-                  ); // +3 for ="
-
-                  diagnostics.push({
-                    severity: DiagnosticSeverity.Error,
-                    range: {
-                      start: startPos,
-                      end: endPos,
-                    },
-                    message: errorMessage,
-                    source: "web-components",
-                  });
-                }
-              }
-            }
-          }
+    if (!node.tag) {
+      // Process child nodes recursively
+      if (node.children) {
+        for (const child of node.children) {
+          this.validateNode(child, document, diagnostics);
         }
+      }
+      return;
+    }
+
+    const tagName = node.tag;
+
+    // Check if this is a custom element we know about
+    if (!this.customElementsService.getTagNames().includes(tagName)) {
+      // Process child nodes recursively
+      if (node.children) {
+        for (const child of node.children) {
+          this.validateNode(child, document, diagnostics);
+        }
+      }
+      return;
+    }
+
+    // Validate each attribute
+    if (node.attributes) {
+      for (const [attrName, attrValue] of Object.entries(node.attributes)) {
+        if (typeof attrValue !== "string") {
+          continue;
+        }
+
+        // Validate the attribute value
+        const errorMessage = this.customElementsService.validateAttributeValue(
+          tagName,
+          attrName,
+          attrValue
+        );
+
+        // If there's no error, continue
+        if (!errorMessage) {
+          continue;
+        }
+
+        // Find the attribute position in the document
+        const startOffset = this.findAttributeOffset(
+          document.getText(),
+          node,
+          attrName
+        );
+
+        if (startOffset === -1) {
+          continue;
+        }
+
+        const startPos = document.positionAt(startOffset);
+        const endPos = document.positionAt(
+          startOffset + attrName.length + attrValue.length + 3
+        ); // +3 for ="
+
+        diagnostics.push({
+          severity: DiagnosticSeverity.Error,
+          range: {
+            start: startPos,
+            end: endPos,
+          },
+          message: errorMessage,
+          source: "web-components",
+        });
       }
     }
 
@@ -354,7 +409,11 @@ export class CustomHtmlService {
     }
   }
 
-  private findAttributeOffset(text: string, node: any, attrName: string): number {
+  private findAttributeOffset(
+    text: string,
+    node: any,
+    attrName: string
+  ): number {
     // Find the start of the element
     const elementStart = node.start;
     const elementEnd = node.end;
@@ -366,11 +425,11 @@ export class CustomHtmlService {
     const attrRegex = new RegExp(`\\s${attrName}\\s*=\\s*["']`, "g");
     const match = attrRegex.exec(elementText);
 
-    if (match) {
-      return elementStart + match.index + 1; // +1 to skip the initial space
+    if (!match) {
+      return -1;
     }
 
-    return -1;
+    return elementStart + match.index + 1; // +1 to skip the initial space
   }
 }
 
