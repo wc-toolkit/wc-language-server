@@ -282,7 +282,10 @@
               "name": "duration",
               "default": "Infinity",
               "description": "The length of time, in milliseconds, the alert will show before closing itself. If the user interacts with\nthe alert before it closes (e.g. moves the mouse over it), the timer will restart. Defaults to `Infinity`, meaning\nthe alert will not close on its own.",
-              "fieldName": "duration"
+              "fieldName": "duration",
+              "type": {
+                "text": "number"
+              }
             },
             {
               "name": "countdown",

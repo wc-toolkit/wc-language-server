@@ -4,12 +4,18 @@ import * as path from "path";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
 import {
   HTMLDataAttribute,
-  HTMLDataAttributeValue,
   HTMLDataTag,
   LanguageServerAdapter,
   VSCodeAdapter,
 } from "./adapters";
 import * as html from "vscode-html-languageservice";
+import {
+  Component,
+  getAllComponents,
+  getMemberDescription,
+  removeQuotes,
+} from "@wc-toolkit/cem-utilities";
+import { getAttributeValueOptions } from "./utilities/cem-utils";
 
 /**
  * Service for managing custom elements manifest data and providing language features
@@ -30,6 +36,9 @@ export class CustomElementsService {
 
   /** Content of the manifest file as a string for position finding */
   private manifestContent: string = "";
+
+  /** Map of attribute names to their options data */
+  private attributeOptions: Map<string, string[] | string> = new Map();
 
   /**
    * Creates a new CustomElementsService instance.
@@ -93,43 +102,23 @@ export class CustomElementsService {
    */
   private parseManifest(manifest: cem.Package) {
     this.customElements.clear();
-    if (!manifest.modules) return;
-
-    for (const module of manifest.modules) {
-      if (!module.declarations) continue;
-
-      for (const declaration of module.declarations) {
-        if (this.isCustomElementDeclaration(declaration)) {
-          const customElement = declaration as cem.CustomElement;
-          const tagName = customElement.tagName;
-          if (tagName) {
-            // Find position in the manifest file
-            const tagPosition = this.findPositionInManifest(
-              `"tagName": "${tagName}"`
-            );
-
-            // Store the position with the custom element
-            (customElement as any).sourcePosition = tagPosition;
-
-            // Store the element
-            this.customElements.set(tagName, customElement);
-          }
-        }
-      }
+    if (!manifest.modules) {
+      return;
     }
+    const components = getAllComponents(manifest);
+    components.forEach((element) => {
+      this.customElements.set(element.tagName!, element);
+      this.setAttributeOptions(element);
+    });
   }
 
-  /**
-   * Checks if a declaration is a custom element class.
-   * @param declaration - The declaration to check
-   * @returns True if the declaration is a custom element
-   */
-  private isCustomElementDeclaration(declaration: any): boolean {
-    return (
-      declaration.kind === "class" &&
-      declaration.customElement === true &&
-      declaration.tagName
-    );
+  /** Sets the attribute options for a custom element. */
+  private setAttributeOptions(component: Component) {
+    component.attributes?.forEach((attr) => {
+      const options = getAttributeValueOptions(attr);
+      console.log(component.tagName, attr.name, options)
+      this.attributeOptions.set(`${component.tagName}:${attr.name}`, options);
+    });
   }
 
   /**
@@ -137,67 +126,46 @@ export class CustomElementsService {
    * @param element - The custom element to extract attributes from
    * @returns Array of HTML data attributes with metadata
    */
-  private extractAttributes(element: cem.CustomElement): HTMLDataAttribute[] {
+  private getAttributesForAutoComplete(
+    element: cem.CustomElement
+  ): HTMLDataAttribute[] {
     const attributes: HTMLDataAttribute[] = [];
 
-    if (element.members) {
-      for (const member of element.members) {
-        if (member.kind === "field" && (member as any).attribute) {
-          const attrName = (member as any).attribute;
-          if (typeof attrName === "string") {
-            // Find position in the manifest file
-            const attrPosition = this.findPositionInManifest(
-              `"attribute": "${attrName}"`
-            );
+    for (const attr of element?.attributes || []) {
+      // Find position in the manifest file
+      const attrPosition = this.findPositionInManifest(
+        `"attribute": "${attr.name}"`
+      );
 
-            // Get the attribute type from the field
-            const typeText = (member as any).type?.text || "";
-            const memberName = (member as any).name || "";
+      // Get the attribute type from the field
+      const typeText =
+        (attr as any)["parsedType"]?.text || (attr as any).type?.text || "";
 
-            // Create attribute with more info
-            attributes.push({
-              name: attrName,
-              description:
-                member.description ||
-                `Attribute for property '${memberName}' in ${element.tagName}`,
-              type: typeText,
-              // Add possible values for enum types
-              values: this.extractPossibleValues(typeText),
-              // Store the position
-              sourcePosition: attrPosition,
-            });
-          }
-        }
-      }
+      const attrOptions = this.attributeOptions.get(
+        `${element.tagName}:${attr.name}`
+      );
+      const attrValues = Array.isArray(attrOptions)
+        ? attrOptions.map((option) => {
+            return {
+              name: option,
+              description: `Value: ${option}`,
+            };
+          })
+        : [];
+
+      // Create attribute with more info
+      attributes.push({
+        name: attr.name,
+        description: getMemberDescription(attr.description, attr.deprecated),
+        type: typeText,
+        // Add possible values for enum types
+        values: attrValues,
+        // Store the position
+        sourcePosition: attrPosition,
+      });
     }
 
     return attributes;
-  }
-
-  /**
-   * Extracts possible values from a type string for enum-like types.
-   * @param typeText - The type string to parse
-   * @returns Array of possible attribute values or undefined if not an enum
-   */
-  private extractPossibleValues(
-    typeText: string
-  ): HTMLDataAttributeValue[] | undefined {
-    // Look for enum-like types using regex
-    const enumMatch = typeText.match(/'([^']+)'(\s*\|\s*'([^']+)')+/);
-    if (enumMatch) {
-      // Extract all quoted values
-      const valueMatches = typeText.match(/'([^']+)'/g);
-      if (valueMatches) {
-        return valueMatches.map((match) => {
-          const value = match.replace(/'/g, "");
-          return {
-            name: value,
-            description: `Value: ${value}`,
-          };
-        });
-      }
-    }
-    return undefined;
   }
 
   /**
@@ -208,7 +176,7 @@ export class CustomElementsService {
     const tags: HTMLDataTag[] = [];
 
     for (const [tagName, element] of this.customElements) {
-      const attributes = this.extractAttributes(element);
+      const attributes = this.getAttributesForAutoComplete(element);
 
       tags.push({
         name: tagName,
@@ -331,7 +299,7 @@ export class CustomElementsService {
     const element = this.customElements.get(tagName);
     if (!element || !this.adapter.createAttributeCompletionItem) return [];
 
-    const attributes = this.extractAttributes(element);
+    const attributes = this.getAttributesForAutoComplete(element);
     const completions: any[] = [];
 
     for (const attr of attributes) {
@@ -356,7 +324,7 @@ export class CustomElementsService {
     const element = this.customElements.get(tagName);
     if (!element || !this.adapter.createAttributeValueCompletionItem) return [];
 
-    const attributes = this.extractAttributes(element);
+    const attributes = this.getAttributesForAutoComplete(element);
     const attribute = attributes.find((attr) => attr.name === attributeName);
 
     if (!attribute || !attribute.values) return [];
@@ -422,7 +390,7 @@ export class CustomElementsService {
     const element = this.customElements.get(tagName);
     if (!element) return null;
 
-    const attributes = this.extractAttributes(element);
+    const attributes = this.getAttributesForAutoComplete(element);
     const attribute = attributes.find((attr) => attr.name === attributeName);
 
     if (!attribute) return null;
@@ -447,68 +415,43 @@ export class CustomElementsService {
     attributeName: string,
     value: string
   ): string | null {
-    const element = this.customElements.get(tagName);
-    if (!element) return null; // No validation possible
+    value = removeQuotes(value); 
+    const attrOptions = this.attributeOptions.get(
+      `${tagName}:${attributeName}`
+    );
 
-    const attributes = this.extractAttributes(element);
-    const attribute = attributes.find((attr) => attr.name === attributeName);
+    if (!attrOptions) {
+      return null; // No validation possible
+    }
 
-    if (!attribute) return null; // Attribute not defined in schema
+    if (attrOptions === "boolean") {
+      // If the attribute is a boolean, it should not have a value set
+      return value
+        ? `Invalid value ${value} for attribute "${attributeName}". This attribute is a boolean and should not have a value. The presence of this attribute itself will be "true" regardless of the value that is set.`
+        : null;
+    }
+
+    if (attrOptions === "string") {
+      // If the attribute is a string, no specific validation needed
+      return null;
+    }
+
+    if (attrOptions === "number") {
+      if (isNaN(Number(value))) {
+        return `Value must be a valid number.`;
+      }
+    }
 
     // If the attribute has defined values, check against them
-    if (attribute.values && attribute.values.length > 0) {
-      const allowedValues = attribute.values.map((v) => v.name);
-      if (!allowedValues.includes(value)) {
-        return `Invalid value "${value}" for attribute "${attributeName}". Allowed values: ${allowedValues.join(
-          ", "
-        )}`;
+    if (Array.isArray(attrOptions)) {
+      if (attrOptions.includes("string & {}")) {
+        return null;
       }
-    }
 
-    // Type validation based on attribute.type
-    if (attribute.type) {
-      const validationError = this.validateTypeMatch(value, attribute.type);
-      if (validationError) {
-        return `${validationError} for attribute "${attributeName}"`;
-      }
-    }
-
-    return null; // No validation errors
-  }
-
-  /**
-   * Validates that a value matches a specified type definition.
-   * @param value - The value to validate
-   * @param typeText - The type definition to validate against
-   * @returns Error message if validation fails, null if valid
-   */
-  private validateTypeMatch(value: string, typeText: string): string | null {
-    // Handle boolean type
-    if (typeText === "boolean") {
-      if (value !== "true" && value !== "false") {
-        return `Invalid boolean value "${value}". Expected "true" or "false"`;
-      }
-    }
-
-    // Handle number type
-    else if (typeText === "number") {
-      if (isNaN(Number(value))) {
-        return `Invalid number value "${value}"`;
-      }
-    }
-
-    // Handle enum types (e.g., 'primary' | 'secondary' | 'success')
-    else if (typeText.includes("|") && typeText.includes("'")) {
-      const valueMatches = typeText.match(/'([^']+)'/g);
-      if (valueMatches) {
-        const allowedValues = valueMatches.map((match) =>
-          match.replace(/'/g, "")
-        );
-        if (!allowedValues.includes(value)) {
-          return `Invalid enum value "${value}". Expected one of: ${allowedValues.join(
-            ", "
-          )}`;
-        }
+      if (!attrOptions.includes(value)) {
+        return `Invalid value "${value}" for attribute "${attributeName}". \nAllowed values: \`${attrOptions.join(
+          " | "
+        )}\``;
       }
     }
 
