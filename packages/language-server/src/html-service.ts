@@ -488,8 +488,8 @@ export class CustomHtmlService {
 
         const startPos = document.positionAt(startOffset);
         const endPos = document.positionAt(
-          startOffset + attrName.length + attrValue.length + 3
-        ); // +3 for ="
+          startOffset + attrName.length + attrValue.length + 1
+        ); // +1 for ="
 
         diagnostics.push({
           severity: DiagnosticSeverity.Error,
