@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   HTMLDataAttribute,
   HTMLDataTag,
@@ -6,6 +5,7 @@ import {
   LanguageServerAdapter,
 } from "./types";
 import * as html from "vscode-html-languageservice";
+import { DiagnosticSeverity } from "vscode-languageserver-types";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
 
 export class VSCodeAdapter implements LanguageServerAdapter {
@@ -13,8 +13,8 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     tag: string,
     description: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _attributes: HTMLDataAttribute[] = [],
-  ) {
+    _attributes: HTMLDataAttribute[] = []
+  ): html.CompletionItem {
     return {
       label: tag,
       kind: html.CompletionItemKind.Property,
@@ -29,14 +29,14 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     };
   }
 
-  createHTMLDataProvider(tags: HTMLDataTag[]) {
+  createHTMLDataProvider(tags: HTMLDataTag[]): html.IHTMLDataProvider {
     return html.newHTMLDataProvider("custom-elements", {
       version: 1.1,
       tags: tags,
     });
   }
 
-  createHoverInfo(tag: string, description: string) {
+  createHoverInfo(tag: string, description: string): html.MarkupContent {
     return {
       kind: "markdown",
       value: `**${tag}** (Custom Element)\n\n${description}`,
@@ -45,7 +45,11 @@ export class VSCodeAdapter implements LanguageServerAdapter {
 
   // New method to create attribute completion items
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  createAttributeCompletionItem(attribute: HTMLDataAttribute, _tagName: string) {
+  createAttributeCompletionItem(
+    attribute: HTMLDataAttribute,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _tagName: string
+  ): html.CompletionItem {
     const hasValues = attribute.values && attribute.values.length > 0;
 
     const documentation =
@@ -77,8 +81,8 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     attribute: HTMLDataAttribute,
     value: HTMLDataAttributeValue,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _tagName: string,
-  ) {
+    _tagName: string
+  ): html.CompletionItem {
     return {
       label: value.name,
       kind: html.CompletionItemKind.Value,
@@ -90,7 +94,16 @@ export class VSCodeAdapter implements LanguageServerAdapter {
       filterText: value.name,
       sortText: "0" + value.name, // Sort at the top
       textEdit: {
-        range: {}, // This will be set by the completion provider
+        range: {
+          start: {
+            line: 0,
+            character: 0,
+          },
+          end: {
+            line: 0,
+            character: 0,
+          },
+        }, // This will be set by the completion provider
         newText: value.name,
       },
     };
@@ -101,8 +114,8 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     _tagName: string,
     manifestPath: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _position: number,
-  ) {
+    _position: number
+  ): html.Location | null {
     try {
       // For macOS, the proper format is file:///absolute/path
       const fullPath = manifestPath.startsWith("/")
@@ -131,8 +144,8 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     _tagName: string,
     _attributeName: string,
     manifestPath: string,
-    position: number,
-  ) {
+    position: number
+  ): html.Location | null {
     // Create a Location object that VSCode can navigate to
     return {
       uri: `file://${manifestPath}`,
@@ -141,7 +154,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
   }
 
   // Helper to create a range from a position
-  private createRangeFromPosition(position: number) {
+  private createRangeFromPosition(position: number): html.Range {
     try {
       // For a JSON file, we'll convert the flat position to a line/character
       // This is a simplified calculation but might be more accurate
@@ -166,8 +179,8 @@ export class VSCodeAdapter implements LanguageServerAdapter {
   }
 
   // Add this method to your VSCodeAdapter class
-  createCompletionList(elements: cem.CustomElement[]): any {
-    const completionItems: any[] = [];
+  createCompletionList(elements: cem.CustomElement[]): html.CompletionList {
+    const completionItems: html.CompletionItem[] = [];
 
     for (const element of elements) {
       if (element.tagName) {
@@ -179,19 +192,6 @@ export class VSCodeAdapter implements LanguageServerAdapter {
           insertTextFormat: html.InsertTextFormat.Snippet,
           detail: "Custom Element",
         });
-        // const tag = element.tagName;
-        // completionItems.push({
-        //   label: tag,
-        //   kind: html.CompletionItemKind.Property,
-        //   documentation: {
-        //     kind: 'markdown',
-        //     value: element.description
-        //   },
-        //   insertText: `${tag}>$0</${tag}>`,
-        //   insertTextFormat: html.InsertTextFormat.Snippet,
-        //   detail: 'Custom Element',
-        //   sortText: '0' + tag, // Sort custom elements first
-        // });
       }
     }
 
@@ -201,8 +201,11 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     };
   }
 
-  // Add to your VSCodeAdapter class
-  createDiagnostic(range: any, message: string, severity: number = 1) {
+  createDiagnostic(
+    range: html.Range,
+    message: string,
+    severity: DiagnosticSeverity = DiagnosticSeverity.Error
+  ): html.Diagnostic {
     return {
       range,
       message,

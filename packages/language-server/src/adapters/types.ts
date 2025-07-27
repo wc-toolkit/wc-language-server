@@ -1,65 +1,176 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
+import * as html from "vscode-html-languageservice";
+import { DiagnosticSeverity } from "vscode-languageserver-types";
 
+/**
+ * Adapter interface for language server operations related to web components.
+ * Provides methods for creating completion items, hover information, definition providers,
+ * and diagnostic capabilities for custom elements.
+ */
 export interface LanguageServerAdapter {
+  /**
+   * Creates a completion item for a custom element tag
+   * @param tag The name of the custom element tag
+   * @param description A description of the custom element
+   * @param attributes Optional list of attributes supported by the element
+   * @returns A completion item for the tag
+   */
   createCompletionItem(
     tag: string,
     description: string,
-    attributes?: HTMLDataAttribute[],
-  ): any;
-  createHTMLDataProvider?(tags: HTMLDataTag[]): any;
-  createHoverInfo?(tag: string, description: string): any;
+    attributes?: HTMLDataAttribute[]
+  ): html.CompletionItem;
 
-  // Existing methods for attribute completion
+  /**
+   * Creates an HTML data provider for custom elements
+   * @param tags Array of custom element tag data
+   * @returns An HTML data provider instance
+   */
+  createHTMLDataProvider?(tags: HTMLDataTag[]): html.IHTMLDataProvider;
+
+  /**
+   * Creates hover information for a custom element
+   * @param tag The name of the custom element tag
+   * @param description A description of the custom element
+   * @returns Markup content for hover information
+   */
+  createHoverInfo?(tag: string, description: string): html.MarkupContent;
+
+  /**
+   * Creates a completion item for an attribute of a custom element
+   * @param attribute The attribute data
+   * @param tagName The name of the parent custom element
+   * @returns A completion item for the attribute
+   */
   createAttributeCompletionItem?(
     attribute: HTMLDataAttribute,
-    tagName: string,
-  ): any;
+    tagName: string
+  ): html.CompletionItem;
+
+  /**
+   * Creates a completion item for an attribute value
+   * @param attribute The parent attribute data
+   * @param value The attribute value data
+   * @param tagName The name of the parent custom element
+   * @returns A completion item for the attribute value
+   */
   createAttributeValueCompletionItem?(
     attribute: HTMLDataAttribute,
     value: HTMLDataAttributeValue,
-    tagName: string,
-  ): any;
+    tagName: string
+  ): html.CompletionItem;
 
-  // New methods for definition provider
+  /**
+   * Creates a location object for tag definition lookup
+   * @param tagName The name of the custom element tag
+   * @param manifestPath Path to the custom elements manifest file
+   * @param position Position in the manifest file
+   * @returns Location object or null if not found
+   */
   createTagDefinitionLocation?(
     tagName: string,
     manifestPath: string,
-    position: number,
-  ): any;
+    position: number
+  ): html.Location | null;
+
+  /**
+   * Creates a location object for attribute definition lookup
+   * @param tagName The name of the custom element tag
+   * @param attributeName The name of the attribute
+   * @param manifestPath Path to the custom elements manifest file
+   * @param position Position in the manifest file
+   * @returns Location object or null if not found
+   */
   createAttributeDefinitionLocation?(
     tagName: string,
     attributeName: string,
     manifestPath: string,
-    position: number,
-  ): any;
+    position: number
+  ): html.Location | null;
 
-  // New method for completion list
-  createCompletionList(elements: cem.CustomElement[]): any;
+  /**
+   * Creates a completion list from custom elements
+   * @param elements Array of custom element definitions
+   * @returns A completion list containing items for each element
+   */
+  createCompletionList(elements: cem.CustomElement[]): html.CompletionList;
 
-  // New method for diagnostics
-  createDiagnostic?(range: any, message: string, severity: number): any;
+  /**
+   * Creates a diagnostic for reporting issues
+   * @param range The text range where the issue occurs
+   * @param message The diagnostic message
+   * @param severity The severity level of the diagnostic
+   * @returns A diagnostic object
+   */
+  createDiagnostic(
+    range: html.Range,
+    message: string,
+    severity: DiagnosticSeverity
+  ): html.Diagnostic;
 }
 
+/**
+ * Represents a custom element tag for HTML data provider
+ */
 export interface HTMLDataTag {
+  /**
+   * The name of the custom element tag
+   */
   name: string;
+  /**
+   * Optional description of the custom element tag
+   */
   description?: string;
+  /**
+   * List of attributes available for this custom element
+   */
   attributes: HTMLDataAttribute[];
-  // Add source information for definition lookup
-  sourcePosition?: number; // Position in the manifest file
+  /**
+   * Position in the source manifest file for definition lookup
+   */
+  sourcePosition?: number;
 }
 
+/**
+ * Represents an attribute of a custom element
+ */
 export interface HTMLDataAttribute {
+  /**
+   * The name of the attribute
+   */
   name: string;
+  /**
+   * Optional description of the attribute
+   */
   description?: string;
+  /**
+   * Optional identifier for predefined value sets
+   */
   valueSet?: string;
+  /**
+   * Optional list of possible values for this attribute
+   */
   values?: HTMLDataAttributeValue[];
+  /**
+   * Optional type information for the attribute
+   */
   type?: string;
-  // Add source information for definition lookup
-  sourcePosition?: number; // Position in the manifest file
+  /**
+   * Position in the source manifest file for definition lookup
+   */
+  sourcePosition?: number;
 }
 
+/**
+ * Represents a possible value for an attribute
+ */
 export interface HTMLDataAttributeValue {
+  /**
+   * The name of the attribute value
+   */
   name: string;
+  /**
+   * Optional description of the attribute value
+   */
   description?: string;
 }

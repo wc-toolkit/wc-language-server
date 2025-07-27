@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as fs from "fs";
 import * as path from "path";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
@@ -16,6 +16,10 @@ import {
   removeQuotes,
 } from "@wc-toolkit/cem-utilities";
 import { getAttributeValueOptions } from "./utilities/cem-utils";
+import {
+  LanguageServiceContext,
+  LanguageServicePlugin,
+} from "@volar/language-server";
 
 /**
  * Service for managing custom elements manifest data and providing language features
@@ -29,7 +33,7 @@ export class CustomElementsService {
   private manifestWatcher?: fs.StatWatcher;
 
   /** HTML data provider for VS Code HTML language service integration */
-  private htmlDataProvider: any = null;
+  private htmlDataProvider: html.IHTMLDataProvider | null = null;
 
   /** Absolute path to the custom elements manifest file */
   private manifestPath: string | null = null;
@@ -116,7 +120,7 @@ export class CustomElementsService {
   private setAttributeOptions(component: Component) {
     component.attributes?.forEach((attr) => {
       const options = getAttributeValueOptions(attr);
-      console.log(component.tagName, attr.name, options)
+      console.log(component.tagName, attr.name, options);
       this.attributeOptions.set(`${component.tagName}:${attr.name}`, options);
     });
   }
@@ -139,7 +143,8 @@ export class CustomElementsService {
 
       // Get the attribute type from the field
       const typeText =
-        (attr as any)["parsedType"]?.text || (attr as any).type?.text || "";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (attr as any)["parsedType"]?.text || attr.type?.text || "";
 
       const attrOptions = this.attributeOptions.get(
         `${element.tagName}:${attr.name}`
@@ -214,8 +219,8 @@ export class CustomElementsService {
    * Gets completion items for all custom elements.
    * @returns Array of completion items for custom element tags
    */
-  public getCompletionItems(): any[] {
-    const items: any[] = [];
+  public getCompletionItems(): html.CompletionItem[] {
+    const items: html.CompletionItem[] = [];
 
     for (const [tagName, element] of this.customElements) {
       const description =
@@ -243,7 +248,7 @@ export class CustomElementsService {
    * @param tagName - The tag name to get hover info for
    * @returns Hover information object or null if not found
    */
-  public getHoverInfo(tagName: string): any | null {
+  public getHoverInfo(tagName: string): html.Hover | null {
     const element = this.customElements.get(tagName);
     if (!element) return null;
 
@@ -268,7 +273,7 @@ export class CustomElementsService {
    * Gets the HTML data provider for VS Code integration.
    * @returns The HTML data provider instance
    */
-  public getHTMLDataProvider(): any {
+  public getHTMLDataProvider(): html.IHTMLDataProvider | null {
     return this.htmlDataProvider;
   }
 
@@ -295,12 +300,12 @@ export class CustomElementsService {
    * @param tagName - The tag name to get attribute completions for
    * @returns Array of attribute completion items
    */
-  public getAttributeCompletions(tagName: string): any[] {
+  public getAttributeCompletions(tagName: string): html.CompletionItem[] {
     const element = this.customElements.get(tagName);
     if (!element || !this.adapter.createAttributeCompletionItem) return [];
 
     const attributes = this.getAttributesForAutoComplete(element);
-    const completions: any[] = [];
+    const completions: html.CompletionItem[] = [];
 
     for (const attr of attributes) {
       completions.push(
@@ -320,7 +325,7 @@ export class CustomElementsService {
   public getAttributeValueCompletions(
     tagName: string,
     attributeName: string
-  ): any[] {
+  ): html.CompletionItem[] {
     const element = this.customElements.get(tagName);
     if (!element || !this.adapter.createAttributeValueCompletionItem) return [];
 
@@ -365,7 +370,7 @@ export class CustomElementsService {
       return null;
     }
 
-    const position = (element as any).sourcePosition || 0;
+    const position = 0;
 
     // Use absolute path
     const absoluteManifestPath = this.manifestPath;
@@ -415,7 +420,7 @@ export class CustomElementsService {
     attributeName: string,
     value: string
   ): string | null {
-    value = removeQuotes(value); 
+    value = removeQuotes(value);
     const attrOptions = this.attributeOptions.get(
       `${tagName}:${attributeName}`
     );
@@ -464,14 +469,15 @@ export class CustomElementsService {
  * This ensures custom element completions work even without the opening `<` bracket.
  * @returns Service plugin configuration object
  */
-export function createCustomElementsCompletionService() {
+export function createCustomElementsCompletionService(): LanguageServicePlugin {
   return {
     capabilities: {
       completionProvider: {
         triggerCharacters: [], // Empty array means trigger on any character
       },
     },
-    create(context: any) {
+    create(context: LanguageServiceContext) {
+      // @ts-expect-error the type appears to be incorrect here
       const workspaceRoot = context.env?.workspaceFolders?.[0]?.uri || "";
       const adapter = new VSCodeAdapter();
       const customElementsService = new CustomElementsService(
@@ -481,10 +487,8 @@ export function createCustomElementsCompletionService() {
 
       return {
         provideCompletionItems(
-          document: any,
-          position: any,
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          _completionContext: any
+          document: html.TextDocument,
+          position: html.Position
         ) {
           // Only provide completions in HTML-like contexts
           const text = document.getText();
@@ -493,7 +497,7 @@ export function createCustomElementsCompletionService() {
 
           // Don't provide completions if we're clearly in an attribute context
           if (beforeText.match(/\s+\w+=[^>]*$/)) {
-            return { items: [] };
+            return { items: [], isIncomplete: false };
           }
 
           const customElements = customElementsService.getCustomElements();
