@@ -2,8 +2,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
-import { LanguageServerAdapter, VSCodeAdapter } from "./adapters";
-import * as html from "vscode-html-languageservice";
 import {
   Component,
   getAllComponents,
@@ -12,8 +10,19 @@ import {
 import { getAttributeValueOptions } from "./utilities/cem-utils";
 
 /**
- * Service for managing custom elements manifest data and providing language features
- * for custom elements including completions, validation, and definitions.
+ * Generic attribute information interface
+ */
+export interface AttributeInfo {
+  name: string;
+  description?: string;
+  type?: string;
+  sourcePosition?: number;
+}
+
+/**
+ * Pure data service for managing custom elements manifest data.
+ * This service only handles loading, parsing, and providing access to the raw data.
+ * All language features (completions, hover, definitions) are handled by adapters.
  */
 export class CustomElementsService {
   /** Map of custom element tag names to their definitions */
@@ -21,9 +30,6 @@ export class CustomElementsService {
 
   /** File watcher for the custom elements manifest file */
   private manifestWatcher?: fs.StatWatcher;
-
-  /** HTML data provider for VS Code HTML language service integration */
-  private htmlDataProvider: html.IHTMLDataProvider | null = null;
 
   /** Absolute path to the custom elements manifest file */
   private manifestPath: string | null = null;
@@ -34,15 +40,14 @@ export class CustomElementsService {
   /** Map of attribute names to their options data */
   private attributeOptions: Map<string, string[] | string> = new Map();
 
+  /** Array of change listeners */
+  private changeListeners: (() => void)[] = [];
+
   /**
    * Creates a new CustomElementsService instance.
    * @param workspaceRoot - Root directory of the workspace
-   * @param adapter - Language server adapter for creating completions and definitions
    */
-  constructor(
-    private workspaceRoot: string,
-    private adapter: LanguageServerAdapter = new VSCodeAdapter()
-  ) {
+  constructor(private workspaceRoot: string) {
     this.loadCustomElementsManifest();
     this.watchManifestFile();
   }
@@ -64,7 +69,7 @@ export class CustomElementsService {
       this.manifestContent = fs.readFileSync(this.manifestPath, "utf8");
       const manifest: cem.Package = JSON.parse(this.manifestContent);
       this.parseManifest(manifest);
-      this.createHTMLData();
+      this.notifyChange();
     } catch (error) {
       console.error("Error loading custom elements manifest:", error);
     }
@@ -80,6 +85,7 @@ export class CustomElementsService {
       path.join(this.workspaceRoot, "dist", "custom-elements.json"),
       path.join(this.workspaceRoot, "src", "custom-elements.json"),
       path.join(this.workspaceRoot, "demo", "html", "custom-elements.json"),
+      path.join(this.workspaceRoot, "demos", "html", "custom-elements.json"),
     ];
 
     for (const manifestPath of possiblePaths) {
@@ -116,25 +122,6 @@ export class CustomElementsService {
   }
 
   /**
-   * Creates HTML data for VS Code HTML language service integration.
-   * Converts custom element definitions to HTML data format.
-   */
-  private createHTMLData() {
-    // If the adapter doesn't support creating HTML data providers, we can't proceed
-    if (!this.adapter.createHTMLDataFromCustomElements) {
-      console.warn("Adapter does not support creating HTML data providers");
-      return;
-    }
-
-    // Use the adapter to create the HTML data provider
-    this.htmlDataProvider = this.adapter.createHTMLDataFromCustomElements(
-      this.customElements,
-      this.attributeOptions,
-      this.findPositionInManifest.bind(this)
-    );
-  }
-
-  /**
    * Sets up file watching for the custom elements manifest.
    * Automatically reloads the manifest when it changes.
    */
@@ -153,46 +140,24 @@ export class CustomElementsService {
   }
 
   /**
-   * Gets completion items for all custom elements.
-   * @returns Array of completion items for custom element tags
+   * Notifies all registered callbacks that the manifest has changed.
    */
-  public getCompletionItems(): html.CompletionItem[] {
-    if (this.adapter.createCustomElementCompletionItems) {
-      return this.adapter.createCustomElementCompletionItems(
-        this.customElements
-      );
-    }
-
-    // Fallback for adapters that don't implement the new method
-    const items: html.CompletionItem[] = [];
-    for (const [tagName, element] of this.customElements) {
-      const description =
-        element.description || element.summary || `Custom element: ${tagName}`;
-      items.push(this.adapter.createCompletionItem(tagName, description));
-    }
-    return items;
+  private notifyChange() {
+    this.changeListeners.forEach((callback) => callback());
   }
 
   /**
-   * Gets hover information for a specific custom element tag.
-   * @param tagName - The tag name to get hover info for
-   * @returns Hover information object or null if not found
+   * Registers a callback to be called when the manifest changes.
+   * @param callback - Function to call when the manifest changes
+   * @returns A function to unregister the callback
    */
-  public getHoverInfo(tagName: string): html.Hover | null {
-    const element = this.customElements.get(tagName);
-    if (!element) return null;
-
-    if (this.adapter.createElementHoverInfo) {
-      return this.adapter.createElementHoverInfo(tagName, element);
-    }
-
-    // Fallback
-    const description = element.description || `Custom element: ${tagName}`;
-    return {
-      contents: {
-        kind: "markdown",
-        value: description,
-      },
+  public onManifestChange(callback: () => void): () => void {
+    this.changeListeners.push(callback);
+    return () => {
+      const index = this.changeListeners.indexOf(callback);
+      if (index > -1) {
+        this.changeListeners.splice(index, 1);
+      }
     };
   }
 
@@ -205,11 +170,19 @@ export class CustomElementsService {
   }
 
   /**
-   * Gets the HTML data provider for VS Code integration.
-   * @returns The HTML data provider instance
+   * Gets the raw custom elements map.
+   * @returns Map of custom element tag names to their definitions
    */
-  public getHTMLDataProvider(): html.IHTMLDataProvider | null {
-    return this.htmlDataProvider;
+  public getCustomElementsMap(): Map<string, cem.CustomElement> {
+    return new Map(this.customElements);
+  }
+
+  /**
+   * Gets the attribute options map.
+   * @returns Map of attribute names to their options data
+   */
+  public getAttributeOptions(): Map<string, string[] | string> {
+    return new Map(this.attributeOptions);
   }
 
   /**
@@ -221,53 +194,61 @@ export class CustomElementsService {
   }
 
   /**
-   * Disposes of the service and cleans up resources.
-   * Stops file watching and clears data.
+   * Checks if a custom element with the given tag name exists.
+   * @param tagName - The tag name to check
+   * @returns True if the custom element exists
    */
-  public dispose() {
-    if (this.manifestWatcher) {
-      this.manifestWatcher.unref();
-    }
+  public hasCustomElement(tagName: string): boolean {
+    return this.customElements.has(tagName);
   }
 
   /**
-   * Gets attribute completion items for a specific custom element tag.
-   * @param tagName - The tag name to get attribute completions for
-   * @returns Array of attribute completion items
+   * Gets a custom element by tag name.
+   * @param tagName - The tag name to get
+   * @returns The custom element definition or null if not found
    */
-  public getAttributeCompletions(tagName: string): html.CompletionItem[] {
+  public getCustomElement(tagName: string): cem.CustomElement | null {
+    return this.customElements.get(tagName) || null;
+  }
+
+  /**
+   * Gets the path to the custom elements manifest file.
+   * @returns The absolute path to the manifest file or null if not found
+   */
+  public getManifestPath(): string | null {
+    return this.manifestPath;
+  }
+
+  /**
+   * Gets attribute information for a specific custom element tag.
+   * @param tagName - The tag name to get attribute info for
+   * @returns Array of attribute information objects
+   */
+  public getAttributeInfo(tagName: string): AttributeInfo[] {
     const element = this.customElements.get(tagName);
-    if (!element || !this.adapter.createAttributeCompletionItems) return [];
+    if (!element || !element.attributes) return [];
 
-    return this.adapter.createAttributeCompletionItems(
-      element,
-      tagName,
-      this.attributeOptions,
-      this.findPositionInManifest.bind(this)
-    );
+    return element.attributes.map((attr) => ({
+      name: attr.name!,
+      description: attr.description || attr.summary,
+      type: attr.type?.text || "string",
+      sourcePosition: this.findPositionInManifest(attr.name!),
+    }));
   }
 
   /**
-   * Gets attribute value completion items for a specific attribute.
+   * Gets attribute value options for a specific attribute.
    * @param tagName - The tag name containing the attribute
-   * @param attributeName - The attribute name to get value completions for
-   * @returns Array of attribute value completion items
+   * @param attributeName - The attribute name to get value options for
+   * @returns Array of possible values or type information
    */
-  public getAttributeValueCompletions(
+  public getAttributeValueOptions(
     tagName: string,
     attributeName: string
-  ): html.CompletionItem[] {
-    const element = this.customElements.get(tagName);
-    if (!element || !this.adapter.createAttributeValueCompletionItems)
-      return [];
-
-    return this.adapter.createAttributeValueCompletionItems(
-      element,
-      tagName,
-      attributeName,
-      this.attributeOptions,
-      this.findPositionInManifest.bind(this)
-    );
+  ): string[] | string | null {
+    const key = `${tagName}:${attributeName}`;
+    const options = this.attributeOptions.get(key);
+    return options || null;
   }
 
   /**
@@ -275,69 +256,11 @@ export class CustomElementsService {
    * @param searchText - The text to search for
    * @returns The character position or 0 if not found
    */
-  private findPositionInManifest(searchText: string): number {
+  public findPositionInManifest(searchText: string): number {
     if (!this.manifestContent) return 0;
 
     const position = this.manifestContent.indexOf(searchText);
     return position >= 0 ? position : 0;
-  }
-
-  /**
-   * Gets definition location for a custom element tag.
-   * @param tagName - The tag name to get definition for
-   * @returns Definition location or null if not found
-   */
-  public getTagDefinition(tagName: string) {
-    if (!this.manifestPath) {
-      return null;
-    }
-
-    const element = this.customElements.get(tagName);
-    if (!element) {
-      return null;
-    }
-
-    const position = 0;
-
-    // Use absolute path
-    const absoluteManifestPath = this.manifestPath;
-    const location = this.adapter.createTagDefinitionLocation?.(
-      tagName,
-      absoluteManifestPath,
-      position
-    );
-
-    return location;
-  }
-
-  /**
-   * Gets definition location for a custom element attribute.
-   * @param tagName - The tag name containing the attribute
-   * @param attributeName - The attribute name to get definition for
-   * @returns Definition location or null if not found
-   */
-  public getAttributeDefinition(tagName: string, attributeName: string) {
-    if (!this.manifestPath) return null;
-
-    const element = this.customElements.get(tagName);
-    if (!element || !this.adapter.extractAttributesForAutoComplete) return null;
-
-    const attributes = this.adapter.extractAttributesForAutoComplete(
-      element,
-      this.attributeOptions,
-      this.findPositionInManifest.bind(this)
-    );
-
-    const attribute = attributes.find((attr) => attr.name === attributeName);
-
-    if (!attribute) return null;
-
-    return this.adapter.createAttributeDefinitionLocation?.(
-      tagName,
-      attributeName,
-      this.manifestPath,
-      attribute.sourcePosition || 0
-    );
   }
 
   /**
@@ -393,5 +316,16 @@ export class CustomElementsService {
     }
 
     return null; // No validation errors
+  }
+
+  /**
+   * Disposes of the service and cleans up resources.
+   * Stops file watching and clears data.
+   */
+  public dispose() {
+    if (this.manifestWatcher) {
+      this.manifestWatcher.unref();
+    }
+    this.changeListeners.length = 0;
   }
 }

@@ -93,11 +93,10 @@ export function vsCodeEmmetCompletionPlugin(): LanguageServicePlugin {
     create(context: LanguageServiceContext) {
       // @ts-expect-error the type appears to be incorrect here
       const workspaceRoot = context.env?.workspaceFolders?.[0]?.uri || "";
-      const adapter = new VSCodeAdapter();
       const customElementsService = new CustomElementsService(
-        workspaceRoot,
-        adapter
+        workspaceRoot
       );
+      const adapter = new VSCodeAdapter();
 
       return {
         provideCompletionItems(
