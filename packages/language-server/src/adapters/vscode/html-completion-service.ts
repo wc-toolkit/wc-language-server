@@ -1,5 +1,5 @@
 import * as html from "vscode-html-languageservice";
-import { LanguageServerAdapter } from "..";
+import { VSCodeAdapter } from "..";
 import { CustomElementsService } from "../../custom-elements-service";
 import { Component } from "@wc-toolkit/cem-utilities";
 
@@ -20,7 +20,7 @@ export class HtmlCompletionService {
    * @param customElementsService - Service for accessing custom elements data
    */
   constructor(
-    private adapter: LanguageServerAdapter,
+    private adapter: VSCodeAdapter,
     private customElementsService: CustomElementsService
   ) {
     this.initializeHTMLLanguageService();

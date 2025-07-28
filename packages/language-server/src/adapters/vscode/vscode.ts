@@ -6,7 +6,6 @@ import {
 } from "../types";
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
-import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
 import {
   Component,
   getComponentDetailsTemplate,
@@ -74,7 +73,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
    */
   createElementHoverInfo(
     tagName: string,
-    element: cem.CustomElement
+    element: Component
   ): html.Hover {
     const description = element.description || `Custom element: ${tagName}`;
     return {
@@ -93,7 +92,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
    * @returns HTML data provider for VS Code integration
    */
   createHTMLDataFromCustomElements(
-    customElements: Map<string, cem.CustomElement>,
+    customElements: Map<string, Component>,
     attributeOptions: Map<string, string[] | string>,
     findPositionInManifest: (searchText: string) => number
   ): html.IHTMLDataProvider {
@@ -108,7 +107,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
 
       tags.push({
         name: tagName,
-        description: element.description || `Custom element: ${tagName}`,
+        description: getComponentDetailsTemplate(element) || `Custom element: ${tagName}`,
         attributes: attributes,
       });
     }
@@ -125,7 +124,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
    * @returns Array of HTML data attributes with metadata
    */
   extractAttributesForAutoComplete(
-    element: cem.CustomElement,
+    element: Component,
     attributeOptions: Map<string, string[] | string>,
     findPositionInManifest: (searchText: string) => number
   ): HTMLDataAttribute[] {
@@ -179,7 +178,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
    * @returns Array of attribute completion items
    */
   createAttributeCompletionItems(
-    element: cem.CustomElement,
+    element: Component,
     tagName: string,
     attributeOptions: Map<string, string[] | string>,
     findPositionInManifest: (searchText: string) => number
@@ -194,7 +193,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
 
     const completions: html.CompletionItem[] = [];
     for (const attr of attributes) {
-      completions.push(this.createAttributeCompletionItem(attr, tagName));
+      completions.push(this.createAttributeCompletionItem(attr));
     }
     return completions;
   }
@@ -209,7 +208,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
    * @returns Array of attribute value completion items
    */
   createAttributeValueCompletionItems(
-    element: cem.CustomElement,
+    element: Component,
     tagName: string,
     attributeName: string,
     attributeOptions: Map<string, string[] | string>,
@@ -239,13 +238,6 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     });
   }
 
-  createHoverInfo(tag: string, description: string): html.MarkupContent {
-    return {
-      kind: "markdown",
-      value: `**${tag}** (Custom Element)\n\n${description}`,
-    };
-  }
-
   /**
    * Creates a completion item for an attribute of a custom element
    * @param attribute The attribute data
@@ -254,8 +246,6 @@ export class VSCodeAdapter implements LanguageServerAdapter {
    */
   createAttributeCompletionItem(
     attribute: HTMLDataAttribute,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _tagName: string
   ): html.CompletionItem {
     const hasValues = attribute.values && attribute.values.length > 0;
 
@@ -449,7 +439,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
 
     // Use the adapter's method to create the HTML data provider
     this.htmlDataProvider = this.createHTMLDataFromCustomElements(
-      customElementsMap as Map<string, cem.CustomElement>,
+      customElementsMap as Map<string, Component>,
       attributeOptionsMap,
       findPosition
     );
