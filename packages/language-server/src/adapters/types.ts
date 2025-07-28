@@ -234,6 +234,10 @@ export interface HTMLDataAttribute {
    * Position in the source manifest file for definition lookup
    */
   sourcePosition?: number;
+  /**
+   * Indicates if the attribute is deprecated
+   */
+  deprecated?: boolean | string;
 }
 
 /**

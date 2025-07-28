@@ -7,7 +7,11 @@ import {
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
-import { Component, getMemberDescription } from "@wc-toolkit/cem-utilities";
+import {
+  Component,
+  getComponentDetailsTemplate,
+  getMemberDescription,
+} from "@wc-toolkit/cem-utilities";
 
 export class VSCodeAdapter implements LanguageServerAdapter {
   htmlDataProvider!: html.IHTMLDataProvider;
@@ -38,13 +42,12 @@ export class VSCodeAdapter implements LanguageServerAdapter {
    * @returns Array of completion items for custom element tags
    */
   createCustomElementCompletionItems(
-    customElements: Map<string, cem.CustomElement>
+    customElements: Map<string, Component>
   ): html.CompletionItem[] {
     const items: html.CompletionItem[] = [];
 
     for (const [tagName, element] of customElements) {
-      const description =
-        element.description || element.summary || `Custom element: ${tagName}`;
+      const description = getComponentDetailsTemplate(element);
 
       items.push({
         label: tagName,
@@ -69,7 +72,10 @@ export class VSCodeAdapter implements LanguageServerAdapter {
    * @param element The custom element definition
    * @returns Hover information object
    */
-  createElementHoverInfo(tagName: string, element: cem.CustomElement): html.Hover {
+  createElementHoverInfo(
+    tagName: string,
+    element: cem.CustomElement
+  ): html.Hover {
     const description = element.description || `Custom element: ${tagName}`;
     return {
       contents: {
@@ -95,7 +101,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
 
     for (const [tagName, element] of customElements) {
       const attributes = this.extractAttributesForAutoComplete(
-        element, 
+        element,
         attributeOptions,
         findPositionInManifest
       );
@@ -133,7 +139,9 @@ export class VSCodeAdapter implements LanguageServerAdapter {
 
       // Get the attribute type from the field
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const typeText = (attr as any)["parsedType"]?.text || attr.type?.text || "";
+      const typeText =
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (attr as any)["parsedType"]?.text || attr.type?.text || "";
 
       const attrOptions = attributeOptions.get(
         `${element.tagName}:${attr.name}`
@@ -161,7 +169,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
 
     return attributes;
   }
-  
+
   /**
    * Creates completion items for attributes of a custom element
    * @param element The custom element
@@ -186,9 +194,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
 
     const completions: html.CompletionItem[] = [];
     for (const attr of attributes) {
-      completions.push(
-        this.createAttributeCompletionItem(attr, tagName)
-      );
+      completions.push(this.createAttributeCompletionItem(attr, tagName));
     }
     return completions;
   }
@@ -216,17 +222,13 @@ export class VSCodeAdapter implements LanguageServerAdapter {
       attributeOptions,
       findPositionInManifest
     );
-    
+
     const attribute = attributes.find((attr) => attr.name === attributeName);
 
     if (!attribute || !attribute.values) return [];
 
     return attribute.values.map((value) =>
-      this.createAttributeValueCompletionItem(
-        attribute,
-        value,
-        tagName
-      )
+      this.createAttributeValueCompletionItem(attribute, value, tagName)
     );
   }
 
@@ -258,17 +260,15 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     const hasValues = attribute.values && attribute.values.length > 0;
 
     const documentation =
-      attribute.description || `Attribute: ${attribute.name}`;
-    const typeInfo = attribute.type
-      ? `\n\n**Type:** \`${attribute.type}\``
-      : "";
+      getMemberDescription(attribute.description, attribute.deprecated) +
+      (attribute.type ? `\n\n**Type:** \`${attribute.type}\`` : "");
 
     return {
       label: attribute.name,
       kind: html.CompletionItemKind.Property,
       documentation: {
         kind: "markdown",
-        value: documentation + typeInfo,
+        value: documentation,
       },
       insertText: hasValues
         ? `${attribute.name}="$1"$0`
@@ -391,7 +391,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
   }
 
   // Add this method to your VSCodeAdapter class
-  createCompletionList(elements: cem.CustomElement[]): html.CompletionList {
+  createCompletionList(elements: Component[]): html.CompletionList {
     const completionItems: html.CompletionItem[] = [];
 
     for (const element of elements) {
@@ -399,7 +399,10 @@ export class VSCodeAdapter implements LanguageServerAdapter {
         completionItems.push({
           label: element.tagName,
           kind: html.CompletionItemKind.Property,
-          documentation: element.description,
+          documentation: {
+            kind: "markdown",
+            value: getComponentDetailsTemplate(element),
+          },
           insertText: `<${element.tagName}>$0</${element.tagName}>`,
           insertTextFormat: html.InsertTextFormat.Snippet,
           detail: "Custom Element",
@@ -433,7 +436,10 @@ export class VSCodeAdapter implements LanguageServerAdapter {
   ): void {
     // Convert attributeOptions to the expected type if needed
     // If attributeOptions is already a Map<string, string[] | string>, you can cast it directly
-    const attributeOptionsMap = attributeOptions as Map<string, string[] | string>;
+    const attributeOptionsMap = attributeOptions as Map<
+      string,
+      string[] | string
+    >;
 
     // The findPositionCallback should return a number, so cast if necessary
     const findPosition = (searchText: string) => {

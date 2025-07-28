@@ -1,7 +1,7 @@
 import * as html from "vscode-html-languageservice";
-import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
 import { LanguageServerAdapter } from "..";
 import { CustomElementsService } from "../../custom-elements-service";
+import { Component } from "@wc-toolkit/cem-utilities";
 
 /**
  * Service dedicated to handling HTML completions for custom elements.
@@ -180,7 +180,7 @@ export class HtmlCompletionService {
    * @param element - The custom element definition
    * @returns Hover information object or null if not found
    */
-  public getHoverInfo(tagName: string, element: cem.CustomElement): html.Hover | null {
+  public getHoverInfo(tagName: string, element: Component): html.Hover | null {
     if (this.adapter.createElementHoverInfo) {
       return this.adapter.createElementHoverInfo(tagName, element);
     }
