@@ -3,8 +3,6 @@ import { DiagnosticSeverity, LocationLink } from "vscode-languageserver-types";
 import { CustomElementsService } from "./custom-elements-service";
 import { VSCodeAdapter } from "./adapters";
 import {
-  CancellationToken,
-  CompletionContext,
   LanguageServiceContext,
   LanguageServicePlugin,
 } from "@volar/language-server";
@@ -47,16 +45,11 @@ export class CustomHtmlService {
    * Provides completion items for HTML documents with custom element support.
    * @param document - The text document being edited
    * @param position - The cursor position where completion was triggered
-   * @param _completionContext - Optional completion context (unused)
    * @returns Completion list containing both standard HTML and custom element completions
    */
   public provideCompletionItems(
     document: html.TextDocument,
-    position: html.Position,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _context: CompletionContext,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _token: CancellationToken
+    position: html.Position
   ) {
     const text = document.getText();
     const offset = document.offsetAt(position);
@@ -146,16 +139,19 @@ export class CustomHtmlService {
 
     // Check if the word is a custom element tag
     if (this.customElementsService.getTagNames().includes(currentWord)) {
-      const definition = this.customElementsService.getTagDefinition(currentWord);
+      const definition =
+        this.customElementsService.getTagDefinition(currentWord);
       if (!definition) {
         return null;
       }
       // Convert Location to LocationLink[]
-      return [{
-        targetUri: definition.uri,
-        targetRange: definition.range,
-        targetSelectionRange: definition.range
-      }];
+      return [
+        {
+          targetUri: definition.uri,
+          targetRange: definition.range,
+          targetSelectionRange: definition.range,
+        },
+      ];
     }
 
     // Check if the word is an attribute
@@ -172,11 +168,13 @@ export class CustomHtmlService {
     }
 
     // Convert Location to LocationLink[]
-    return [{
-      targetUri: attributeDefinition.uri,
-      targetRange: attributeDefinition.range,
-      targetSelectionRange: attributeDefinition.range
-    }];
+    return [
+      {
+        targetUri: attributeDefinition.uri,
+        targetRange: attributeDefinition.range,
+        targetSelectionRange: attributeDefinition.range,
+      },
+    ];
   }
 
   /**
@@ -578,7 +576,41 @@ export function createCustomHtmlServicePlugin(): LanguageServicePlugin {
   return {
     capabilities: {
       completionProvider: {
-        triggerCharacters: ["<", " ", "=", '"', "'", ">", "-", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"],
+        triggerCharacters: [
+          "<",
+          " ",
+          "=",
+          '"',
+          "'",
+          ">",
+          "-",
+          "a",
+          "b",
+          "c",
+          "d",
+          "e",
+          "f",
+          "g",
+          "h",
+          "i",
+          "j",
+          "k",
+          "l",
+          "m",
+          "n",
+          "o",
+          "p",
+          "q",
+          "r",
+          "s",
+          "t",
+          "u",
+          "v",
+          "w",
+          "x",
+          "y",
+          "z",
+        ],
       },
       hoverProvider: true,
       definitionProvider: true,

@@ -7,6 +7,7 @@ import {
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
+import { getMemberDescription } from "@wc-toolkit/cem-utilities";
 
 export class VSCodeAdapter implements LanguageServerAdapter {
   createCompletionItem(
@@ -29,6 +30,204 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     };
   }
 
+  /**
+   * Creates completion items for all custom elements.
+   * @param customElements Map of custom element tag names to their definitions
+   * @returns Array of completion items for custom element tags
+   */
+  createCustomElementCompletionItems(
+    customElements: Map<string, cem.CustomElement>
+  ): html.CompletionItem[] {
+    const items: html.CompletionItem[] = [];
+
+    for (const [tagName, element] of customElements) {
+      const description =
+        element.description || element.summary || `Custom element: ${tagName}`;
+
+      items.push({
+        label: tagName,
+        kind: html.CompletionItemKind.Property,
+        documentation: {
+          kind: "markdown",
+          value: description,
+        },
+        insertText: `${tagName}>$0</${tagName}>`,
+        insertTextFormat: html.InsertTextFormat.Snippet,
+        detail: "Custom Element",
+        sortText: "0" + tagName, // Sort custom elements first
+      });
+    }
+
+    return items;
+  }
+
+  /**
+   * Creates hover information for a custom element tag.
+   * @param tagName The tag name to get hover info for
+   * @param element The custom element definition
+   * @returns Hover information object
+   */
+  createElementHoverInfo(tagName: string, element: cem.CustomElement): html.Hover {
+    const description = element.description || `Custom element: ${tagName}`;
+    return {
+      contents: {
+        kind: "markdown",
+        value: description,
+      },
+    };
+  }
+
+  /**
+   * Creates HTML data from custom elements manifest data
+   * @param customElements Map of custom element tag names to their definitions
+   * @param attributeOptions Map of attribute names to their options data
+   * @param findPositionInManifest Function to find position of attributes in the manifest
+   * @returns HTML data provider for VS Code integration
+   */
+  createHTMLDataFromCustomElements(
+    customElements: Map<string, cem.CustomElement>,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): html.IHTMLDataProvider {
+    const tags: HTMLDataTag[] = [];
+
+    for (const [tagName, element] of customElements) {
+      const attributes = this.extractAttributesForAutoComplete(
+        element, 
+        attributeOptions,
+        findPositionInManifest
+      );
+
+      tags.push({
+        name: tagName,
+        description: element.description || `Custom element: ${tagName}`,
+        attributes: attributes,
+      });
+    }
+
+    // Create HTML data provider
+    return this.createHTMLDataProvider(tags);
+  }
+
+  /**
+   * Extracts attribute definitions from a custom element.
+   * @param element The custom element to extract attributes from
+   * @param attributeOptions Map of attribute names to their options data
+   * @param findPositionInManifest Function to find position of attributes in the manifest
+   * @returns Array of HTML data attributes with metadata
+   */
+  extractAttributesForAutoComplete(
+    element: cem.CustomElement,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): HTMLDataAttribute[] {
+    const attributes: HTMLDataAttribute[] = [];
+
+    for (const attr of element?.attributes || []) {
+      // Find position in the manifest file
+      const attrPosition = findPositionInManifest(
+        `"attribute": "${attr.name}"`
+      );
+
+      // Get the attribute type from the field
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const typeText = (attr as any)["parsedType"]?.text || attr.type?.text || "";
+
+      const attrOptions = attributeOptions.get(
+        `${element.tagName}:${attr.name}`
+      );
+      const attrValues = Array.isArray(attrOptions)
+        ? attrOptions.map((option) => {
+            return {
+              name: option,
+              description: `Value: ${option}`,
+            };
+          })
+        : [];
+
+      // Create attribute with more info
+      attributes.push({
+        name: attr.name,
+        description: getMemberDescription(attr.description, attr.deprecated),
+        type: typeText,
+        // Add possible values for enum types
+        values: attrValues,
+        // Store the position
+        sourcePosition: attrPosition,
+      });
+    }
+
+    return attributes;
+  }
+  
+  /**
+   * Creates completion items for attributes of a custom element
+   * @param element The custom element
+   * @param tagName The tag name
+   * @param attributeOptions Map of attribute names to their options
+   * @param findPositionInManifest Function to find position in manifest
+   * @returns Array of attribute completion items
+   */
+  createAttributeCompletionItems(
+    element: cem.CustomElement,
+    tagName: string,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): html.CompletionItem[] {
+    if (!element || !this.createAttributeCompletionItem) return [];
+
+    const attributes = this.extractAttributesForAutoComplete(
+      element,
+      attributeOptions,
+      findPositionInManifest
+    );
+
+    const completions: html.CompletionItem[] = [];
+    for (const attr of attributes) {
+      completions.push(
+        this.createAttributeCompletionItem(attr, tagName)
+      );
+    }
+    return completions;
+  }
+
+  /**
+   * Creates completion items for attribute values
+   * @param element The custom element
+   * @param tagName The tag name
+   * @param attributeName The attribute name
+   * @param attributeOptions Map of attribute names to their options
+   * @param findPositionInManifest Function to find position in manifest
+   * @returns Array of attribute value completion items
+   */
+  createAttributeValueCompletionItems(
+    element: cem.CustomElement,
+    tagName: string,
+    attributeName: string,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): html.CompletionItem[] {
+    if (!element || !this.createAttributeValueCompletionItem) return [];
+
+    const attributes = this.extractAttributesForAutoComplete(
+      element,
+      attributeOptions,
+      findPositionInManifest
+    );
+    
+    const attribute = attributes.find((attr) => attr.name === attributeName);
+
+    if (!attribute || !attribute.values) return [];
+
+    return attribute.values.map((value) =>
+      this.createAttributeValueCompletionItem(
+        attribute,
+        value,
+        tagName
+      )
+    );
+  }
+
   createHTMLDataProvider(tags: HTMLDataTag[]): html.IHTMLDataProvider {
     return html.newHTMLDataProvider("custom-elements", {
       version: 1.1,
@@ -43,8 +242,12 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     };
   }
 
-  // New method to create attribute completion items
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  /**
+   * Creates a completion item for an attribute of a custom element
+   * @param attribute The attribute data
+   * @param tagName The name of the parent custom element
+   * @returns A completion item for the attribute
+   */
   createAttributeCompletionItem(
     attribute: HTMLDataAttribute,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -69,6 +272,7 @@ export class VSCodeAdapter implements LanguageServerAdapter {
         ? `${attribute.name}="$1"$0`
         : `${attribute.name}="$0"`,
       insertTextFormat: html.InsertTextFormat.Snippet,
+      filterText: attribute.name,
       sortText: "0" + attribute.name, // Sort at the top
       command: hasValues
         ? { command: "editor.action.triggerSuggest", title: "Suggest" }
@@ -76,7 +280,13 @@ export class VSCodeAdapter implements LanguageServerAdapter {
     };
   }
 
-  // New method to create attribute value completion items
+  /**
+   * Creates a completion item for an attribute value
+   * @param attribute The parent attribute data
+   * @param value The attribute value data
+   * @param tagName The name of the parent custom element
+   * @returns A completion item for the attribute value
+   */
   createAttributeValueCompletionItem(
     attribute: HTMLDataAttribute,
     value: HTMLDataAttributeValue,

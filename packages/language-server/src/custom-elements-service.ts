@@ -2,17 +2,11 @@
 import * as fs from "fs";
 import * as path from "path";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
-import {
-  HTMLDataAttribute,
-  HTMLDataTag,
-  LanguageServerAdapter,
-  VSCodeAdapter,
-} from "./adapters";
+import { LanguageServerAdapter, VSCodeAdapter } from "./adapters";
 import * as html from "vscode-html-languageservice";
 import {
   Component,
   getAllComponents,
-  getMemberDescription,
   removeQuotes,
 } from "@wc-toolkit/cem-utilities";
 import { getAttributeValueOptions } from "./utilities/cem-utils";
@@ -126,75 +120,22 @@ export class CustomElementsService {
   }
 
   /**
-   * Extracts attribute definitions from a custom element.
-   * @param element - The custom element to extract attributes from
-   * @returns Array of HTML data attributes with metadata
-   */
-  private getAttributesForAutoComplete(
-    element: cem.CustomElement
-  ): HTMLDataAttribute[] {
-    const attributes: HTMLDataAttribute[] = [];
-
-    for (const attr of element?.attributes || []) {
-      // Find position in the manifest file
-      const attrPosition = this.findPositionInManifest(
-        `"attribute": "${attr.name}"`
-      );
-
-      // Get the attribute type from the field
-      const typeText =
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (attr as any)["parsedType"]?.text || attr.type?.text || "";
-
-      const attrOptions = this.attributeOptions.get(
-        `${element.tagName}:${attr.name}`
-      );
-      const attrValues = Array.isArray(attrOptions)
-        ? attrOptions.map((option) => {
-            return {
-              name: option,
-              description: `Value: ${option}`,
-            };
-          })
-        : [];
-
-      // Create attribute with more info
-      attributes.push({
-        name: attr.name,
-        description: getMemberDescription(attr.description, attr.deprecated),
-        type: typeText,
-        // Add possible values for enum types
-        values: attrValues,
-        // Store the position
-        sourcePosition: attrPosition,
-      });
-    }
-
-    return attributes;
-  }
-
-  /**
    * Creates HTML data for VS Code HTML language service integration.
    * Converts custom element definitions to HTML data format.
    */
   private createHTMLData() {
-    const tags: HTMLDataTag[] = [];
-
-    for (const [tagName, element] of this.customElements) {
-      const attributes = this.getAttributesForAutoComplete(element);
-
-      tags.push({
-        name: tagName,
-        description: element.description || `Custom element: ${tagName}`,
-        attributes: attributes,
-      });
+    // If the adapter doesn't support creating HTML data providers, we can't proceed
+    if (!this.adapter.createHTMLDataFromCustomElements) {
+      console.warn("Adapter does not support creating HTML data providers");
+      return;
     }
 
-    // Create HTML data provider
-    this.htmlDataProvider = html.newHTMLDataProvider("custom-elements", {
-      version: 1.1,
-      tags: tags,
-    });
+    // Use the adapter to create the HTML data provider
+    this.htmlDataProvider = this.adapter.createHTMLDataFromCustomElements(
+      this.customElements,
+      this.attributeOptions,
+      this.findPositionInManifest.bind(this)
+    );
   }
 
   /**
@@ -220,26 +161,19 @@ export class CustomElementsService {
    * @returns Array of completion items for custom element tags
    */
   public getCompletionItems(): html.CompletionItem[] {
-    const items: html.CompletionItem[] = [];
+    if (this.adapter.createCustomElementCompletionItems) {
+      return this.adapter.createCustomElementCompletionItems(
+        this.customElements
+      );
+    }
 
+    // Fallback for adapters that don't implement the new method
+    const items: html.CompletionItem[] = [];
     for (const [tagName, element] of this.customElements) {
       const description =
         element.description || element.summary || `Custom element: ${tagName}`;
-
-      items.push({
-        label: tagName,
-        kind: html.CompletionItemKind.Property,
-        documentation: {
-          kind: "markdown",
-          value: description,
-        },
-        insertText: `${tagName}>$0</${tagName}>`,
-        insertTextFormat: html.InsertTextFormat.Snippet,
-        detail: "Custom Element",
-        sortText: "0" + tagName, // Sort custom elements first
-      });
+      items.push(this.adapter.createCompletionItem(tagName, description));
     }
-
     return items;
   }
 
@@ -252,6 +186,11 @@ export class CustomElementsService {
     const element = this.customElements.get(tagName);
     if (!element) return null;
 
+    if (this.adapter.createElementHoverInfo) {
+      return this.adapter.createElementHoverInfo(tagName, element);
+    }
+
+    // Fallback
     const description = element.description || `Custom element: ${tagName}`;
     return {
       contents: {
@@ -302,18 +241,14 @@ export class CustomElementsService {
    */
   public getAttributeCompletions(tagName: string): html.CompletionItem[] {
     const element = this.customElements.get(tagName);
-    if (!element || !this.adapter.createAttributeCompletionItem) return [];
+    if (!element || !this.adapter.createAttributeCompletionItems) return [];
 
-    const attributes = this.getAttributesForAutoComplete(element);
-    const completions: html.CompletionItem[] = [];
-
-    for (const attr of attributes) {
-      completions.push(
-        this.adapter.createAttributeCompletionItem(attr, tagName)
-      );
-    }
-
-    return completions;
+    return this.adapter.createAttributeCompletionItems(
+      element,
+      tagName,
+      this.attributeOptions,
+      this.findPositionInManifest.bind(this)
+    );
   }
 
   /**
@@ -327,19 +262,15 @@ export class CustomElementsService {
     attributeName: string
   ): html.CompletionItem[] {
     const element = this.customElements.get(tagName);
-    if (!element || !this.adapter.createAttributeValueCompletionItem) return [];
+    if (!element || !this.adapter.createAttributeValueCompletionItems)
+      return [];
 
-    const attributes = this.getAttributesForAutoComplete(element);
-    const attribute = attributes.find((attr) => attr.name === attributeName);
-
-    if (!attribute || !attribute.values) return [];
-
-    return attribute.values.map((value) =>
-      this.adapter.createAttributeValueCompletionItem!(
-        attribute,
-        value,
-        tagName
-      )
+    return this.adapter.createAttributeValueCompletionItems(
+      element,
+      tagName,
+      attributeName,
+      this.attributeOptions,
+      this.findPositionInManifest.bind(this)
     );
   }
 
@@ -393,9 +324,14 @@ export class CustomElementsService {
     if (!this.manifestPath) return null;
 
     const element = this.customElements.get(tagName);
-    if (!element) return null;
+    if (!element || !this.adapter.extractAttributesForAutoComplete) return null;
 
-    const attributes = this.getAttributesForAutoComplete(element);
+    const attributes = this.adapter.extractAttributesForAutoComplete(
+      element,
+      this.attributeOptions,
+      this.findPositionInManifest.bind(this)
+    );
+
     const attribute = attributes.find((attr) => attr.name === attributeName);
 
     if (!attribute) return null;

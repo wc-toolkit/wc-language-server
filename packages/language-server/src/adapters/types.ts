@@ -22,11 +22,86 @@ export interface LanguageServerAdapter {
   ): html.CompletionItem;
 
   /**
+   * Creates completion items for all custom elements
+   * @param customElements Map of custom element tag names to their definitions
+   * @returns Array of completion items for custom element tags
+   */
+  createCustomElementCompletionItems?(
+    customElements: Map<string, cem.CustomElement>
+  ): html.CompletionItem[];
+
+  /**
+   * Creates hover information for a custom element tag
+   * @param tagName The tag name to get hover info for
+   * @param element The custom element definition
+   * @returns Hover information object
+   */
+  createElementHoverInfo?(tagName: string, element: cem.CustomElement): html.Hover;
+
+  /**
    * Creates an HTML data provider for custom elements
    * @param tags Array of custom element tag data
    * @returns An HTML data provider instance
    */
   createHTMLDataProvider?(tags: HTMLDataTag[]): html.IHTMLDataProvider;
+  
+  /**
+   * Creates HTML data from custom elements manifest data
+   * @param customElements Map of custom element tag names to their definitions
+   * @param attributeOptions Map of attribute names to their options data
+   * @param findPositionInManifest Function to find position of attributes in the manifest
+   * @returns HTML data provider for VS Code integration
+   */
+  createHTMLDataFromCustomElements?(
+    customElements: Map<string, cem.CustomElement>,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): html.IHTMLDataProvider;
+
+  /**
+   * Extracts attribute definitions from a custom element for autocompletion
+   * @param element The custom element to extract attributes from
+   * @param attributeOptions Map of attribute names to their options data
+   * @param findPositionInManifest Function to find position of attributes in the manifest
+   * @returns Array of HTML data attributes with metadata
+   */
+  extractAttributesForAutoComplete?(
+    element: cem.CustomElement,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): HTMLDataAttribute[];
+  
+  /**
+   * Creates completion items for attributes of a custom element
+   * @param element The custom element
+   * @param tagName The tag name
+   * @param attributeOptions Map of attribute names to their options
+   * @param findPositionInManifest Function to find position in manifest
+   * @returns Array of attribute completion items
+   */
+  createAttributeCompletionItems?(
+    element: cem.CustomElement,
+    tagName: string,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): html.CompletionItem[];
+
+  /**
+   * Creates completion items for attribute values
+   * @param element The custom element
+   * @param tagName The tag name
+   * @param attributeName The attribute name
+   * @param attributeOptions Map of attribute names to their options
+   * @param findPositionInManifest Function to find position in manifest
+   * @returns Array of attribute value completion items
+   */
+  createAttributeValueCompletionItems?(
+    element: cem.CustomElement,
+    tagName: string,
+    attributeName: string,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): html.CompletionItem[];
 
   /**
    * Creates hover information for a custom element
