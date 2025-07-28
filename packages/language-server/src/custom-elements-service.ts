@@ -10,10 +10,6 @@ import {
   removeQuotes,
 } from "@wc-toolkit/cem-utilities";
 import { getAttributeValueOptions } from "./utilities/cem-utils";
-import {
-  LanguageServiceContext,
-  LanguageServicePlugin,
-} from "@volar/language-server";
 
 /**
  * Service for managing custom elements manifest data and providing language features
@@ -398,52 +394,4 @@ export class CustomElementsService {
 
     return null; // No validation errors
   }
-}
-
-/**
- * Creates a simple completion service for custom elements that triggers on any character.
- * This ensures custom element completions work even without the opening `<` bracket.
- * @returns Service plugin configuration object
- */
-export function createCustomElementsCompletionService(): LanguageServicePlugin {
-  return {
-    capabilities: {
-      completionProvider: {
-        triggerCharacters: [], // Empty array means trigger on any character
-      },
-    },
-    create(context: LanguageServiceContext) {
-      // @ts-expect-error the type appears to be incorrect here
-      const workspaceRoot = context.env?.workspaceFolders?.[0]?.uri || "";
-      const adapter = new VSCodeAdapter();
-      const customElementsService = new CustomElementsService(
-        workspaceRoot,
-        adapter
-      );
-
-      return {
-        provideCompletionItems(
-          document: html.TextDocument,
-          position: html.Position
-        ) {
-          // Only provide completions in HTML-like contexts
-          const text = document.getText();
-          const offset = document.offsetAt(position);
-          const beforeText = text.substring(0, offset);
-
-          // Don't provide completions if we're clearly in an attribute context
-          if (beforeText.match(/\s+\w+=[^>]*$/)) {
-            return { items: [], isIncomplete: false };
-          }
-
-          const customElements = customElementsService.getCustomElements();
-          return adapter.createCompletionList(customElements);
-        },
-
-        dispose() {
-          customElementsService.dispose();
-        },
-      };
-    },
-  };
 }

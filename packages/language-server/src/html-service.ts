@@ -2,10 +2,6 @@ import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity, LocationLink } from "vscode-languageserver-types";
 import { CustomElementsService } from "./custom-elements-service";
 import { VSCodeAdapter } from "./adapters";
-import {
-  LanguageServiceContext,
-  LanguageServicePlugin,
-} from "@volar/language-server";
 
 /**
  * Service that provides HTML language features with custom element support.
@@ -566,78 +562,4 @@ export class CustomHtmlService {
 
     return elementStart + match.index + 1; // +1 to skip the initial space
   }
-}
-
-/**
- * Creates a language service plugin for custom HTML features.
- * @returns Plugin object with capabilities and service creation function
- */
-export function createCustomHtmlServicePlugin(): LanguageServicePlugin {
-  return {
-    capabilities: {
-      completionProvider: {
-        triggerCharacters: [
-          "<",
-          " ",
-          "=",
-          '"',
-          "'",
-          ">",
-          "-",
-          "a",
-          "b",
-          "c",
-          "d",
-          "e",
-          "f",
-          "g",
-          "h",
-          "i",
-          "j",
-          "k",
-          "l",
-          "m",
-          "n",
-          "o",
-          "p",
-          "q",
-          "r",
-          "s",
-          "t",
-          "u",
-          "v",
-          "w",
-          "x",
-          "y",
-          "z",
-        ],
-      },
-      hoverProvider: true,
-      definitionProvider: true,
-      diagnosticProvider: {
-        interFileDependencies: false,
-        workspaceDiagnostics: false,
-      },
-    },
-    /**
-     * Creates the custom HTML service instance.
-     * @param context - Language service context containing workspace information
-     * @returns Service instance with bound methods
-     */
-    create(context: LanguageServiceContext) {
-      const workspaceFolders = context.env?.workspaceFolders;
-      // @ts-expect-error the type appears to be incorrect here
-      const workspaceRoot = workspaceFolders?.[0]?.uri || "";
-
-      const service = new CustomHtmlService(workspaceRoot);
-
-      return {
-        provideCompletionItems: service.provideCompletionItems.bind(service),
-        provideHover: service.provideHover.bind(service),
-        provideDefinition: service.provideDefinition.bind(service),
-        provideDiagnostics: service.provideDiagnostics.bind(service),
-        dispose: service.dispose.bind(service),
-      };
-    },
-  };
 }
