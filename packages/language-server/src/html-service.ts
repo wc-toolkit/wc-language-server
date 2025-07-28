@@ -1,7 +1,8 @@
 import * as html from "vscode-html-languageservice";
-import { DiagnosticSeverity, LocationLink } from "vscode-languageserver-types";
+import { LocationLink } from "vscode-languageserver-types";
 import { CustomElementsService } from "./custom-elements-service";
-import { HtmlCompletionService } from "./html-completion-service";
+import { HtmlCompletionService as VsCodeHtmlCompletionService } from "./adapters/vscode/html-completion-service";
+import { HtmlValidationService as VsCodeHtmlValidationService } from "./adapters/vscode/html-validation-service";
 import { VSCodeAdapter } from "./adapters";
 
 /**
@@ -14,7 +15,10 @@ export class CustomHtmlService {
   private customElementsService: CustomElementsService;
 
   /** Service for handling HTML completions */
-  private htmlCompletionService: HtmlCompletionService;
+  private htmlCompletionService: VsCodeHtmlCompletionService;
+
+  /** Service for handling HTML validation */
+  private htmlValidationService: VsCodeHtmlValidationService;
 
   /** VS Code adapter for language server operations */
   private adapter: VSCodeAdapter;
@@ -37,13 +41,41 @@ export class CustomHtmlService {
     this.adapter = new VSCodeAdapter();
 
     // Create HTML completion service
-    this.htmlCompletionService = new HtmlCompletionService(
+    this.htmlCompletionService = new VsCodeHtmlCompletionService(
       this.adapter,
       this.customElementsService
     );
 
+    // Create HTML validation service
+    this.htmlValidationService = new VsCodeHtmlValidationService(
+      this.customElementsService
+    );
+
+    // Initialize adapter with current data if available
+    this.initializeAdapter();
+
+    // Listen for manifest changes and update adapter
+    this.unsubscribeFromChanges = this.customElementsService.onManifestChange(() => {
+      this.initializeAdapter();
+      this.recreateHtmlLanguageService();
+    });
+
     // Create HTML language service with custom data
     this.recreateHtmlLanguageService();
+  }
+
+  /**
+   * Initializes the adapter with current custom elements data.
+   */
+  private initializeAdapter() {
+    if (this.customElementsService.getCustomElementsMap().size > 0) {
+      this.adapter.initializeHTMLDataProvider(
+        this.customElementsService.getCustomElementsMap(),
+        this.customElementsService.getAttributeOptions(),
+        (searchText: string) =>
+          this.customElementsService.findPositionInManifest(searchText)
+      );
+    }
   }
 
   /**
@@ -92,10 +124,10 @@ export class CustomHtmlService {
    */
   public provideDefinition(
     document: html.TextDocument,
-    cursorPosition: html.Position
+    position: html.Position
   ): LocationLink[] | null {
     const text = document.getText();
-    const offset = document.offsetAt(cursorPosition);
+    const offset = document.offsetAt(position);
     const currentWord = this.getCurrentWord(text, offset);
 
     if (!currentWord) {
@@ -124,7 +156,7 @@ export class CustomHtmlService {
     }
 
     // Check if the word is an attribute
-    const tagName = this.findContainingTag(text, cursorPosition, offset);
+    const tagName = this.findContainingTag(text, position, offset);
     if (!tagName || !this.customElementsService.hasCustomElement(tagName)) {
       return null;
     }
@@ -135,12 +167,12 @@ export class CustomHtmlService {
     const attribute = element.attributes?.find((attr) => attr.name === currentWord);
     if (!attribute) return null;
 
-    const position = this.customElementsService.findPositionInManifest(currentWord);
+    const attrPosition = this.customElementsService.findPositionInManifest(currentWord);
     const attributeDefinition = this.adapter.createAttributeDefinitionLocation(
       tagName,
       currentWord,
       manifestPath,
-      position
+      attrPosition
     );
 
     if (!attributeDefinition) {
@@ -163,23 +195,10 @@ export class CustomHtmlService {
    * @returns Array of diagnostic messages for validation errors
    */
   public provideDiagnostics(document: html.TextDocument) {
-    const text = document.getText();
-    const textDocument = html.TextDocument.create(
-      document.uri,
-      "html",
-      0,
-      text
+    return this.htmlValidationService.provideDiagnostics(
+      document,
+      this.htmlLanguageService
     );
-    const htmlDocument = this.htmlLanguageService.parseHTMLDocument(textDocument);
-
-    const diagnostics: html.Diagnostic[] = [];
-
-    // Process each element in the document
-    for (const node of htmlDocument.roots) {
-      this.validateNode(node, document, diagnostics);
-    }
-
-    return diagnostics;
   }
 
   /**
@@ -263,122 +282,5 @@ export class CustomHtmlService {
     }
 
     return tagName || null;
-  }
-
-  /**
-   * Validates an HTML node and its attributes for custom element compliance.
-   * @param node - The HTML node to validate
-   * @param document - The text document containing the node
-   * @param diagnostics - Array to append diagnostic messages to
-   */
-  private validateNode(
-    node: html.Node,
-    document: html.TextDocument,
-    diagnostics: html.Diagnostic[]
-  ) {
-    // Only process element nodes
-    if (!node.tag) {
-      // Process child nodes recursively
-      if (node.children) {
-        for (const child of node.children) {
-          this.validateNode(child, document, diagnostics);
-        }
-      }
-      return;
-    }
-
-    const tagName = node.tag;
-
-    // Check if this is a custom element we know about
-    if (!this.customElementsService.hasCustomElement(tagName)) {
-      // Process child nodes recursively
-      if (node.children) {
-        for (const child of node.children) {
-          this.validateNode(child, document, diagnostics);
-        }
-      }
-      return;
-    }
-
-    // Validate each attribute
-    if (node.attributes) {
-      for (const [attrName, attrValue] of Object.entries(node.attributes)) {
-        if (typeof attrValue !== "string") {
-          continue;
-        }
-
-        // Validate the attribute value
-        const errorMessage = this.customElementsService.validateAttributeValue(
-          tagName,
-          attrName,
-          attrValue
-        );
-
-        // If there's no error, continue
-        if (!errorMessage) {
-          continue;
-        }
-
-        // Find the attribute position in the document
-        const range = this.findAttributeRange(document, node, attrName);
-
-        if (!range) {
-          continue;
-        }
-
-        diagnostics.push({
-          severity: DiagnosticSeverity.Error,
-          range: range,
-          message: errorMessage,
-          source: "web-components",
-        });
-      }
-    }
-
-    // Process child nodes recursively
-    if (node.children) {
-      for (const child of node.children) {
-        this.validateNode(child, document, diagnostics);
-      }
-    }
-  }
-
-  /**
-   * Finds the range of a specific attribute within an HTML element.
-   * @param document - The text document
-   * @param node - The HTML node containing the attribute
-   * @param attrName - The name of the attribute to find
-   * @returns The range of the attribute or null if not found
-   */
-  private findAttributeRange(
-    document: html.TextDocument,
-    node: html.Node,
-    attrName: string
-  ): html.Range | null {
-    const text = document.getText();
-    
-    // Find the start of the element
-    const elementStart = node.start;
-    const elementEnd = node.end;
-
-    // Extract the element text
-    const elementText = text.substring(elementStart, elementEnd);
-
-    // Look for the attribute with a more precise regex
-    const attrRegex = new RegExp(`\\s(${attrName})\\s*=\\s*["']([^"']*)["']`, "g");
-    const match = attrRegex.exec(elementText);
-
-    if (!match) {
-      return null;
-    }
-
-    // Calculate the start position of just the attribute name and value
-    const attrStart = elementStart + match.index + 1; // +1 to skip the space before attribute
-    const attrEnd = attrStart + match[1].length + match[2].length + 3; // +3 for ="" or =''
-
-    return {
-      start: document.positionAt(attrStart),
-      end: document.positionAt(attrEnd),
-    };
   }
 }

@@ -26,7 +26,7 @@ export interface AttributeInfo {
  */
 export class CustomElementsService {
   /** Map of custom element tag names to their definitions */
-  private customElements: Map<string, cem.CustomElement> = new Map();
+  private customElements: Map<string, Component> = new Map();
 
   /** File watcher for the custom elements manifest file */
   private manifestWatcher?: fs.StatWatcher;
@@ -165,7 +165,7 @@ export class CustomElementsService {
    * Gets all custom element definitions (legacy method for backwards compatibility).
    * @returns Array of all custom element definitions
    */
-  public getCustomElements(): cem.CustomElement[] {
+  public getCustomElements(): Component[] {
     return Array.from(this.customElements.values());
   }
 
@@ -173,7 +173,7 @@ export class CustomElementsService {
    * Gets the raw custom elements map.
    * @returns Map of custom element tag names to their definitions
    */
-  public getCustomElementsMap(): Map<string, cem.CustomElement> {
+  public getCustomElementsMap(): Map<string, Component> {
     return new Map(this.customElements);
   }
 
@@ -207,7 +207,7 @@ export class CustomElementsService {
    * @param tagName - The tag name to get
    * @returns The custom element definition or null if not found
    */
-  public getCustomElement(tagName: string): cem.CustomElement | null {
+  public getCustomElement(tagName: string): Component | null {
     return this.customElements.get(tagName) || null;
   }
 

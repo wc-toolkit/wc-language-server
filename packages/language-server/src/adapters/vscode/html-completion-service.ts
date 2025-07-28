@@ -1,7 +1,7 @@
 import * as html from "vscode-html-languageservice";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
-import { LanguageServerAdapter } from "./adapters";
-import { CustomElementsService } from "./custom-elements-service";
+import { LanguageServerAdapter } from "..";
+import { CustomElementsService } from "../../custom-elements-service";
 
 /**
  * Service dedicated to handling HTML completions for custom elements.

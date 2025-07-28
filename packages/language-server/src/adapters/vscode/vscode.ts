@@ -3,13 +3,15 @@ import {
   HTMLDataTag,
   HTMLDataAttributeValue,
   LanguageServerAdapter,
-} from "./types";
+} from "../types";
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
-import { getMemberDescription } from "@wc-toolkit/cem-utilities";
+import { Component, getMemberDescription } from "@wc-toolkit/cem-utilities";
 
 export class VSCodeAdapter implements LanguageServerAdapter {
+  htmlDataProvider!: html.IHTMLDataProvider;
+
   createCompletionItem(
     tag: string,
     description: string,
@@ -422,5 +424,28 @@ export class VSCodeAdapter implements LanguageServerAdapter {
       severity,
       source: "web-components",
     };
+  }
+
+  initializeHTMLDataProvider(
+    customElementsMap: Map<string, Component>,
+    attributeOptions: unknown,
+    findPositionCallback: (searchText: string) => number
+  ): void {
+    // Convert attributeOptions to the expected type if needed
+    // If attributeOptions is already a Map<string, string[] | string>, you can cast it directly
+    const attributeOptionsMap = attributeOptions as Map<string, string[] | string>;
+
+    // The findPositionCallback should return a number, so cast if necessary
+    const findPosition = (searchText: string) => {
+      const result = findPositionCallback(searchText);
+      return typeof result === "number" ? result : Number(result);
+    };
+
+    // Use the adapter's method to create the HTML data provider
+    this.htmlDataProvider = this.createHTMLDataFromCustomElements(
+      customElementsMap as Map<string, cem.CustomElement>,
+      attributeOptionsMap,
+      findPosition
+    );
   }
 }
