@@ -19,7 +19,7 @@
     "vscode": "^1.82.0"
   },
   "activationEvents": [
-    "onLanguage:html"
+    "*"
   ],
   "main": "./dist/client.js",
   "contributes": {},

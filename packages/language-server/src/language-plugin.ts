@@ -13,11 +13,15 @@ import { URI } from "vscode-uri";
 /** File extensions supported by the language plugin */
 const SUPPORTED_EXTENSIONS = {
   HTML: ".html",
+  MD: ".md",
+  MDX: ".mdx",
 } as const;
 
 /** Language identifiers used throughout the plugin */
 const LANGUAGE_IDS = {
   HTML: "html",
+  MD: "markdown",
+  MDX: "mdx",
   CSS: "css",
   JAVASCRIPT: "javascript",
   TYPESCRIPT: "typescript",
@@ -51,9 +55,16 @@ export const wcLanguagePlugin: LanguagePlugin<URI> = {
    * @returns The language ID if supported, undefined otherwise
    */
   getLanguageId(uri) {
-    return uri.path.endsWith(SUPPORTED_EXTENSIONS.HTML)
-      ? LANGUAGE_IDS.HTML
-      : undefined;
+    if (uri.path.endsWith(SUPPORTED_EXTENSIONS.HTML)) {
+      return LANGUAGE_IDS.HTML;
+    }
+    if (uri.path.endsWith(SUPPORTED_EXTENSIONS.MD)) {
+      return LANGUAGE_IDS.HTML; // treat .md as HTML for plugin purposes
+    }
+    if (uri.path.endsWith(SUPPORTED_EXTENSIONS.MDX)) {
+      return LANGUAGE_IDS.HTML; // treat .mdx as HTML for plugin purposes
+    }
+    return undefined;
   },
 
   /**
@@ -64,9 +75,11 @@ export const wcLanguagePlugin: LanguagePlugin<URI> = {
    * @returns VirtualCode instance for HTML files, undefined for others
    */
   createVirtualCode(_uri, languageId, snapshot) {
-    return languageId === LANGUAGE_IDS.HTML
-      ? new WcLanguageServerVirtualCode(snapshot)
-      : undefined;
+    // treat .md and .mdx as HTML for virtual code
+    if (languageId === LANGUAGE_IDS.HTML || languageId === LANGUAGE_IDS.MD || languageId === LANGUAGE_IDS.MDX) {
+      return new WcLanguageServerVirtualCode(snapshot);
+    }
+    return undefined;
   },
 
   typescript: {
@@ -74,6 +87,16 @@ export const wcLanguagePlugin: LanguagePlugin<URI> = {
     extraFileExtensions: [
       {
         extension: "html",
+        isMixedContent: true,
+        scriptKind: SCRIPT_KINDS.DEFERRED,
+      },
+      {
+        extension: "md",
+        isMixedContent: true,
+        scriptKind: SCRIPT_KINDS.DEFERRED,
+      },
+      {
+        extension: "mdx",
         isMixedContent: true,
         scriptKind: SCRIPT_KINDS.DEFERRED,
       },

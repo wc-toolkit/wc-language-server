@@ -8,16 +8,16 @@
     <h1>Web Components Test Page</h1>
 
     <!-- These should appear in autocomplete: my-element, custom-button -->
-    <my-element></my-element>
-    <custom-button>Click Me!</custom-button>
     <sl-alert variant="name"></sl-alert>
     <sl-button variant="neutral"></sl-button>
-    <sl-animation></sl-animation>
-    <sl-alert duration="asdf"></sl-alert>
-    <sl-animation></sl-animation>
-    <sl-animation></sl-animation>
-    <sl-alert variant="primary" open=""></sl-alert>
-    <sl-skeleton></sl-skeleton>
+    <sl-alert duration="asdf" closable aria-atomic="false"></sl-alert>
+    <sl-alert ></sl-alert>
+    <sl-alert duration="122ed"></sl-alert>
+    <sl-avatar shape="square" ></sl-avatar>
+    <sl-badge></sl-badge>
+    <sl-avatar shape="rounded"></sl-avatar>
+    <sl-badge variant="success" pill></sl-badge>
+    <sl-alert duration="123"></sl-alert>
     
     <style>
       body {
@@ -28,11 +28,11 @@
 
     <script>
       console.log("Web components test page loaded");
+      const html = "<sl-alert></sl-alert>"
       const taggedTemplate = html`<sl-alert
         duration="3000"
         variant="blah"
       ></sl-alert>`;
-      const template = `<sl-avatar label="User Avatar" shape="circle"></sl-avatar><sl-button variant="blah">Click Me!</sl-button>`;
     </script>
   </body>
 </html>
