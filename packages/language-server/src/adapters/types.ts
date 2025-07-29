@@ -22,41 +22,11 @@ export interface LanguageServerAdapter {
   ): html.CompletionItem;
 
   /**
-   * Creates completion items for all custom elements
-   * @param customElements Map of custom element tag names to their definitions
-   * @returns Array of completion items for custom element tags
-   */
-  createCustomElementCompletionItems?(
-    customElements: Map<string, cem.CustomElement>
-  ): html.CompletionItem[];
-
-  /**
-   * Creates hover information for a custom element tag
-   * @param tagName The tag name to get hover info for
-   * @param element The custom element definition
-   * @returns Hover information object
-   */
-  createElementHoverInfo?(tagName: string, element: cem.CustomElement): html.Hover;
-
-  /**
    * Creates an HTML data provider for custom elements
    * @param tags Array of custom element tag data
    * @returns An HTML data provider instance
    */
   createHTMLDataProvider?(tags: HTMLDataTag[]): html.IHTMLDataProvider;
-  
-  /**
-   * Creates HTML data from custom elements manifest data
-   * @param customElements Map of custom element tag names to their definitions
-   * @param attributeOptions Map of attribute names to their options data
-   * @param findPositionInManifest Function to find position of attributes in the manifest
-   * @returns HTML data provider for VS Code integration
-   */
-  createHTMLDataFromCustomElements?(
-    customElements: Map<string, cem.CustomElement>,
-    attributeOptions: Map<string, string[] | string>,
-    findPositionInManifest: (searchText: string) => number
-  ): html.IHTMLDataProvider;
 
   /**
    * Extracts attribute definitions from a custom element for autocompletion
@@ -134,19 +104,6 @@ export interface LanguageServerAdapter {
     value: HTMLDataAttributeValue,
     tagName: string
   ): html.CompletionItem;
-
-  /**
-   * Creates a location object for tag definition lookup
-   * @param tagName The name of the custom element tag
-   * @param manifestPath Path to the custom elements manifest file
-   * @param position Position in the manifest file
-   * @returns Location object or null if not found
-   */
-  createTagDefinitionLocation?(
-    tagName: string,
-    manifestPath: string,
-    position: number
-  ): html.Location | null;
 
   /**
    * Creates a location object for attribute definition lookup

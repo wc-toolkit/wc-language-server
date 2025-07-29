@@ -20,6 +20,17 @@ export interface AttributeInfo {
 }
 
 /**
+ * Key type for attribute options map, formatted as "tagName:attributeName".
+ * This allows for namespaced attributes if needed in the future.
+ */
+export type AttributeKey = `${string}:${string}`;
+
+/**
+ * Map of attribute names to their types.
+ */
+export type AttributeTypes = Map<AttributeKey, string[] | string>;
+
+/**
  * Pure data service for managing custom elements manifest data.
  * This service only handles loading, parsing, and providing access to the raw data.
  * All language features (completions, hover, definitions) are handled by adapters.
@@ -38,7 +49,7 @@ export class CustomElementsService {
   private manifestContent: string = "";
 
   /** Map of attribute names to their options data */
-  private attributeOptions: Map<string, string[] | string> = new Map();
+  private attributeOptions: AttributeTypes = new Map();
 
   /** Array of change listeners */
   private changeListeners: (() => void)[] = [];
@@ -181,7 +192,7 @@ export class CustomElementsService {
    * Gets the attribute options map.
    * @returns Map of attribute names to their options data
    */
-  public getAttributeOptions(): Map<string, string[] | string> {
+  public getAttributeOptions(): AttributeTypes {
     return new Map(this.attributeOptions);
   }
 
@@ -246,7 +257,7 @@ export class CustomElementsService {
     tagName: string,
     attributeName: string
   ): string[] | string | null {
-    const key = `${tagName}:${attributeName}`;
+    const key: AttributeKey = `${tagName}:${attributeName}`;
     const options = this.attributeOptions.get(key);
     return options || null;
   }

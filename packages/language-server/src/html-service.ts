@@ -1,9 +1,8 @@
 import * as html from "vscode-html-languageservice";
 import { LocationLink } from "vscode-languageserver-types";
 import { CustomElementsService } from "./custom-elements-service";
-import { HtmlCompletionService as VsCodeHtmlCompletionService } from "./adapters/vscode/html-completion-service";
-import { HtmlValidationService as VsCodeHtmlValidationService } from "./adapters/vscode/html-validation-service";
-import { VSCodeAdapter } from "./adapters";
+import { VsCodeHtmlCompletionService } from "./adapters/vscode/html-completion-service";
+import { VsCodeHtmlValidationService } from "./adapters/vscode/html-validation-service";
 
 /**
  * Service that provides HTML language features with custom element support.
@@ -20,9 +19,6 @@ export class CustomHtmlService {
   /** Service for handling HTML validation */
   private htmlValidationService: VsCodeHtmlValidationService;
 
-  /** VS Code adapter for language server operations */
-  private adapter: VSCodeAdapter;
-
   /** VS Code HTML language service instance */
   private htmlLanguageService!: html.LanguageService;
 
@@ -37,12 +33,8 @@ export class CustomHtmlService {
     // Create custom elements service (no adapter dependency)
     this.customElementsService = new CustomElementsService(workspaceRoot);
 
-    // Create adapter separately
-    this.adapter = new VSCodeAdapter();
-
     // Create HTML completion service
     this.htmlCompletionService = new VsCodeHtmlCompletionService(
-      this.adapter,
       this.customElementsService
     );
 
@@ -51,31 +43,8 @@ export class CustomHtmlService {
       this.customElementsService
     );
 
-    // Initialize adapter with current data if available
-    this.initializeAdapter();
-
-    // Listen for manifest changes and update adapter
-    this.unsubscribeFromChanges = this.customElementsService.onManifestChange(() => {
-      this.initializeAdapter();
-      this.recreateHtmlLanguageService();
-    });
-
     // Create HTML language service with custom data
     this.recreateHtmlLanguageService();
-  }
-
-  /**
-   * Initializes the adapter with current custom elements data.
-   */
-  private initializeAdapter() {
-    if (this.customElementsService.getCustomElementsMap().size > 0) {
-      this.adapter.initializeHTMLDataProvider(
-        this.customElementsService.getCustomElementsMap(),
-        this.customElementsService.getAttributeOptions(),
-        (searchText: string) =>
-          this.customElementsService.findPositionInManifest(searchText)
-      );
-    }
   }
 
   /**
@@ -168,7 +137,7 @@ export class CustomHtmlService {
     if (!attribute) return null;
 
     const attrPosition = this.customElementsService.findPositionInManifest(currentWord);
-    const attributeDefinition = this.adapter.createAttributeDefinitionLocation(
+    const attributeDefinition = this.htmlCompletionService.createAttributeDefinitionLocation(
       tagName,
       currentWord,
       manifestPath,

@@ -6,7 +6,7 @@ import { CustomElementsService } from "../../custom-elements-service";
  * Service dedicated to handling HTML validation for custom elements.
  * Provides diagnostic information and validation for custom element attributes and values.
  */
-export class HtmlValidationService {
+export class VsCodeHtmlValidationService {
   /**
    * Creates a new HtmlValidationService instance.
    * @param customElementsService - Service for accessing custom elements data

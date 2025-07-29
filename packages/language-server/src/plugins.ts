@@ -1,8 +1,11 @@
-import { LanguageServiceContext, LanguageServicePlugin } from "@volar/language-server";
+import {
+  LanguageServiceContext,
+  LanguageServicePlugin,
+} from "@volar/language-server";
 import { CustomHtmlService } from "./html-service";
-import { VSCodeAdapter } from "./adapters";
 import { CustomElementsService } from "./custom-elements-service";
 import * as html from "vscode-html-languageservice";
+import { VsCodeHtmlCompletionService } from "./adapters/vscode/html-completion-service";
 
 /**
  * Creates a language service plugin for custom HTML features.
@@ -93,10 +96,10 @@ export function vsCodeEmmetCompletionPlugin(): LanguageServicePlugin {
     create(context: LanguageServiceContext) {
       // @ts-expect-error the type appears to be incorrect here
       const workspaceRoot = context.env?.workspaceFolders?.[0]?.uri || "";
-      const customElementsService = new CustomElementsService(
-        workspaceRoot
+      const customElementsService = new CustomElementsService(workspaceRoot);
+      const htmlCompletionService = new VsCodeHtmlCompletionService(
+        customElementsService
       );
-      const adapter = new VSCodeAdapter();
 
       return {
         provideCompletionItems(
@@ -114,7 +117,7 @@ export function vsCodeEmmetCompletionPlugin(): LanguageServicePlugin {
           }
 
           const customElements = customElementsService.getCustomElements();
-          return adapter.createCompletionList(customElements);
+          return htmlCompletionService.createCompletionList(customElements);
         },
 
         dispose() {

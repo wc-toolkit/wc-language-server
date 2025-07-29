@@ -1,13 +1,21 @@
 import * as html from "vscode-html-languageservice";
-import { VSCodeAdapter } from "..";
+import {
+  HTMLDataAttribute,
+  HTMLDataAttributeValue,
+  HTMLDataTag,
+} from "..";
 import { CustomElementsService } from "../../custom-elements-service";
-import { Component } from "@wc-toolkit/cem-utilities";
+import {
+  Component,
+  getComponentDetailsTemplate,
+  getMemberDescription,
+} from "@wc-toolkit/cem-utilities";
 
 /**
  * Service dedicated to handling HTML completions for custom elements.
  * Provides completion items, hover information, and validation for custom element attributes.
  */
-export class HtmlCompletionService {
+export class VsCodeHtmlCompletionService {
   /** HTML data provider for VS Code HTML language service integration */
   private htmlDataProvider: html.IHTMLDataProvider | null = null;
 
@@ -20,7 +28,6 @@ export class HtmlCompletionService {
    * @param customElementsService - Service for accessing custom elements data
    */
   constructor(
-    private adapter: VSCodeAdapter,
     private customElementsService: CustomElementsService
   ) {
     this.initializeHTMLLanguageService();
@@ -53,17 +60,246 @@ export class HtmlCompletionService {
    */
   public createHTMLData(): void {
     // If the adapter doesn't support creating HTML data providers, we can't proceed
-    if (!this.adapter.createHTMLDataFromCustomElements) {
+    if (!this.createHTMLDataFromCustomElements) {
       console.warn("Adapter does not support creating HTML data providers");
       return;
     }
 
     // Use the adapter to create the HTML data provider
-    this.htmlDataProvider = this.adapter.createHTMLDataFromCustomElements(
+    this.htmlDataProvider = this.createHTMLDataFromCustomElements(
       this.customElementsService.getCustomElementsMap(),
       this.customElementsService.getAttributeOptions(),
-      (searchText: string) => this.customElementsService.findPositionInManifest(searchText)
+      (searchText: string) =>
+        this.customElementsService.findPositionInManifest(searchText)
     );
+  }
+
+  /**
+   * Creates HTML data from custom elements manifest data
+   * @param customElements Map of custom element tag names to their definitions
+   * @param attributeOptions Map of attribute names to their options data
+   * @param findPositionInManifest Function to find position of attributes in the manifest
+   * @returns HTML data provider for VS Code integration
+   */
+  createHTMLDataFromCustomElements(
+    customElements: Map<string, Component>,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): html.IHTMLDataProvider {
+    const tags: HTMLDataTag[] = [];
+
+    for (const [tagName, element] of customElements) {
+      const attributes = this.extractAttributesForAutoComplete(
+        element,
+        attributeOptions,
+        findPositionInManifest
+      );
+
+      tags.push({
+        name: tagName,
+        description:
+          getComponentDetailsTemplate(element) || `Custom element: ${tagName}`,
+        attributes: attributes,
+      });
+    }
+
+    // Create HTML data provider
+    return this.createHTMLDataProvider(tags);
+  }
+
+  /**
+   * Creates completion items for attributes of a custom element
+   * @param element The custom element
+   * @param tagName The tag name
+   * @param attributeOptions Map of attribute names to their options
+   * @param findPositionInManifest Function to find position in manifest
+   * @returns Array of attribute completion items
+   */
+  createAttributeCompletionItems(
+    element: Component,
+    tagName: string,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): html.CompletionItem[] {
+    if (!element || !this.createAttributeCompletionItem) return [];
+
+    const attributes = this.extractAttributesForAutoComplete(
+      element,
+      attributeOptions,
+      findPositionInManifest
+    );
+
+    const completions: html.CompletionItem[] = [];
+    for (const attr of attributes) {
+      completions.push(this.createAttributeCompletionItem(attr));
+    }
+    return completions;
+  }
+
+  /**
+   * Creates completion items for attribute values
+   * @param element The custom element
+   * @param tagName The tag name
+   * @param attributeName The attribute name
+   * @param attributeOptions Map of attribute names to their options
+   * @param findPositionInManifest Function to find position in manifest
+   * @returns Array of attribute value completion items
+   */
+  createAttributeValueCompletionItems(
+    element: Component,
+    tagName: string,
+    attributeName: string,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): html.CompletionItem[] {
+    if (!element || !this.createAttributeValueCompletionItem) return [];
+
+    const attributes = this.extractAttributesForAutoComplete(
+      element,
+      attributeOptions,
+      findPositionInManifest
+    );
+
+    const attribute = attributes.find((attr) => attr.name === attributeName);
+
+    if (!attribute || !attribute.values) return [];
+
+    return attribute.values.map((value) =>
+      this.createAttributeValueCompletionItem(attribute, value, tagName)
+    );
+  }
+
+  createHTMLDataProvider(tags: HTMLDataTag[]): html.IHTMLDataProvider {
+    return html.newHTMLDataProvider("custom-elements", {
+      version: 1.1,
+      tags: tags,
+    });
+  }
+
+  /**
+   * Creates a completion item for an attribute of a custom element
+   * @param attribute The attribute data
+   * @param tagName The name of the parent custom element
+   * @returns A completion item for the attribute
+   */
+  createAttributeCompletionItem(
+    attribute: HTMLDataAttribute
+  ): html.CompletionItem {
+    const hasValues = attribute.values && attribute.values.length > 0;
+
+    const documentation =
+      getMemberDescription(attribute.description, attribute.deprecated) +
+      (attribute.type ? `\n\n**Type:** \`${attribute.type}\`` : "");
+
+    return {
+      label: attribute.name,
+      kind: html.CompletionItemKind.Property,
+      documentation: {
+        kind: "markdown",
+        value: documentation,
+      },
+      insertText: hasValues
+        ? `${attribute.name}="$1"$0`
+        : `${attribute.name}="$0"`,
+      insertTextFormat: html.InsertTextFormat.Snippet,
+      filterText: attribute.name,
+      sortText: "0" + attribute.name, // Sort at the top
+      command: hasValues
+        ? { command: "editor.action.triggerSuggest", title: "Suggest" }
+        : undefined,
+    };
+  }
+
+  /**
+   * Creates a completion item for an attribute value
+   * @param attribute The parent attribute data
+   * @param value The attribute value data
+   * @param tagName The name of the parent custom element
+   * @returns A completion item for the attribute value
+   */
+  createAttributeValueCompletionItem(
+    attribute: HTMLDataAttribute,
+    value: HTMLDataAttributeValue,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _tagName: string
+  ): html.CompletionItem {
+    return {
+      label: value.name,
+      kind: html.CompletionItemKind.Value,
+      documentation: {
+        kind: "markdown",
+        value: value.description || `Value for ${attribute.name} attribute`,
+      },
+      insertText: value.name,
+      filterText: value.name,
+      sortText: "0" + value.name, // Sort at the top
+      textEdit: {
+        range: {
+          start: {
+            line: 0,
+            character: 0,
+          },
+          end: {
+            line: 0,
+            character: 0,
+          },
+        }, // This will be set by the completion provider
+        newText: value.name,
+      },
+    };
+  }
+
+  /**
+   * Extracts attribute definitions from a custom element.
+   * @param element The custom element to extract attributes from
+   * @param attributeOptions Map of attribute names to their options data
+   * @param findPositionInManifest Function to find position of attributes in the manifest
+   * @returns Array of HTML data attributes with metadata
+   */
+  extractAttributesForAutoComplete(
+    element: Component,
+    attributeOptions: Map<string, string[] | string>,
+    findPositionInManifest: (searchText: string) => number
+  ): HTMLDataAttribute[] {
+    const attributes: HTMLDataAttribute[] = [];
+
+    for (const attr of element?.attributes || []) {
+      // Find position in the manifest file
+      const attrPosition = findPositionInManifest(
+        `"attribute": "${attr.name}"`
+      );
+
+      // Get the attribute type from the field
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const typeText =
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (attr as any)["parsedType"]?.text || attr.type?.text || "";
+
+      const attrOptions = attributeOptions.get(
+        `${element.tagName}:${attr.name}`
+      );
+      const attrValues = Array.isArray(attrOptions)
+        ? attrOptions.map((option) => {
+            return {
+              name: option,
+              description: `Value: ${option}`,
+            };
+          })
+        : [];
+
+      // Create attribute with more info
+      attributes.push({
+        name: attr.name,
+        description: getMemberDescription(attr.description, attr.deprecated),
+        type: typeText,
+        // Add possible values for enum types
+        values: attrValues,
+        // Store the position
+        sourcePosition: attrPosition,
+      });
+    }
+
+    return attributes;
   }
 
   /**
@@ -95,7 +331,8 @@ export class HtmlCompletionService {
       0,
       text
     );
-    const htmlDocument = this.htmlLanguageService.parseHTMLDocument(textDocument);
+    const htmlDocument =
+      this.htmlLanguageService.parseHTMLDocument(textDocument);
 
     // Handle different completion scenarios
     if (this.isTagCompletion(beforeText)) {
@@ -135,7 +372,7 @@ export class HtmlCompletionService {
    * @returns Hover information or null if no hover data is available
    */
   public provideHover(
-    document: html.TextDocument, 
+    document: html.TextDocument,
     position: html.Position
   ): html.Hover | null {
     const textDocument = html.TextDocument.create(
@@ -144,7 +381,8 @@ export class HtmlCompletionService {
       0,
       document.getText()
     );
-    const htmlDocument = this.htmlLanguageService.parseHTMLDocument(textDocument);
+    const htmlDocument =
+      this.htmlLanguageService.parseHTMLDocument(textDocument);
 
     return this.htmlLanguageService.doHover(
       textDocument,
@@ -159,9 +397,9 @@ export class HtmlCompletionService {
    */
   public getCompletionItems(): html.CompletionItem[] {
     const customElements = this.customElementsService.getCustomElementsMap();
-    
-    if (this.adapter.createCustomElementCompletionItems) {
-      return this.adapter.createCustomElementCompletionItems(customElements);
+
+    if (this.createCustomElementCompletionItems) {
+      return this.createCustomElementCompletionItems(customElements);
     }
 
     // Fallback for adapters that don't implement the new method
@@ -169,30 +407,59 @@ export class HtmlCompletionService {
     for (const [tagName, element] of customElements) {
       const description =
         element.description || element.summary || `Custom element: ${tagName}`;
-      items.push(this.adapter.createCompletionItem(tagName, description));
+      items.push(this.createCompletionItem(tagName, description));
     }
     return items;
   }
 
-  /**
-   * Gets hover information for a specific custom element tag.
-   * @param tagName - The tag name to get hover info for
-   * @param element - The custom element definition
-   * @returns Hover information object or null if not found
-   */
-  public getHoverInfo(tagName: string, element: Component): html.Hover | null {
-    if (this.adapter.createElementHoverInfo) {
-      return this.adapter.createElementHoverInfo(tagName, element);
-    }
-
-    // Fallback
-    const description = element.description || `Custom element: ${tagName}`;
+  createCompletionItem(
+    tag: string,
+    description: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _attributes: HTMLDataAttribute[] = []
+  ): html.CompletionItem {
     return {
-      contents: {
+      label: tag,
+      kind: html.CompletionItemKind.Property,
+      documentation: {
         kind: "markdown",
         value: description,
       },
+      insertText: `<${tag}>$0</${tag}>`,
+      insertTextFormat: html.InsertTextFormat.Snippet,
+      detail: "Custom Element",
+      sortText: "0" + tag, // Sort custom elements first
     };
+  }
+
+  /**
+   * Creates completion items for all custom elements.
+   * @param customElements Map of custom element tag names to their definitions
+   * @returns Array of completion items for custom element tags
+   */
+  createCustomElementCompletionItems(
+    customElements: Map<string, Component>
+  ): html.CompletionItem[] {
+    const items: html.CompletionItem[] = [];
+
+    for (const [tagName, element] of customElements) {
+      const description = getComponentDetailsTemplate(element);
+
+      items.push({
+        label: tagName,
+        kind: html.CompletionItemKind.Property,
+        documentation: {
+          kind: "markdown",
+          value: description,
+        },
+        insertText: `${tagName}>$0</${tagName}>`,
+        insertTextFormat: html.InsertTextFormat.Snippet,
+        detail: "Custom Element",
+        sortText: "0" + tagName, // Sort custom elements first
+      });
+    }
+
+    return items;
   }
 
   /**
@@ -202,18 +469,19 @@ export class HtmlCompletionService {
    */
   public getAttributeCompletions(tagName: string): html.CompletionItem[] {
     const element = this.customElementsService.getCustomElement(tagName);
-    if (!element || !this.adapter.createAttributeCompletionItems) return [];
+    if (!element || !this.createAttributeCompletionItems) return [];
 
-    const result = this.adapter.createAttributeCompletionItems(
+    const result = this.createAttributeCompletionItems(
       element,
       tagName,
       this.customElementsService.getAttributeOptions(),
-      (searchText: string) => this.customElementsService.findPositionInManifest(searchText),
+      (searchText: string) =>
+        this.customElementsService.findPositionInManifest(searchText)
     );
 
     // Type guard to ensure we get completion items
-    return Array.isArray(result) && result.length > 0 && 'label' in result[0] 
-      ? result as html.CompletionItem[]
+    return Array.isArray(result) && result.length > 0 && "label" in result[0]
+      ? (result as html.CompletionItem[])
       : [];
   }
 
@@ -228,14 +496,15 @@ export class HtmlCompletionService {
     attributeName: string
   ): html.CompletionItem[] {
     const element = this.customElementsService.getCustomElement(tagName);
-    if (!element || !this.adapter.createAttributeValueCompletionItems) return [];
+    if (!element || !this.createAttributeValueCompletionItems) return [];
 
-    return this.adapter.createAttributeValueCompletionItems(
+    return this.createAttributeValueCompletionItems(
       element,
       tagName,
       attributeName,
       this.customElementsService.getAttributeOptions(),
-      (searchText: string) => this.customElementsService.findPositionInManifest(searchText)
+      (searchText: string) =>
+        this.customElementsService.findPositionInManifest(searchText)
     );
   }
 
@@ -376,7 +645,8 @@ export class HtmlCompletionService {
 
       // Set the range for each completion item for proper replacement
       if (customValueCompletions.length > 0) {
-        const attrValuePos = position.character - (attrValueMatch[3]?.length || 0);
+        const attrValuePos =
+          position.character - (attrValueMatch[3]?.length || 0);
         const valueRange = {
           start: { line: position.line, character: attrValuePos },
           end: position,
@@ -414,11 +684,7 @@ export class HtmlCompletionService {
 
     const position = 0;
 
-    return this.adapter.createTagDefinitionLocation?.(
-      tagName,
-      manifestPath,
-      position
-    );
+    return this.createTagDefinitionLocation?.(tagName, manifestPath, position);
   }
 
   /**
@@ -432,31 +698,131 @@ export class HtmlCompletionService {
     if (!manifestPath) return null;
 
     const element = this.customElementsService.getCustomElement(tagName);
-    if (!element || !this.adapter.createAttributeCompletionItems) return null;
+    if (!element || !this.createAttributeCompletionItems) return null;
 
-    const attributesResult = this.adapter.createAttributeCompletionItems(
+    const attributesResult = this.createAttributeCompletionItems(
       element,
       tagName,
       this.customElementsService.getAttributeOptions(),
-      (searchText: string) => this.customElementsService.findPositionInManifest(searchText),
+      (searchText: string) =>
+        this.customElementsService.findPositionInManifest(searchText)
     );
 
     // Type guard to ensure we get HTML data attributes
-    const attributes = Array.isArray(attributesResult) && 
-                      attributesResult.length > 0 && 
-                      'name' in attributesResult[0]
-      ? attributesResult as unknown as Array<{ name: string; sourcePosition?: number }>
-      : [];
+    const attributes =
+      Array.isArray(attributesResult) &&
+      attributesResult.length > 0 &&
+      "name" in attributesResult[0]
+        ? (attributesResult as unknown as Array<{
+            name: string;
+            sourcePosition?: number;
+          }>)
+        : [];
 
     const attribute = attributes.find((attr) => attr.name === attributeName);
 
     if (!attribute) return null;
 
-    return this.adapter.createAttributeDefinitionLocation?.(
+    return this.createAttributeDefinitionLocation?.(
       tagName,
       attributeName,
       manifestPath,
       attribute.sourcePosition || 0
     );
+  }
+
+  // Add new methods for definition provider
+  createTagDefinitionLocation(
+    _tagName: string,
+    manifestPath: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _position: number
+  ): html.Location | null {
+    try {
+      // For macOS, the proper format is file:///absolute/path
+      const fullPath = manifestPath.startsWith("/")
+        ? manifestPath
+        : `/${manifestPath}`;
+
+      // Format the URI with proper encoding
+      const uri = `file://${fullPath}`;
+
+      // Create a Location object that VSCode can navigate to
+      const location = {
+        uri: uri,
+        range: {
+          start: { line: 0, character: 0 },
+          end: { line: 10, character: 0 },
+        },
+      };
+
+      return location;
+    } catch {
+      return null;
+    }
+  }
+
+  createAttributeDefinitionLocation(
+    _tagName: string,
+    _attributeName: string,
+    manifestPath: string,
+    position: number
+  ): html.Location | null {
+    // Create a Location object that VSCode can navigate to
+    return {
+      uri: `file://${manifestPath}`,
+      range: this.createRangeFromPosition(position),
+    };
+  }
+
+  // Helper to create a range from a position
+  private createRangeFromPosition(position: number): html.Range {
+    try {
+      // For a JSON file, we'll convert the flat position to a line/character
+      // This is a simplified calculation but might be more accurate
+      // than just using the flat position
+
+      // Assuming an average line length of 40 characters for JSON
+      const averageLineLength = 40;
+      const estimatedLine = Math.floor(position / averageLineLength);
+      const estimatedChar = position % averageLineLength;
+
+      return {
+        start: { line: estimatedLine, character: estimatedChar },
+        end: { line: estimatedLine, character: estimatedChar + 10 },
+      };
+    } catch (error) {
+      console.error("Error creating range:", error);
+      return {
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: 1 },
+      };
+    }
+  }
+
+  // Add this method to your VSCodeAdapter class
+  createCompletionList(elements: Component[]): html.CompletionList {
+    const completionItems: html.CompletionItem[] = [];
+
+    for (const element of elements) {
+      if (element.tagName) {
+        completionItems.push({
+          label: element.tagName,
+          kind: html.CompletionItemKind.Property,
+          documentation: {
+            kind: "markdown",
+            value: getComponentDetailsTemplate(element),
+          },
+          insertText: `<${element.tagName}>$0</${element.tagName}>`,
+          insertTextFormat: html.InsertTextFormat.Snippet,
+          detail: "Custom Element",
+        });
+      }
+    }
+
+    return {
+      isIncomplete: false,
+      items: completionItems,
+    };
   }
 }
