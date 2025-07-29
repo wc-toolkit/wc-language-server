@@ -1,8 +1,8 @@
 import * as html from "vscode-html-languageservice";
 import { LocationLink } from "vscode-languageserver-types";
-import { CustomElementsService } from "./custom-elements-service";
-import { VsCodeHtmlCompletionService } from "./adapters/vscode/html-completion-service";
-import { VsCodeHtmlValidationService } from "./adapters/vscode/html-validation-service";
+import { CustomElementsService } from "../../custom-elements-service";
+import { VsCodeHtmlCompletionService } from "./html-completion-service";
+import { VsCodeHtmlValidationService } from "./html-validation-service";
 
 /**
  * Service that provides HTML language features with custom element support.

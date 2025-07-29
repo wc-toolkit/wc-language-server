@@ -2,7 +2,7 @@ import {
   LanguageServiceContext,
   LanguageServicePlugin,
 } from "@volar/language-server";
-import { CustomHtmlService } from "./html-service";
+import { CustomHtmlService } from "./adapters/vscode/html-service";
 import { CustomElementsService } from "./custom-elements-service";
 import * as html from "vscode-html-languageservice";
 import { VsCodeHtmlCompletionService } from "./adapters/vscode/html-completion-service";
@@ -67,7 +67,6 @@ export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
       const workspaceFolders = context.env?.workspaceFolders;
       // @ts-expect-error the type appears to be incorrect here
       const workspaceRoot = workspaceFolders?.[0]?.uri || "";
-
       const service = new CustomHtmlService(workspaceRoot);
 
       return {
