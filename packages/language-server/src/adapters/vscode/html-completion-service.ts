@@ -1,9 +1,5 @@
 import * as html from "vscode-html-languageservice";
-import {
-  HTMLDataAttribute,
-  HTMLDataAttributeValue,
-  HTMLDataTag,
-} from "..";
+import { HTMLDataAttribute, HTMLDataAttributeValue, HTMLDataTag } from "..";
 import { CustomElementsService } from "../../custom-elements-service";
 import {
   Component,
@@ -27,9 +23,7 @@ export class VsCodeHtmlCompletionService {
    * @param adapter - Language server adapter for creating completions and definitions
    * @param customElementsService - Service for accessing custom elements data
    */
-  constructor(
-    private customElementsService: CustomElementsService
-  ) {
+  constructor(private customElementsService: CustomElementsService) {
     this.initializeHTMLLanguageService();
     this.setupManifestChangeListener();
   }
@@ -110,14 +104,14 @@ export class VsCodeHtmlCompletionService {
   /**
    * Creates completion items for attributes of a custom element
    * @param element The custom element
-   * @param tagName The tag name
+   * @param _tagName The tag name
    * @param attributeOptions Map of attribute names to their options
    * @param findPositionInManifest Function to find position in manifest
    * @returns Array of attribute completion items
    */
   createAttributeCompletionItems(
     element: Component,
-    tagName: string,
+    _tagName: string,
     attributeOptions: Map<string, string[] | string>,
     findPositionInManifest: (searchText: string) => number
   ): html.CompletionItem[] {
@@ -270,7 +264,6 @@ export class VsCodeHtmlCompletionService {
       );
 
       // Get the attribute type from the field
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const typeText =
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (attr as any)["parsedType"]?.text || attr.type?.text || "";
@@ -384,6 +377,76 @@ export class VsCodeHtmlCompletionService {
     const htmlDocument =
       this.htmlLanguageService.parseHTMLDocument(textDocument);
 
+    const offset = textDocument.offsetAt(position);
+    const node = htmlDocument.findNodeAt(offset);
+    let element: Component | null = null;
+    let attributes: HTMLDataAttribute[] = [];
+
+    if (!node) {
+      return this.htmlLanguageService.doHover(
+        textDocument,
+        position,
+        htmlDocument
+      );
+    }
+
+    if (node.tag) {
+      element = this.customElementsService.getCustomElement(node.tag);
+      if (element) {
+        attributes = this.extractAttributesForAutoComplete(
+          element,
+          this.customElementsService.getAttributeOptions(),
+          (searchText: string) =>
+            this.customElementsService.findPositionInManifest(searchText)
+        );
+      }
+    }
+
+    // Attribute hover
+    if (node.attributes) {
+      const cursorOffset = document.offsetAt(position);
+
+      for (const attrName in node.attributes) {
+        const attrValue = node.attributes[attrName];
+
+        // compute the start/end positions by searching for the attribute in the tag text
+        const tagOffset = node.start;
+        const tagText = document.getText().slice(tagOffset, node.end);
+        const attrStart = tagText.indexOf(attrName);
+        const attrEnd =
+          attrStart + attrName.length + (attrValue ? attrValue.length : 0); // +2 for quotes if present
+
+        if (
+          cursorOffset >= tagOffset + attrStart &&
+          cursorOffset <= tagOffset + attrEnd
+        ) {
+          // Show hover information for the attribute
+          const attribute = attributes.find((a) => a.name === attrName);
+          if (!attribute) {
+            return null; // Skip if attribute not found
+          }
+
+          const description =
+            getMemberDescription(attribute.description, attribute.deprecated) +
+            `\n\n**Type:** \`${attribute.type}\``;
+
+          return {
+            contents: description,
+          };
+        }
+      }
+    }
+
+    // Tag hover
+    if (node.tag) {
+      if (element) {
+        return {
+          contents: getComponentDetailsTemplate(element),
+        };
+      }
+    }
+
+    // Fallback to default hover
     return this.htmlLanguageService.doHover(
       textDocument,
       position,
