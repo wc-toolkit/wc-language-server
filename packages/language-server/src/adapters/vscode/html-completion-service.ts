@@ -198,7 +198,9 @@ export class VsCodeHtmlCompletionService {
       },
       insertText: hasValues
         ? `${attribute.name}="$1"$0`
-        : `${attribute.name}="$0"`,
+        : attribute.type !== "boolean"
+          ? `${attribute.name}="$0"`
+          : attribute.name,
       insertTextFormat: html.InsertTextFormat.Snippet,
       filterText: attribute.name,
       sortText: "0" + attribute.name, // Sort at the top
