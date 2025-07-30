@@ -85,7 +85,7 @@ export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
  * This ensures custom element completions work even without the opening `<` bracket.
  * @returns Service plugin configuration object
  */
-export function vsCodeEmmetCompletionPlugin(): LanguageServicePlugin {
+export function vsCodeCustomSnippetsPlugin(): LanguageServicePlugin {
   return {
     capabilities: {
       completionProvider: {
@@ -116,7 +116,7 @@ export function vsCodeEmmetCompletionPlugin(): LanguageServicePlugin {
           }
 
           const customElements = customElementsService.getCustomElements();
-          return htmlCompletionService.createCompletionList(customElements);
+          return htmlCompletionService.createCustomSnippets(customElements, beforeText);
         },
 
         dispose() {

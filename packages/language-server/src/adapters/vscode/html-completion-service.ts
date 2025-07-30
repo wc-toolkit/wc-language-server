@@ -6,6 +6,7 @@ import {
   getComponentDetailsTemplate,
   getMemberDescription,
 } from "@wc-toolkit/cem-utilities";
+import { NullableProviderResult } from "@volar/language-server";
 
 /**
  * Service dedicated to handling HTML completions for custom elements.
@@ -115,7 +116,9 @@ export class VsCodeHtmlCompletionService {
     attributeOptions: Map<string, string[] | string>,
     findPositionInManifest: (searchText: string) => number
   ): html.CompletionItem[] {
-    if (!element || !this.createAttributeCompletionItem) return [];
+    if (!element || !this.createAttributeCompletionItem) {
+      return [];
+    }
 
     const attributes = this.extractAttributesForAutoComplete(
       element,
@@ -127,6 +130,7 @@ export class VsCodeHtmlCompletionService {
     for (const attr of attributes) {
       completions.push(this.createAttributeCompletionItem(attr));
     }
+
     return completions;
   }
 
@@ -312,7 +316,7 @@ export class VsCodeHtmlCompletionService {
   public provideCompletionItems(
     document: html.TextDocument,
     position: html.Position
-  ): html.CompletionList {
+  ): NullableProviderResult<html.CompletionList> {
     const text = document.getText();
     const offset = document.offsetAt(position);
     const beforeText = text.substring(0, offset);
@@ -327,7 +331,6 @@ export class VsCodeHtmlCompletionService {
     const htmlDocument =
       this.htmlLanguageService.parseHTMLDocument(textDocument);
 
-    // Handle different completion scenarios
     if (this.isTagCompletion(beforeText)) {
       return this.handleTagCompletion(textDocument, position, htmlDocument);
     }
@@ -350,12 +353,7 @@ export class VsCodeHtmlCompletionService {
       );
     }
 
-    // Default: Let HTML service handle all other completion scenarios
-    return this.htmlLanguageService.doComplete(
-      textDocument,
-      position,
-      htmlDocument
-    );
+    return null;
   }
 
   /**
@@ -475,15 +473,10 @@ export class VsCodeHtmlCompletionService {
     return items;
   }
 
-  createCompletionItem(
-    tag: string,
-    description: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _attributes: HTMLDataAttribute[] = []
-  ): html.CompletionItem {
+  createCompletionItem(tag: string, description: string): html.CompletionItem {
     return {
       label: tag,
-      kind: html.CompletionItemKind.Property,
+      kind: html.CompletionItemKind.Snippet, // Use 'Snippet' for HTML tag completions
       documentation: {
         kind: "markdown",
         value: description,
@@ -532,7 +525,9 @@ export class VsCodeHtmlCompletionService {
    */
   public getAttributeCompletions(tagName: string): html.CompletionItem[] {
     const element = this.customElementsService.getCustomElement(tagName);
-    if (!element || !this.createAttributeCompletionItems) return [];
+    if (!element) {
+      return [];
+    }
 
     const result = this.createAttributeCompletionItems(
       element,
@@ -586,6 +581,9 @@ export class VsCodeHtmlCompletionService {
    * @returns True if this is an attribute name completion scenario
    */
   private isAttributeNameCompletion(beforeText: string): boolean {
+    // This regex matches after a space in a tag, so it will match:
+    // <my-element open
+    // <my-element foo="bar"
     return !!beforeText.match(
       /<([a-zA-Z0-9-]+)(?:\s+[a-zA-Z0-9-]+(=(?:["'][^"']*["'])?))*\s+([a-zA-Z0-9-]*)$/
     );
@@ -863,25 +861,32 @@ export class VsCodeHtmlCompletionService {
     }
   }
 
-  // Add this method to your VSCodeAdapter class
-  createCompletionList(elements: Component[]): html.CompletionList {
-    const completionItems: html.CompletionItem[] = [];
-
-    for (const element of elements) {
-      if (element.tagName) {
-        completionItems.push({
-          label: element.tagName,
-          kind: html.CompletionItemKind.Property,
-          documentation: {
-            kind: "markdown",
-            value: getComponentDetailsTemplate(element),
-          },
-          insertText: `<${element.tagName}>$0</${element.tagName}>`,
-          insertTextFormat: html.InsertTextFormat.Snippet,
-          detail: "Custom Element",
-        });
-      }
+  /**
+   * Creates custom snippets for custom elements.
+   * @param elements - Array of custom elements to create snippets for
+   * @param beforeText - Text content before the cursor position
+   * @returns Completion list with custom element snippets or null if not applicable
+   */
+  createCustomSnippets(
+    elements: Component[],
+    beforeText: string
+  ): NullableProviderResult<html.CompletionList> {
+    if (this.isAttributeNameCompletion(beforeText)) {
+      return null; // No completions for attribute names
     }
+
+    const completionItems: html.CompletionItem[] =
+      elements?.map((element) => ({
+        label: element.tagName!,
+        kind: html.CompletionItemKind.Snippet,
+        documentation: {
+          kind: "markdown",
+          value: getComponentDetailsTemplate(element),
+        },
+        insertText: `<${element.tagName}>$0</${element.tagName}>`,
+        insertTextFormat: html.InsertTextFormat.Snippet,
+        detail: "Custom Element",
+      })) || [];
 
     return {
       isIncomplete: false,

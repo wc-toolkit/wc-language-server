@@ -9,6 +9,9 @@ export class SimpleGreeting extends LitElement {
   name = 'Somebody';
 
   render() {
-    return html`<p>Hello, ${this.name}!</p><sl-alert></sl-alert>`;
+    return html`
+      <p>Hello, ${this.name}!</p>
+      <sl-alert closable></sl-alert>
+    `;
   }
 }

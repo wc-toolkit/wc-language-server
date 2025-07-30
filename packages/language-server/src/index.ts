@@ -8,7 +8,7 @@ import { create as createCssService } from "volar-service-css";
 import { create as createEmmetService } from "volar-service-emmet";
 import { create as createTypeScriptServices } from "volar-service-typescript";
 import { wcLanguagePlugin } from "./language-plugin";
-import { vsCodeEmmetCompletionPlugin, vsCodeHtmlAutoCompletePlugin } from "./plugins";
+import { vsCodeCustomSnippetsPlugin, vsCodeHtmlAutoCompletePlugin } from "./plugins";
 
 /** Language Server Protocol connection instance for communication with the client */
 const connection = createConnection();
@@ -38,7 +38,7 @@ connection.onInitialize((params) => {
       languagePlugins: [wcLanguagePlugin],
     })),
     [
-      vsCodeEmmetCompletionPlugin(), // Broader custom element completions
+      vsCodeCustomSnippetsPlugin(), // Broader custom element completions
       vsCodeHtmlAutoCompletePlugin(), // Comprehensive HTML service with custom elements
       createCssService(),
       createEmmetService(),

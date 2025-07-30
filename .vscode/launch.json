@@ -19,7 +19,8 @@
       "request": "attach",
       "port": 6009,
       "restart": true,
-      "outFiles": ["${workspaceFolder}/packages/language-server/dist/**/*.js"]
+      "outFiles": ["${workspaceFolder}/packages/language-server/dist/**/*.js"],
+      "autoAttachChildProcesses": true
     }
   ],
   "compounds": [
@@ -28,4 +29,5 @@
       "configurations": ["Launch Extension", "Attach to Language Server"]
     }
   ]
+}
 }

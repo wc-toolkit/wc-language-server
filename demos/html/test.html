@@ -7,17 +7,6 @@
     <!-- Try typing < to see custom element autocomplete -->
     <h1>Web Components Test Page</h1>
 
-    <!-- These should appear in autocomplete: my-element, custom-button -->
-    <sl-alert variant="name"></sl-alert>
-    <sl-button variant="neutral"></sl-button>
-    <sl-alert duration="asdf" closable aria-atomic="false"></sl-alert>
-    <sl-alert ></sl-alert>
-    <sl-alert duration="122ed"></sl-alert>
-    <sl-avatar shape="square" ></sl-avatar>
-    <sl-badge></sl-badge>
-    <sl-avatar shape="rounded"></sl-avatar>
-    <sl-badge variant="success" pill></sl-badge>
-    <sl-alert duration="123"></sl-alert>
     
     <style>
       body {
@@ -28,7 +17,7 @@
 
     <script>
       console.log("Web components test page loaded");
-      const html = "<sl-alert></sl-alert>"
+      const html = "<sl-alert variant=\"primary\"></sl-alert>"
       const taggedTemplate = html`<sl-alert
         duration="3000"
         variant="blah"
