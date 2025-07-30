@@ -1,6 +1,7 @@
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 import { CustomElementsService } from "../../custom-elements-service";
+import { removeQuotes } from "@wc-toolkit/cem-utilities";
 
 /**
  * Service dedicated to handling HTML validation for custom elements.
@@ -14,11 +15,53 @@ export class VsCodeHtmlValidationService {
   constructor(private customElementsService: CustomElementsService) {}
 
   /**
-   * Provides diagnostic information for HTML documents with custom element validation.
-   * @param document - The text document to validate
-   * @param htmlLanguageService - The HTML language service for parsing
-   * @returns Array of diagnostic messages for validation errors
+   * Validates an attribute value against the custom element schema.
+   * @param tagName - The tag name containing the attribute
+   * @param attributeName - The attribute name to validate
+   * @param value - The value to validate
+   * @returns Error message if validation fails, null if valid
    */
+  public validateAttributeValue(
+    tagName: string,
+    attributeName: string,
+    value: string
+  ): string | null {
+    value = removeQuotes(value);
+
+    const attrOptions = this.customElementsService.getAttributeValueOptions(
+      tagName,
+      attributeName
+    );
+
+    // If no options are defined for this attribute, we cannot validate
+    // This allows for attributes that are not defined in the manifest
+    // or for attributes that are not meant to have specific values.
+    if (
+      !value ||
+      !attrOptions ||
+      attrOptions === "string" ||
+      attrOptions.includes("string & {}")
+    ) {
+      return null; // No validation possible
+    }
+
+    if (attrOptions === "boolean") {
+      // If the attribute is a boolean, it should not have a value set
+      return `The attribute "${attributeName}" is boolean and should not have a value. Just including "${attributeName}" is enough to enable it.`;
+    }
+
+    if (attrOptions === "number" && isNaN(Number(value))) {
+      return `The value for "${attributeName}" must be a valid number.`;
+    }
+
+    // If the attribute has defined values, check against them
+    if (Array.isArray(attrOptions) && !attrOptions.includes(value)) {
+      return `The value "${value}" is not valid for "${attributeName}". Allowed values: ${attrOptions.join(" | ")}`;
+    }
+
+    return null; // No validation errors
+  }
+
   public provideDiagnostics(
     document: html.TextDocument,
     htmlLanguageService: html.LanguageService
@@ -85,7 +128,7 @@ export class VsCodeHtmlValidationService {
         }
 
         // Validate the attribute value
-        const errorMessage = this.customElementsService.validateAttributeValue(
+        const errorMessage = this.validateAttributeValue(
           tagName,
           attrName,
           attrValue
@@ -133,7 +176,7 @@ export class VsCodeHtmlValidationService {
     attrName: string
   ): html.Range | null {
     const text = document.getText();
-    
+
     // Find the start of the element
     const elementStart = node.start;
     const elementEnd = node.end;
@@ -142,7 +185,10 @@ export class VsCodeHtmlValidationService {
     const elementText = text.substring(elementStart, elementEnd);
 
     // Look for the attribute with a more precise regex
-    const attrRegex = new RegExp(`\\s(${attrName})\\s*=\\s*["']([^"']*)["']`, "g");
+    const attrRegex = new RegExp(
+      `\\s(${attrName})\\s*=\\s*["']([^"']*)["']`,
+      "g"
+    );
     const match = attrRegex.exec(elementText);
 
     if (!match) {
@@ -157,25 +203,6 @@ export class VsCodeHtmlValidationService {
       start: document.positionAt(attrStart),
       end: document.positionAt(attrEnd),
     };
-  }
-
-  /**
-   * Validates a specific attribute value against custom element schema.
-   * @param tagName - The tag name containing the attribute
-   * @param attributeName - The attribute name to validate
-   * @param value - The value to validate
-   * @returns Error message if validation fails, null if valid
-   */
-  public validateAttributeValue(
-    tagName: string,
-    attributeName: string,
-    value: string
-  ): string | null {
-    return this.customElementsService.validateAttributeValue(
-      tagName,
-      attributeName,
-      value
-    );
   }
 
   /**
@@ -204,7 +231,7 @@ export class VsCodeHtmlValidationService {
     }
 
     for (const [attrName, attrValue] of Object.entries(attributes)) {
-      const errorMessage = this.customElementsService.validateAttributeValue(
+      const errorMessage = this.validateAttributeValue(
         tagName,
         attrName,
         attrValue
@@ -283,13 +310,13 @@ export class VsCodeHtmlValidationService {
     diagnostics: html.Diagnostic[];
   } {
     const diagnostics = this.provideDiagnostics(document, htmlLanguageService);
-    
+
     const totalErrors = diagnostics.filter(
-      d => d.severity === DiagnosticSeverity.Error
+      (d) => d.severity === DiagnosticSeverity.Error
     ).length;
-    
+
     const totalWarnings = diagnostics.filter(
-      d => d.severity === DiagnosticSeverity.Warning
+      (d) => d.severity === DiagnosticSeverity.Warning
     ).length;
 
     // Count custom elements in the document
@@ -301,7 +328,7 @@ export class VsCodeHtmlValidationService {
       text
     );
     const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
-    
+
     const customElementsFound = this.countCustomElements(htmlDocument.roots);
 
     return {

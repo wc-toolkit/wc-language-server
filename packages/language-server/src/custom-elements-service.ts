@@ -2,11 +2,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
-import {
-  Component,
-  getAllComponents,
-  removeQuotes,
-} from "@wc-toolkit/cem-utilities";
+import { Component, getAllComponents } from "@wc-toolkit/cem-utilities";
 import { getAttributeValueOptions } from "./utilities/cem-utils";
 
 /**
@@ -272,61 +268,6 @@ export class CustomElementsService {
 
     const position = this.manifestContent.indexOf(searchText);
     return position >= 0 ? position : 0;
-  }
-
-  /**
-   * Validates an attribute value against the custom element schema.
-   * @param tagName - The tag name containing the attribute
-   * @param attributeName - The attribute name to validate
-   * @param value - The value to validate
-   * @returns Error message if validation fails, null if valid
-   */
-  public validateAttributeValue(
-    tagName: string,
-    attributeName: string,
-    value: string
-  ): string | null {
-    value = removeQuotes(value);
-    const attrOptions = this.attributeOptions.get(
-      `${tagName}:${attributeName}`
-    );
-
-    if (!attrOptions) {
-      return null; // No validation possible
-    }
-
-    if (attrOptions === "boolean") {
-      // If the attribute is a boolean, it should not have a value set
-      return value
-        ? `Invalid value ${value} for attribute "${attributeName}". This attribute is a boolean and should not have a value. The presence of this attribute itself will be "true" regardless of the value that is set.`
-        : null;
-    }
-
-    if (attrOptions === "string") {
-      // If the attribute is a string, no specific validation needed
-      return null;
-    }
-
-    if (attrOptions === "number") {
-      if (isNaN(Number(value))) {
-        return `Value must be a valid number.`;
-      }
-    }
-
-    // If the attribute has defined values, check against them
-    if (Array.isArray(attrOptions)) {
-      if (attrOptions.includes("string & {}")) {
-        return null;
-      }
-
-      if (!attrOptions.includes(value)) {
-        return `Invalid value "${value}" for attribute "${attributeName}". \nAllowed values: \`${attrOptions.join(
-          " | "
-        )}\``;
-      }
-    }
-
-    return null; // No validation errors
   }
 
   /**
