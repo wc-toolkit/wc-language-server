@@ -150,7 +150,9 @@ export class VsCodeHtmlCompletionService {
     attributeOptions: Map<string, string[] | string>,
     findPositionInManifest: (searchText: string) => number
   ): html.CompletionItem[] {
-    if (!element || !this.createAttributeValueCompletionItem) return [];
+    if (!element) {
+      return [];
+    }
 
     const attributes = this.extractAttributesForAutoComplete(
       element,
@@ -184,7 +186,7 @@ export class VsCodeHtmlCompletionService {
     attribute: HTMLDataAttribute
   ): html.CompletionItem {
     const hasValues = attribute.values && attribute.values.length > 0;
-
+    const isBoolean = attribute.type === "boolean";
     const documentation =
       getMemberDescription(attribute.description, attribute.deprecated) +
       (attribute.type ? `\n\n**Type:** \`${attribute.type}\`` : "");
@@ -198,15 +200,16 @@ export class VsCodeHtmlCompletionService {
       },
       insertText: hasValues
         ? `${attribute.name}="$1"$0`
-        : attribute.type !== "boolean"
-          ? `${attribute.name}="$0"`
-          : attribute.name,
+        : isBoolean
+          ? attribute.name
+          : `${attribute.name}="$0"`,
       insertTextFormat: html.InsertTextFormat.Snippet,
       filterText: attribute.name,
       sortText: "0" + attribute.name, // Sort at the top
-      command: hasValues
-        ? { command: "editor.action.triggerSuggest", title: "Suggest" }
-        : undefined,
+      command:
+        hasValues && !isBoolean
+          ? { command: "editor.action.triggerSuggest", title: "Suggest" }
+          : undefined,
     };
   }
 
@@ -438,12 +441,10 @@ export class VsCodeHtmlCompletionService {
     }
 
     // Tag hover
-    if (node.tag) {
-      if (element) {
-        return {
-          contents: getComponentDetailsTemplate(element),
-        };
-      }
+    if (node.tag && element) {
+      return {
+        contents: getComponentDetailsTemplate(element),
+      };
     }
 
     // Fallback to default hover
@@ -480,6 +481,39 @@ export class VsCodeHtmlCompletionService {
     }
 
     return items;
+  }
+
+  /**
+   * Creates custom snippets for custom elements.
+   * @param elements - Array of custom elements to create snippets for
+   * @param beforeText - Text content before the cursor position
+   * @returns Completion list with custom element snippets or null if not applicable
+   */
+  createCustomSnippets(
+    elements: Component[],
+    beforeText: string
+  ): NullableProviderResult<html.CompletionList> {
+    if (this.isAttributeNameCompletion(beforeText)) {
+      return null; // No completions for attribute names
+    }
+
+    const completionItems: html.CompletionItem[] =
+      elements?.map((element) => ({
+        label: element.tagName!,
+        kind: html.CompletionItemKind.Snippet,
+        documentation: {
+          kind: "markdown",
+          value: getComponentDetailsTemplate(element),
+        },
+        insertText: `<${element.tagName}>$0</${element.tagName}>`,
+        insertTextFormat: html.InsertTextFormat.Snippet,
+        detail: "Custom Element",
+      })) || [];
+
+    return {
+      isIncomplete: false,
+      items: completionItems,
+    };
   }
 
   /**
@@ -540,17 +574,28 @@ export class VsCodeHtmlCompletionService {
   }
 
   /**
+   * Utility to match attribute name completion context and extract tag/attribute info.
+   * @param beforeText - Text content before the cursor position
+   * @returns RegExpMatchArray or null
+   */
+  private matchAttributeNameContext(
+    beforeText: string
+  ): RegExpMatchArray | null {
+    // This regex matches after a space in a tag, so it will match:
+    // <my-element open
+    // <my-element foo="bar"
+    return beforeText.match(
+      /<([a-zA-Z0-9-]+)((?:\s+[a-zA-Z0-9-]+(?:=(?:["'][^"']*["'])?)?)*)\s+([a-zA-Z0-9-]*)$/
+    );
+  }
+
+  /**
    * Checks if the current completion context is for HTML attribute name completion.
    * @param beforeText - Text content before the cursor position
    * @returns True if this is an attribute name completion scenario
    */
   private isAttributeNameCompletion(beforeText: string): boolean {
-    // This regex matches after a space in a tag, so it will match:
-    // <my-element open
-    // <my-element foo="bar"
-    return !!beforeText.match(
-      /<([a-zA-Z0-9-]+)(?:\s+[a-zA-Z0-9-]+(=(?:["'][^"']*["'])?))*\s+([a-zA-Z0-9-]*)$/
-    );
+    return !!this.matchAttributeNameContext(beforeText);
   }
 
   /**
@@ -559,8 +604,10 @@ export class VsCodeHtmlCompletionService {
    * @returns True if this is an attribute value completion scenario
    */
   private isAttributeValueCompletion(beforeText: string): boolean {
+    // Improved: allow attribute value completion after any attribute (boolean or valued)
+    // Handles: <my-element foo bar="baz" attr|
     return !!beforeText.match(
-      /<([a-zA-Z0-9-]+)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
+      /<([a-zA-Z0-9-]+)((?:\s+[a-zA-Z0-9-]+(?:=(?:["'][^"']*["'])?)?)*)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
     );
   }
 
@@ -611,11 +658,9 @@ export class VsCodeHtmlCompletionService {
     position: html.Position,
     htmlDocument: html.HTMLDocument
   ): html.CompletionList {
-    const attrNameMatch = beforeText.match(
-      /<([a-zA-Z0-9-]+)(?:\s+[a-zA-Z0-9-]+(=(?:["'][^"']*["'])?))*\s+([a-zA-Z0-9-]*)$/
-    );
+    // Use the reusable method to match attribute name context
+    const attrNameMatch = this.matchAttributeNameContext(beforeText);
 
-    // Get default HTML attribute completions
     const htmlCompletions = this.htmlLanguageService.doComplete(
       textDocument,
       position,
@@ -624,7 +669,6 @@ export class VsCodeHtmlCompletionService {
 
     if (attrNameMatch) {
       const tagName = attrNameMatch[1];
-
       // Add custom element attribute completions
       const customAttrCompletions = this.getAttributeCompletions(tagName);
       htmlCompletions.items.push(...customAttrCompletions);
@@ -647,8 +691,9 @@ export class VsCodeHtmlCompletionService {
     position: html.Position,
     htmlDocument: html.HTMLDocument
   ): html.CompletionList {
+    // Use the improved regex for attribute value context
     const attrValueMatch = beforeText.match(
-      /<([a-zA-Z0-9-]+)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
+      /<([a-zA-Z0-9-]+)((?:\s+[a-zA-Z0-9-]+(?:=(?:["'][^"']*["'])?)?)*)\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
     );
 
     // Let HTML service handle it first for standard attributes
@@ -660,7 +705,7 @@ export class VsCodeHtmlCompletionService {
 
     if (attrValueMatch) {
       const tagName = attrValueMatch[1];
-      const attrName = attrValueMatch[2];
+      const attrName = attrValueMatch[3];
 
       // Add custom attribute value completions
       const customValueCompletions = this.getAttributeValueCompletions(
@@ -671,7 +716,7 @@ export class VsCodeHtmlCompletionService {
       // Set the range for each completion item for proper replacement
       if (customValueCompletions.length > 0) {
         const attrValuePos =
-          position.character - (attrValueMatch[3]?.length || 0);
+          position.character - (attrValueMatch[4]?.length || 0);
         const valueRange = {
           start: { line: position.line, character: attrValuePos },
           end: position,
@@ -823,38 +868,5 @@ export class VsCodeHtmlCompletionService {
         end: { line: 0, character: 1 },
       };
     }
-  }
-
-  /**
-   * Creates custom snippets for custom elements.
-   * @param elements - Array of custom elements to create snippets for
-   * @param beforeText - Text content before the cursor position
-   * @returns Completion list with custom element snippets or null if not applicable
-   */
-  createCustomSnippets(
-    elements: Component[],
-    beforeText: string
-  ): NullableProviderResult<html.CompletionList> {
-    if (this.isAttributeNameCompletion(beforeText)) {
-      return null; // No completions for attribute names
-    }
-
-    const completionItems: html.CompletionItem[] =
-      elements?.map((element) => ({
-        label: element.tagName!,
-        kind: html.CompletionItemKind.Snippet,
-        documentation: {
-          kind: "markdown",
-          value: getComponentDetailsTemplate(element),
-        },
-        insertText: `<${element.tagName}>$0</${element.tagName}>`,
-        insertTextFormat: html.InsertTextFormat.Snippet,
-        detail: "Custom Element",
-      })) || [];
-
-    return {
-      isIncomplete: false,
-      items: completionItems,
-    };
   }
 }
