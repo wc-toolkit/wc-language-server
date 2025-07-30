@@ -1,7 +1,7 @@
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
-import { CustomElementsService } from "../../custom-elements-service";
 import { removeQuotes } from "@wc-toolkit/cem-utilities";
+import { CustomElementsService } from "../../services/custom-elements-service";
 
 /**
  * Service dedicated to handling HTML validation for custom elements.

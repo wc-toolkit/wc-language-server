@@ -1,12 +1,12 @@
 import * as html from "vscode-html-languageservice";
 import { HTMLDataAttribute, HTMLDataAttributeValue, HTMLDataTag } from "..";
-import { CustomElementsService } from "../../custom-elements-service";
 import {
   Component,
   getComponentDetailsTemplate,
   getMemberDescription,
 } from "@wc-toolkit/cem-utilities";
 import { NullableProviderResult } from "@volar/language-server";
+import { CustomElementsService } from "../../services/custom-elements-service";
 
 /**
  * Service dedicated to handling HTML completions for custom elements.
