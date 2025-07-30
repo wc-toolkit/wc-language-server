@@ -1,9 +1,10 @@
 // /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as fs from "fs";
 import * as path from "path";
+import { ConfigurationService } from "./configuration-service";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
 import { Component, getAllComponents } from "@wc-toolkit/cem-utilities";
-import { getAttributeValueOptions } from "./utilities/cem-utils";
+import { getAttributeValueOptions } from "../utilities/cem-utils";
 
 /**
  * Generic attribute information interface
@@ -54,9 +55,20 @@ export class CustomElementsService {
    * Creates a new CustomElementsService instance.
    * @param workspaceRoot - Root directory of the workspace
    */
-  constructor(private workspaceRoot: string) {
+  constructor(
+    private workspaceRoot: string,
+    private configService?: ConfigurationService
+  ) {
     this.loadCustomElementsManifest();
     this.watchManifestFile();
+    if (this.configService) {
+      this.configService.onChange(() => {
+        console.debug(
+          "Configuration changed, reloading custom elements manifest..."
+        );
+        this.loadCustomElementsManifest();
+      });
+    }
   }
 
   /**
@@ -113,18 +125,21 @@ export class CustomElementsService {
       return;
     }
     const components = getAllComponents(manifest);
+    const tagFormatter = this.configService?.getTagFormatter();
     components.forEach((element) => {
-      this.customElements.set(element.tagName!, element);
-      this.setAttributeOptions(element);
+      // Do not mutate element.tagName globally; just use formatted tag for map key
+      const formattedTag = tagFormatter ? tagFormatter(element.tagName!) : element.tagName!;
+      this.customElements.set(formattedTag, element);
+      this.setAttributeOptions(element, formattedTag);
     });
   }
 
   /** Sets the attribute options for a custom element. */
-  private setAttributeOptions(component: Component) {
+  private setAttributeOptions(component: Component, formattedTagName?: string) {
+    const tagName = formattedTagName || component.tagName;
     component.attributes?.forEach((attr) => {
       const options = getAttributeValueOptions(attr);
-      console.log(component.tagName, attr.name, options);
-      this.attributeOptions.set(`${component.tagName}:${attr.name}`, options);
+      this.attributeOptions.set(`${tagName}:${attr.name}`, options);
     });
   }
 

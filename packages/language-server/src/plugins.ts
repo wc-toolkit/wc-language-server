@@ -3,7 +3,8 @@ import {
   LanguageServicePlugin,
 } from "@volar/language-server";
 import { CustomHtmlService } from "./adapters/vscode/html-service";
-import { CustomElementsService } from "./custom-elements-service";
+import { CustomElementsService } from "./services/custom-elements-service";
+import { ConfigurationService } from "./services/configuration-service";
 import * as html from "vscode-html-languageservice";
 import { VsCodeHtmlCompletionService } from "./adapters/vscode/html-completion-service";
 
@@ -67,7 +68,10 @@ export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
       const workspaceFolders = context.env?.workspaceFolders;
       // @ts-expect-error the type appears to be incorrect here
       const workspaceRoot = workspaceFolders?.[0]?.uri || "";
+      const configService = new ConfigurationService(workspaceRoot);
       const service = new CustomHtmlService(workspaceRoot);
+
+      configService.loadConfig();
 
       return {
         provideCompletionItems: service.provideCompletionItems.bind(service),
@@ -99,6 +103,8 @@ export function vsCodeCustomSnippetsPlugin(): LanguageServicePlugin {
       const htmlCompletionService = new VsCodeHtmlCompletionService(
         customElementsService
       );
+      const configService = new ConfigurationService(workspaceRoot);
+      configService.loadConfig();
 
       return {
         provideCompletionItems(
@@ -116,7 +122,10 @@ export function vsCodeCustomSnippetsPlugin(): LanguageServicePlugin {
           }
 
           const customElements = customElementsService.getCustomElements();
-          return htmlCompletionService.createCustomSnippets(customElements, beforeText);
+          return htmlCompletionService.createCustomSnippets(
+            customElements,
+            beforeText
+          );
         },
 
         dispose() {
