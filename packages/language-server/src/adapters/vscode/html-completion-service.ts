@@ -458,44 +458,6 @@ export class VsCodeHtmlCompletionService {
    */
   public getCompletionItems(): html.CompletionItem[] {
     const customElements = this.customElementsService.getCustomElementsMap();
-
-    if (this.createCustomElementCompletionItems) {
-      return this.createCustomElementCompletionItems(customElements);
-    }
-
-    // Fallback for adapters that don't implement the new method
-    const items: html.CompletionItem[] = [];
-    for (const [tagName, element] of customElements) {
-      const description =
-        element.description || element.summary || `Custom element: ${tagName}`;
-      items.push(this.createCompletionItem(tagName, description));
-    }
-    return items;
-  }
-
-  createCompletionItem(tag: string, description: string): html.CompletionItem {
-    return {
-      label: tag,
-      kind: html.CompletionItemKind.Snippet, // Use 'Snippet' for HTML tag completions
-      documentation: {
-        kind: "markdown",
-        value: description,
-      },
-      insertText: `<${tag}>$0</${tag}>`,
-      insertTextFormat: html.InsertTextFormat.Snippet,
-      detail: "Custom Element",
-      sortText: "0" + tag, // Sort custom elements first
-    };
-  }
-
-  /**
-   * Creates completion items for all custom elements.
-   * @param customElements Map of custom element tag names to their definitions
-   * @returns Array of completion items for custom element tags
-   */
-  createCustomElementCompletionItems(
-    customElements: Map<string, Component>
-  ): html.CompletionItem[] {
     const items: html.CompletionItem[] = [];
 
     for (const [tagName, element] of customElements) {
