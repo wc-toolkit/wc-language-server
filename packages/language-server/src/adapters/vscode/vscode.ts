@@ -1,8 +1,7 @@
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
-import { Component } from "@wc-toolkit/cem-utilities";
 import { VsCodeHtmlCompletionService } from "./html-completion-service";
-import { AttributeTypes, CustomElementsService } from "../../custom-elements-service";
+import { CustomElementsService } from "../../services/custom-elements-service";
 
 export class VSCodeAdapter {
   htmlDataProvider!: html.IHTMLDataProvider;
@@ -30,23 +29,8 @@ export class VSCodeAdapter {
     };
   }
 
-  initializeHTMLDataProvider(
-    customElementsMap: Map<string, Component>,
-    attributeOptions: AttributeTypes,
-    findPositionCallback: (searchText: string) => number
-  ): void {
-    // The findPositionCallback should return a number, so cast if necessary
-    const findPosition = (searchText: string) => {
-      const result = findPositionCallback(searchText);
-      return typeof result === "number" ? result : Number(result);
-    };
-
+  initializeHTMLDataProvider(): void {
     // Use the adapter's method to create the HTML data provider
-    this.htmlDataProvider =
-      this.htmlCompletionService.createHTMLDataFromCustomElements(
-        customElementsMap as Map<string, Component>,
-        attributeOptions,
-        findPosition
-      );
+    this.htmlDataProvider = this.htmlCompletionService.getHTMLDataProvider()!;
   }
 }

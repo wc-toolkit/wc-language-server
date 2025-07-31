@@ -10,11 +10,7 @@ export interface WCConfig {
     invalidNumber?: DiagnosticSeverity;
     invalidAttributeValue?: DiagnosticSeverity;
   };
-  componentModulePath?: (
-    componentName: string,
-    tagName: string,
-    modulePath: string
-  ) => string;
+  componentModulePath?: (componentName: string, tagName: string, modulePath: string) => string;
   globalModulePath?: string;
   exclude?: string[];
 }
@@ -26,79 +22,56 @@ export class ConfigurationService {
   private changeListeners: Array<() => void> = [];
 
   constructor(private workspaceRoot: string) {
-    console.debug("Initializing ConfigurationService for workspace:", workspaceRoot);
     this.configPath = path.join(this.workspaceRoot, "wc.config.js");
+    this.initialize();
+  }
+
+  private initialize() {
     this.loadConfig();
     this.watchConfig();
   }
 
-  loadConfig() {
+  public loadConfig() {
     try {
-      // Use require to synchronously load the config file (clearing cache for reload)
       const absConfigPath = path.resolve(this.configPath);
-      delete require.cache[require.resolve(absConfigPath)];
+      // Clear require cache for hot reload
+      delete require.cache[absConfigPath];
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const mod = require(absConfigPath);
-      this.config = mod.default || mod;
+      this.config = mod.default || mod || {};
     } catch {
-      // If file does not exist or fails to load, use empty config
       this.config = {};
     }
-    this.notifyChange();
+    this.notifyListeners();
   }
 
   private watchConfig() {
     if (this.watcher) return;
+    
     try {
       this.watcher = fs.watch(this.configPath, { persistent: false }, () => {
         this.loadConfig();
       });
     } catch {
-      // Ignore if file does not exist yet
+      // Config file doesn't exist yet - that's fine
     }
   }
 
-  onChange(listener: () => void): () => void {
+  public onChange(listener: () => void): () => void {
     this.changeListeners.push(listener);
     return () => {
-      const idx = this.changeListeners.indexOf(listener);
-      if (idx !== -1) this.changeListeners.splice(idx, 1);
+      const index = this.changeListeners.indexOf(listener);
+      if (index !== -1) this.changeListeners.splice(index, 1);
     };
   }
 
-  private notifyChange() {
-    for (const listener of this.changeListeners) {
-      listener();
-    }
+  private notifyListeners() {
+    this.changeListeners.forEach(listener => listener());
   }
 
-  getTagFormatter(): ((tagName: string) => string) | undefined {
-    return this.config.tagFormatter;
-  }
-
-  getDiagnosticSeverity(): WCConfig["diagnosticSeverity"] {
-    return this.config.diagnosticSeverity;
-  }
-
-  getComponentModulePath():
-    | ((componentName: string, tagName: string, modulePath: string) => string)
-    | undefined {
-    return this.config.componentModulePath;
-  }
-
-  getGlobalModulePath(): string | undefined {
-    return this.config.globalModulePath;
-  }
-
-  getExclude(): string[] | undefined {
-    return this.config.exclude;
-  }
-
-  dispose() {
-    if (this.watcher) {
-      this.watcher.close();
-      this.watcher = undefined;
-    }
+  public dispose() {
+    this.watcher?.close();
+    this.watcher = undefined;
     this.changeListeners = [];
   }
 }
