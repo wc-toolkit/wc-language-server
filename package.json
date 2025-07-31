@@ -6,7 +6,7 @@
     "url": "https://github.com/volarjs/starter.git"
   },
   "scripts": {
-    "build": "cd ./packages/vscode && npm run build",
+    "build": "tsc --noEmit && cd ./packages/vscode && npm run build",
     "watch": "cd ./packages/vscode && npm run watch",
     "vscode:pack": "cd ./packages/vscode && npm run pack",
     "release": "cd ./packages/vscode && npm run release",
