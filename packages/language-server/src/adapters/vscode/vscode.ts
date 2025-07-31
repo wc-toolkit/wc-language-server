@@ -5,15 +5,15 @@ import { CustomElementsService } from "../../services/custom-elements-service";
 
 export class VSCodeAdapter {
   htmlDataProvider!: html.IHTMLDataProvider;
-  htmlCompletionService!: VsCodeHtmlCompletionService;
 
-  /**
-   *
-   */
-  constructor(private customElementsService: CustomElementsService) {
+  constructor(
+    private customElementsService: CustomElementsService,
+    private htmlCompletionService: VsCodeHtmlCompletionService
+  ) {
     this.htmlCompletionService = new VsCodeHtmlCompletionService(
       this.customElementsService
     );
+    this.htmlDataProvider = this.htmlCompletionService.getHTMLDataProvider()!;
   }
 
   createDiagnostic(

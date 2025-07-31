@@ -7,6 +7,7 @@ import { CustomElementsService } from "./services/custom-elements-service";
 import { ConfigurationService } from "./services/configuration-service";
 import * as html from "vscode-html-languageservice";
 import { VsCodeHtmlCompletionService } from "./adapters/vscode/html-completion-service";
+import { VsCodeHtmlValidationService } from "./adapters/vscode/html-validation-service";
 
 /**
  * Creates a language service plugin for custom HTML features.
@@ -69,7 +70,18 @@ export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
       // @ts-expect-error the type appears to be incorrect here
       const workspaceRoot = workspaceFolders?.[0]?.uri || "";
       const configService = new ConfigurationService(workspaceRoot);
-      const service = new CustomHtmlService(workspaceRoot);
+      const customElementsService = new CustomElementsService(workspaceRoot);
+      const htmlCompletionService = new VsCodeHtmlCompletionService(
+        customElementsService
+      );
+      const htmlValidationService = new VsCodeHtmlValidationService(
+        customElementsService
+      );  
+      const service = new CustomHtmlService(
+        customElementsService,
+        htmlCompletionService,
+        htmlValidationService
+      );
 
       configService.loadConfig();
 

@@ -10,7 +10,11 @@ export interface WCConfig {
     invalidNumber?: DiagnosticSeverity;
     invalidAttributeValue?: DiagnosticSeverity;
   };
-  componentModulePath?: (componentName: string, tagName: string, modulePath: string) => string;
+  componentModulePath?: (
+    componentName: string,
+    tagName: string,
+    modulePath: string
+  ) => string;
   globalModulePath?: string;
   exclude?: string[];
 }
@@ -45,9 +49,15 @@ export class ConfigurationService {
     this.notifyListeners();
   }
 
+  public getFormattedTagName(tagName: string): string {
+    return this.config.tagFormatter
+      ? this.config.tagFormatter(tagName)
+      : tagName;
+  }
+
   private watchConfig() {
     if (this.watcher) return;
-    
+
     try {
       this.watcher = fs.watch(this.configPath, { persistent: false }, () => {
         this.loadConfig();
@@ -66,7 +76,7 @@ export class ConfigurationService {
   }
 
   private notifyListeners() {
-    this.changeListeners.forEach(listener => listener());
+    this.changeListeners.forEach((listener) => listener());
   }
 
   public dispose() {
