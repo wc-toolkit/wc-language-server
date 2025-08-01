@@ -9,11 +9,25 @@ import * as html from "vscode-html-languageservice";
 import { VsCodeHtmlCompletionService } from "./adapters/vscode/html-completion-service";
 import { VsCodeHtmlValidationService } from "./adapters/vscode/html-validation-service";
 
+type ServiceCache = Map<
+    string,
+    {
+      configService: ConfigurationService;
+      customElementsService: CustomElementsService;
+      htmlCompletionService: VsCodeHtmlCompletionService;
+      htmlValidationService: VsCodeHtmlValidationService;
+      htmlService: CustomHtmlService;
+    }
+  >;
+
 /**
  * Creates a language service plugin for custom HTML features.
  * @returns Plugin object with capabilities and service creation function
  */
 export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
+  // Shared service instances per workspace root
+  const serviceCache: ServiceCache = new Map();
+
   return {
     capabilities: {
       completionProvider: {
@@ -25,32 +39,7 @@ export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
           "'",
           ">",
           "-",
-          "a",
-          "b",
-          "c",
-          "d",
-          "e",
-          "f",
-          "g",
-          "h",
-          "i",
-          "j",
-          "k",
-          "l",
-          "m",
-          "n",
-          "o",
-          "p",
-          "q",
-          "r",
-          "s",
-          "t",
-          "u",
-          "v",
-          "w",
-          "x",
-          "y",
-          "z",
+          ..."abcdefghijklmnopqrstuvwxyz".split(""),
         ],
       },
       hoverProvider: true,
@@ -60,37 +49,44 @@ export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
         workspaceDiagnostics: false,
       },
     },
-    /**
-     * Creates the custom HTML service instance.
-     * @param context - Language service context containing workspace information
-     * @returns Service instance with bound methods
-     */
     create(context: LanguageServiceContext) {
       const workspaceFolders = context.env?.workspaceFolders;
       // @ts-expect-error the type appears to be incorrect here
       const workspaceRoot = workspaceFolders?.[0]?.uri || "";
-      const configService = new ConfigurationService(workspaceRoot);
-      const customElementsService = new CustomElementsService(workspaceRoot);
-      const htmlCompletionService = new VsCodeHtmlCompletionService(
-        customElementsService
-      );
-      const htmlValidationService = new VsCodeHtmlValidationService(
-        customElementsService
-      );  
-      const service = new CustomHtmlService(
-        customElementsService,
-        htmlCompletionService,
-        htmlValidationService
-      );
-
-      configService.loadConfig();
-
+      if (!serviceCache.has(workspaceRoot)) {
+        const configService = new ConfigurationService(workspaceRoot);
+        const customElementsService = new CustomElementsService(
+          workspaceRoot,
+          configService
+        );
+        const htmlCompletionService = new VsCodeHtmlCompletionService(
+          customElementsService,
+          configService
+        );
+        const htmlValidationService = new VsCodeHtmlValidationService(
+          customElementsService
+        );
+        const htmlService = new CustomHtmlService(
+          customElementsService,
+          htmlCompletionService,
+          htmlValidationService
+        );
+        serviceCache.set(workspaceRoot, {
+          configService,
+          customElementsService,
+          htmlCompletionService,
+          htmlValidationService,
+          htmlService,
+        });
+      }
+      const { htmlService } = serviceCache.get(workspaceRoot)!;
       return {
-        provideCompletionItems: service.provideCompletionItems.bind(service),
-        provideHover: service.provideHover.bind(service),
-        provideDefinition: service.provideDefinition.bind(service),
-        provideDiagnostics: service.provideDiagnostics.bind(service),
-        dispose: service.dispose.bind(service),
+        provideCompletionItems:
+          htmlService.provideCompletionItems.bind(htmlService),
+        provideHover: htmlService.provideHover.bind(htmlService),
+        provideDefinition: htmlService.provideDefinition.bind(htmlService),
+        provideDiagnostics: htmlService.provideDiagnostics.bind(htmlService),
+        dispose: htmlService.dispose.bind(htmlService),
       };
     },
   };
@@ -102,22 +98,47 @@ export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
  * @returns Service plugin configuration object
  */
 export function vsCodeCustomSnippetsPlugin(): LanguageServicePlugin {
+  // Use the same cache as above
+  const serviceCache: ServiceCache = new Map();
+
   return {
     capabilities: {
       completionProvider: {
-        triggerCharacters: [], // Empty array means trigger on any character
+        triggerCharacters: [],
       },
     },
     create(context: LanguageServiceContext) {
       // @ts-expect-error the type appears to be incorrect here
       const workspaceRoot = context.env?.workspaceFolders?.[0]?.uri || "";
-      const customElementsService = new CustomElementsService(workspaceRoot);
-      const htmlCompletionService = new VsCodeHtmlCompletionService(
-        customElementsService
-      );
-      const configService = new ConfigurationService(workspaceRoot);
-      configService.loadConfig();
+      if (!serviceCache.has(workspaceRoot)) {
+        const configService = new ConfigurationService(workspaceRoot);
+        const customElementsService = new CustomElementsService(
+          workspaceRoot,
+          configService
+        );
+        const htmlCompletionService = new VsCodeHtmlCompletionService(
+          customElementsService,
+          configService
+        );
+        const htmlValidationService = new VsCodeHtmlValidationService(
+          customElementsService
+        );
+        const htmlService = new CustomHtmlService(
+          customElementsService,
+          htmlCompletionService,
+          htmlValidationService
+        );
+        serviceCache.set(workspaceRoot, {
+          configService,
+          customElementsService,
+          htmlCompletionService,
+          htmlValidationService,
+          htmlService,
+        });
+      }
 
+      const { customElementsService, htmlCompletionService } =
+        serviceCache.get(workspaceRoot)!;
       return {
         provideCompletionItems(
           document: html.TextDocument,

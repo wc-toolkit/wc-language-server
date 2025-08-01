@@ -1,18 +1,13 @@
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 import { VsCodeHtmlCompletionService } from "./html-completion-service";
-import { CustomElementsService } from "../../services/custom-elements-service";
 
 export class VSCodeAdapter {
   htmlDataProvider!: html.IHTMLDataProvider;
 
   constructor(
-    private customElementsService: CustomElementsService,
     private htmlCompletionService: VsCodeHtmlCompletionService
   ) {
-    this.htmlCompletionService = new VsCodeHtmlCompletionService(
-      this.customElementsService
-    );
     this.htmlDataProvider = this.htmlCompletionService.getHTMLDataProvider()!;
   }
 

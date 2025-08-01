@@ -1,3 +1,3 @@
 export default {
-  tagFormatter: (tag) => `${tag}_formatted`,
+  tagFormatter: (tag) => `${tag}-formatted`,
 }

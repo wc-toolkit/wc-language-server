@@ -8,6 +8,7 @@ import {
 } from "@wc-toolkit/cem-utilities";
 import { NullableProviderResult } from "@volar/language-server";
 import { CustomElementsService } from "../../services/custom-elements-service";
+import { ConfigurationService } from "../../services/configuration-service";
 
 // Helper type for completion context
 type CompletionContext =
@@ -24,7 +25,10 @@ export class VsCodeHtmlCompletionService {
   private htmlLanguageService!: html.LanguageService;
   private htmlDataProvider: html.IHTMLDataProvider | null = null;
 
-  constructor(private customElementsService: CustomElementsService) {
+  constructor(
+    private customElementsService: CustomElementsService,
+    private configService: ConfigurationService
+  ) {
     this.initialize();
     this.customElementsService.onManifestChange(() => this.initialize());
   }
@@ -42,12 +46,17 @@ export class VsCodeHtmlCompletionService {
     const attributeOptions = this.customElementsService.getAttributeOptions();
 
     const tags: HTMLDataTag[] = Array.from(customElements.entries()).map(
-      ([tagName, element]) => ({
-        name: tagName,
-        description:
-          getComponentDetailsTemplate(element) || `Custom element: ${tagName}`,
-        attributes: this.extractAttributesData(element, attributeOptions),
-      })
+      ([, element]) => {
+        const formattedTagName =
+          this.configService.getFormattedTagName(element.tagName!);
+        return {
+          name: formattedTagName,
+          description:
+            getComponentDetailsTemplate(element) ||
+            `Custom element: ${formattedTagName}`,
+          attributes: this.extractAttributesData(element, attributeOptions),
+        };
+      }
     );
 
     this.htmlDataProvider = html.newHTMLDataProvider("custom-elements", {
@@ -60,11 +69,12 @@ export class VsCodeHtmlCompletionService {
     element: Component,
     attributeOptions: Map<string, string[] | string>
   ): HTMLDataAttribute[] {
+    const formattedTagName = this.configService.getFormattedTagName(element.tagName!);
     return (element?.attributes || []).map((attr) => {
       const typeText =
         (attr as any)["parsedType"]?.text || attr.type?.text || "";
       const attrOptions = attributeOptions.get(
-        `${element.tagName}:${attr.name}`
+        `${formattedTagName}:${attr.name}`
       );
 
       return {
@@ -144,18 +154,23 @@ export class VsCodeHtmlCompletionService {
       return { items: [], isIncomplete: false };
     }
 
-    const completionItems: html.CompletionItem[] = elements.map((element) => ({
-      label: element.tagName!,
-      kind: html.CompletionItemKind.Snippet,
-      documentation: {
-        kind: "markdown",
-        value: getComponentDetailsTemplate(element),
-      },
-      insertText: `<${element.tagName}>$0</${element.tagName}>`,
-      insertTextFormat: html.InsertTextFormat.Snippet,
-      detail: "Custom Element",
-      sortText: "0" + element.tagName,
-    }));
+    const completionItems: html.CompletionItem[] = elements.map((element) => {
+      const formattedTagName = this.configService.getFormattedTagName(
+        element.tagName!
+      );
+      return {
+        label: formattedTagName,
+        kind: html.CompletionItemKind.Snippet,
+        documentation: {
+          kind: "markdown",
+          value: getComponentDetailsTemplate(element),
+        },
+        insertText: `<${formattedTagName}>$0</${formattedTagName}>`,
+        insertTextFormat: html.InsertTextFormat.Snippet,
+        detail: "Custom Element",
+        sortText: "0" + formattedTagName,
+      };
+    });
 
     return {
       isIncomplete: false,
@@ -204,19 +219,22 @@ export class VsCodeHtmlCompletionService {
 
     const customCompletions: html.CompletionItem[] = Array.from(
       customElements.entries()
-    ).map(([tagName, element]) => ({
-      label: tagName,
-      kind: html.CompletionItemKind.Property,
-      documentation: {
-        kind: "markdown",
-        value: getComponentDetailsTemplate(element),
-      },
-      // Don't include < since it's already typed
-      insertText: `${tagName}>$0</${tagName}>`,
-      insertTextFormat: html.InsertTextFormat.Snippet,
-      detail: "Custom Element",
-      sortText: "0" + tagName,
-    }));
+    ).map(([, element]) => {
+      const formattedTagName = this.configService.getFormattedTagName(element.tagName!);
+      return {
+        label: formattedTagName,
+        kind: html.CompletionItemKind.Snippet,
+        documentation: {
+          kind: "markdown",
+          value: getComponentDetailsTemplate(element),
+        },
+        // Don't include < since it's already typed
+        insertText: `${formattedTagName}>$0</${formattedTagName}>`,
+        insertTextFormat: html.InsertTextFormat.Snippet,
+        detail: "Custom Element",
+        sortText: "0" + formattedTagName,
+      };
+    });
 
     htmlCompletions.items.push(...customCompletions);
     return htmlCompletions;
@@ -226,7 +244,8 @@ export class VsCodeHtmlCompletionService {
     htmlCompletions: html.CompletionList,
     tagName: string
   ): html.CompletionList {
-    const element = this.customElementsService.getCustomElement(tagName);
+    const formattedTagName = this.configService.getFormattedTagName(tagName);
+    const element = this.customElementsService.getCustomElement(formattedTagName);
     if (!element) return htmlCompletions;
 
     const attributes = this.extractAttributesData(
@@ -268,7 +287,8 @@ export class VsCodeHtmlCompletionService {
     tagName: string,
     attributeName: string
   ): html.CompletionList {
-    const element = this.customElementsService.getCustomElement(tagName);
+    const formattedTagName = this.configService.getFormattedTagName(tagName);
+    const element = this.customElementsService.getCustomElement(formattedTagName);
     if (!element) return htmlCompletions;
 
     const attributes = this.extractAttributesData(
@@ -364,91 +384,6 @@ export class VsCodeHtmlCompletionService {
     };
   }
 
-  // Legacy methods that might be called by the existing CustomHtmlService
-  public getCompletionItems(): html.CompletionItem[] {
-    const customElements = this.customElementsService.getCustomElementsMap();
-    const items: html.CompletionItem[] = [];
-
-    for (const [tagName, element] of customElements) {
-      items.push({
-        label: tagName,
-        kind: html.CompletionItemKind.Property,
-        documentation: {
-          kind: "markdown",
-          value: getComponentDetailsTemplate(element),
-        },
-        insertText: `${tagName}>$0</${tagName}>`,
-        insertTextFormat: html.InsertTextFormat.Snippet,
-        detail: "Custom Element",
-        sortText: "0" + tagName,
-      });
-    }
-
-    return items;
-  }
-
-  public getAttributeCompletions(tagName: string): html.CompletionItem[] {
-    const element = this.customElementsService.getCustomElement(tagName);
-    if (!element) return [];
-
-    const attributes = this.extractAttributesData(
-      element,
-      this.customElementsService.getAttributeOptions()
-    );
-
-    return attributes.map((attr) => {
-      const hasValues = attr.values && attr.values.length > 0;
-      const isBoolean = attr.type === "boolean";
-
-      return {
-        label: attr.name,
-        kind: html.CompletionItemKind.Property,
-        documentation: {
-          kind: "markdown",
-          value: `${attr.description}\n\n**Type:** \`${attr.type}\``,
-        },
-        insertText: hasValues
-          ? `${attr.name}="$1"$0`
-          : isBoolean
-            ? attr.name
-            : `${attr.name}="$0"`,
-        insertTextFormat: html.InsertTextFormat.Snippet,
-        sortText: "0" + attr.name,
-        command:
-          hasValues && !isBoolean
-            ? { command: "editor.action.triggerSuggest", title: "Suggest" }
-            : undefined,
-      };
-    });
-  }
-
-  public getAttributeValueCompletions(
-    tagName: string,
-    attributeName: string
-  ): html.CompletionItem[] {
-    const element = this.customElementsService.getCustomElement(tagName);
-    if (!element) return [];
-
-    const attributes = this.extractAttributesData(
-      element,
-      this.customElementsService.getAttributeOptions()
-    );
-    const attribute = attributes.find((attr) => attr.name === attributeName);
-
-    if (!attribute?.values?.length) return [];
-
-    return attribute.values.map((value) => ({
-      label: value.name,
-      kind: html.CompletionItemKind.Value,
-      documentation: {
-        kind: "markdown",
-        value: value.description || `Value for ${attribute.name} attribute`,
-      },
-      insertText: value.name,
-      sortText: "0" + value.name,
-    }));
-  }
-
   // Definition methods
   public getTagDefinition(tagName: string): html.Location | null {
     const manifestPath = this.customElementsService.getManifestPath();
@@ -514,3 +449,4 @@ export class VsCodeHtmlCompletionService {
     return this.htmlDataProvider;
   }
 }
+

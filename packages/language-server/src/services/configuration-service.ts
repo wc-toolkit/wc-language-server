@@ -61,6 +61,8 @@ export class ConfigurationService {
     try {
       this.watcher = fs.watch(this.configPath, { persistent: false }, () => {
         this.loadConfig();
+        // Reload the language server process
+        process.exit(0);
       });
     } catch {
       // Config file doesn't exist yet - that's fine

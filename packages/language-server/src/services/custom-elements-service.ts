@@ -75,16 +75,15 @@ export class CustomElementsService {
     if (!manifest.modules) return;
 
     const components = getAllComponents(manifest);
-    const tagFormatter = this.configService?.config.tagFormatter;
     
     components.forEach(element => {
-      const tagName = tagFormatter ? tagFormatter(element.tagName!) : element.tagName!;
+      const tagName = this.configService?.getFormattedTagName(element.tagName!) || element.tagName!;
       this.customElements.set(tagName, element);
-      this.setAttributeOptions(element, tagName);
+      this.setAttributeOptions(tagName, element);
     });
   }
 
-  private setAttributeOptions(component: Component, tagName: string) {
+  private setAttributeOptions(tagName: string, component: Component) {
     component.attributes?.forEach(attr => {
       const options = getAttributeValueOptions(attr);
       this.attributeOptions.set(`${tagName}:${attr.name}`, options);
