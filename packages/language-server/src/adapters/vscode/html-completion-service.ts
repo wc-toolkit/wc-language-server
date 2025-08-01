@@ -7,8 +7,8 @@ import {
   getMemberDescription,
 } from "@wc-toolkit/cem-utilities";
 import { NullableProviderResult } from "@volar/language-server";
-import { CustomElementsService } from "../../services/custom-elements-service";
-import { ConfigurationService } from "../../services/configuration-service";
+import { customElementsService } from "../../services/custom-elements-service";
+import { configurationService } from "../../services/configuration-service";
 
 // Helper type for completion context
 type CompletionContext =
@@ -26,11 +26,9 @@ export class VsCodeHtmlCompletionService {
   private htmlDataProvider: html.IHTMLDataProvider | null = null;
 
   constructor(
-    private customElementsService: CustomElementsService,
-    private configService: ConfigurationService
   ) {
     this.initialize();
-    this.customElementsService.onManifestChange(() => this.initialize());
+    customElementsService.onManifestChange(() => this.initialize());
   }
 
   private initialize(): void {
@@ -42,13 +40,14 @@ export class VsCodeHtmlCompletionService {
   }
 
   private createHTMLDataProvider(): void {
-    const customElements = this.customElementsService.getCustomElementsMap();
-    const attributeOptions = this.customElementsService.getAttributeOptions();
+    const customElements = customElementsService.getCustomElementsMap();
+    const attributeOptions = customElementsService.getAttributeOptions();
 
     const tags: HTMLDataTag[] = Array.from(customElements.entries()).map(
       ([, element]) => {
-        const formattedTagName =
-          this.configService.getFormattedTagName(element.tagName!);
+        const formattedTagName = configurationService.getFormattedTagName(
+          element.tagName!
+        );
         return {
           name: formattedTagName,
           description:
@@ -69,7 +68,9 @@ export class VsCodeHtmlCompletionService {
     element: Component,
     attributeOptions: Map<string, string[] | string>
   ): HTMLDataAttribute[] {
-    const formattedTagName = this.configService.getFormattedTagName(element.tagName!);
+    const formattedTagName = configurationService.getFormattedTagName(
+      element.tagName!
+    );
     return (element?.attributes || []).map((attr) => {
       const typeText =
         (attr as any)["parsedType"]?.text || attr.type?.text || "";
@@ -87,7 +88,7 @@ export class VsCodeHtmlCompletionService {
               description: `Value: ${option}`,
             }))
           : [],
-        sourcePosition: this.customElementsService.findPositionInManifest(
+        sourcePosition: customElementsService.findPositionInManifest(
           `"attribute": "${attr.name}"`
         ),
       };
@@ -143,7 +144,6 @@ export class VsCodeHtmlCompletionService {
 
   // This method is called by the vsCodeCustomSnippetsPlugin
   public createCustomSnippets(
-    elements: Component[],
     beforeText: string
   ): NullableProviderResult<html.CompletionList> {
     // Don't provide snippets in attribute contexts
@@ -154,8 +154,9 @@ export class VsCodeHtmlCompletionService {
       return { items: [], isIncomplete: false };
     }
 
+    const elements = customElementsService.getCustomElements();
     const completionItems: html.CompletionItem[] = elements.map((element) => {
-      const formattedTagName = this.configService.getFormattedTagName(
+      const formattedTagName = configurationService.getFormattedTagName(
         element.tagName!
       );
       return {
@@ -215,12 +216,14 @@ export class VsCodeHtmlCompletionService {
   private enhanceTagCompletions(
     htmlCompletions: html.CompletionList
   ): html.CompletionList {
-    const customElements = this.customElementsService.getCustomElementsMap();
+    const customElements = customElementsService.getCustomElementsMap();
 
     const customCompletions: html.CompletionItem[] = Array.from(
       customElements.entries()
     ).map(([, element]) => {
-      const formattedTagName = this.configService.getFormattedTagName(element.tagName!);
+      const formattedTagName = configurationService.getFormattedTagName(
+        element.tagName!
+      );
       return {
         label: formattedTagName,
         kind: html.CompletionItemKind.Snippet,
@@ -244,13 +247,14 @@ export class VsCodeHtmlCompletionService {
     htmlCompletions: html.CompletionList,
     tagName: string
   ): html.CompletionList {
-    const formattedTagName = this.configService.getFormattedTagName(tagName);
-    const element = this.customElementsService.getCustomElement(formattedTagName);
+    const formattedTagName = configurationService.getFormattedTagName(tagName);
+    const element =
+      customElementsService.getCustomElement(formattedTagName);
     if (!element) return htmlCompletions;
 
     const attributes = this.extractAttributesData(
       element,
-      this.customElementsService.getAttributeOptions()
+      customElementsService.getAttributeOptions()
     );
 
     const customCompletions: html.CompletionItem[] = attributes.map((attr) => {
@@ -287,13 +291,14 @@ export class VsCodeHtmlCompletionService {
     tagName: string,
     attributeName: string
   ): html.CompletionList {
-    const formattedTagName = this.configService.getFormattedTagName(tagName);
-    const element = this.customElementsService.getCustomElement(formattedTagName);
+    const formattedTagName = configurationService.getFormattedTagName(tagName);
+    const element =
+      customElementsService.getCustomElement(formattedTagName);
     if (!element) return htmlCompletions;
 
     const attributes = this.extractAttributesData(
       element,
-      this.customElementsService.getAttributeOptions()
+      customElementsService.getAttributeOptions()
     );
     const attribute = attributes.find((attr) => attr.name === attributeName);
 
@@ -340,7 +345,7 @@ export class VsCodeHtmlCompletionService {
       );
     }
 
-    const element = this.customElementsService.getCustomElement(node.tag);
+    const element = customElementsService.getCustomElement(node.tag);
     if (!element) {
       return this.htmlLanguageService.doHover(
         textDocument,
@@ -354,7 +359,7 @@ export class VsCodeHtmlCompletionService {
       const cursorOffset = document.offsetAt(position);
       const attributes = this.extractAttributesData(
         element,
-        this.customElementsService.getAttributeOptions()
+        customElementsService.getAttributeOptions()
       );
 
       for (const attrName in node.attributes) {
@@ -386,10 +391,10 @@ export class VsCodeHtmlCompletionService {
 
   // Definition methods
   public getTagDefinition(tagName: string): html.Location | null {
-    const manifestPath = this.customElementsService.getManifestPath();
+    const manifestPath = customElementsService.getManifestPath();
     if (
       !manifestPath ||
-      !this.customElementsService.getCustomElement(tagName)
+      !customElementsService.getCustomElement(tagName)
     ) {
       return null;
     }
@@ -407,12 +412,12 @@ export class VsCodeHtmlCompletionService {
     tagName: string,
     attributeName: string
   ): html.Location | null {
-    const manifestPath = this.customElementsService.getManifestPath();
-    const element = this.customElementsService.getCustomElement(tagName);
+    const manifestPath = customElementsService.getManifestPath();
+    const element = customElementsService.getCustomElement(tagName);
 
     if (!manifestPath || !element) return null;
 
-    const position = this.customElementsService.findPositionInManifest(
+    const position = customElementsService.findPositionInManifest(
       `"attribute": "${attributeName}"`
     );
 
@@ -450,3 +455,18 @@ export class VsCodeHtmlCompletionService {
   }
 }
 
+// Singleton instance holder and factory
+let _singletonService: VsCodeHtmlCompletionService | undefined;
+
+/**
+ * Returns a singleton instance of VsCodeHtmlCompletionService for the given services.
+ * If called multiple times with the same arguments, returns the same instance.
+ */
+function getVsCodeHtmlCompletionService(): VsCodeHtmlCompletionService {
+  if (!_singletonService) {
+    _singletonService = new VsCodeHtmlCompletionService();
+  }
+  return _singletonService;
+}
+
+export const htmlCompletionService = getVsCodeHtmlCompletionService();

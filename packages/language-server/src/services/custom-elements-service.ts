@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { ConfigurationService } from "./configuration-service";
+import { configurationService } from "./configuration-service";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
 import { Component, getAllComponents } from "@wc-toolkit/cem-utilities";
 import { getAttributeValueOptions } from "../utilities/cem-utils";
@@ -26,20 +26,18 @@ export class CustomElementsService {
   private manifestContent = "";
   private attributeOptions: AttributeTypes = new Map();
   private changeListeners: (() => void)[] = [];
+  private workspaceRoot: string = "";
 
-  constructor(
-    private workspaceRoot: string,
-    private configService?: ConfigurationService
-  ) {
+  constructor() {
     this.initialize();
   }
 
   private initialize() {
     this.loadManifest();
     this.watchManifest();
-    
+
     // Reload when config changes
-    this.configService?.onChange(() => this.loadManifest());
+    configurationService?.onChange(() => this.loadManifest());
   }
 
   private loadManifest() {
@@ -59,32 +57,34 @@ export class CustomElementsService {
   private findManifestFile(): string | null {
     const paths = [
       "custom-elements.json",
-      "dist/custom-elements.json", 
+      "dist/custom-elements.json",
       "src/custom-elements.json",
       "demo/html/custom-elements.json",
-      "demos/html/custom-elements.json"
-    ].map(p => path.join(this.workspaceRoot, p));
+      "demos/html/custom-elements.json",
+    ].map((p) => path.join(this.workspaceRoot, p));
 
-    return paths.find(p => fs.existsSync(p)) || null;
+    return paths.find((p) => fs.existsSync(p)) || null;
   }
 
   private parseManifest(manifest: cem.Package) {
     this.customElements.clear();
     this.attributeOptions.clear();
-    
+
     if (!manifest.modules) return;
 
     const components = getAllComponents(manifest);
-    
-    components.forEach(element => {
-      const tagName = this.configService?.getFormattedTagName(element.tagName!) || element.tagName!;
+
+    components.forEach((element) => {
+      const tagName =
+        configurationService?.getFormattedTagName(element.tagName!) ||
+        element.tagName!;
       this.customElements.set(tagName, element);
       this.setAttributeOptions(tagName, element);
     });
   }
 
   private setAttributeOptions(tagName: string, component: Component) {
-    component.attributes?.forEach(attr => {
+    component.attributes?.forEach((attr) => {
       const options = getAttributeValueOptions(attr);
       this.attributeOptions.set(`${tagName}:${attr.name}`, options);
     });
@@ -103,7 +103,7 @@ export class CustomElementsService {
   }
 
   private notifyChange() {
-    this.changeListeners.forEach(callback => callback());
+    this.changeListeners.forEach((callback) => callback());
   }
 
   // Public API
@@ -157,3 +157,14 @@ export class CustomElementsService {
     this.changeListeners = [];
   }
 }
+
+let _singletonCustomElementsService: CustomElementsService | undefined;
+
+export function getCustomElementsService(): CustomElementsService {
+  if (!_singletonCustomElementsService) {
+    _singletonCustomElementsService = new CustomElementsService();
+  }
+  return _singletonCustomElementsService;
+}
+
+export const customElementsService = getCustomElementsService();

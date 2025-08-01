@@ -1,24 +1,12 @@
 import {
-  LanguageServiceContext,
   LanguageServicePlugin,
 } from "@volar/language-server";
-import { CustomHtmlService } from "./adapters/vscode/html-service";
-import { CustomElementsService } from "./services/custom-elements-service";
-import { ConfigurationService } from "./services/configuration-service";
+import { customHtmlService } from "./adapters/vscode/html-service";
+import { customElementsService } from "./services/custom-elements-service";
 import * as html from "vscode-html-languageservice";
-import { VsCodeHtmlCompletionService } from "./adapters/vscode/html-completion-service";
-import { VsCodeHtmlValidationService } from "./adapters/vscode/html-validation-service";
-
-type ServiceCache = Map<
-    string,
-    {
-      configService: ConfigurationService;
-      customElementsService: CustomElementsService;
-      htmlCompletionService: VsCodeHtmlCompletionService;
-      htmlValidationService: VsCodeHtmlValidationService;
-      htmlService: CustomHtmlService;
-    }
-  >;
+import {
+  htmlCompletionService,
+} from "./adapters/vscode/html-completion-service";
 
 /**
  * Creates a language service plugin for custom HTML features.
@@ -26,8 +14,6 @@ type ServiceCache = Map<
  */
 export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
   // Shared service instances per workspace root
-  const serviceCache: ServiceCache = new Map();
-
   return {
     capabilities: {
       completionProvider: {
@@ -49,44 +35,25 @@ export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
         workspaceDiagnostics: false,
       },
     },
-    create(context: LanguageServiceContext) {
-      const workspaceFolders = context.env?.workspaceFolders;
-      // @ts-expect-error the type appears to be incorrect here
-      const workspaceRoot = workspaceFolders?.[0]?.uri || "";
-      if (!serviceCache.has(workspaceRoot)) {
-        const configService = new ConfigurationService(workspaceRoot);
-        const customElementsService = new CustomElementsService(
-          workspaceRoot,
-          configService
-        );
-        const htmlCompletionService = new VsCodeHtmlCompletionService(
-          customElementsService,
-          configService
-        );
-        const htmlValidationService = new VsCodeHtmlValidationService(
-          customElementsService
-        );
-        const htmlService = new CustomHtmlService(
-          customElementsService,
-          htmlCompletionService,
-          htmlValidationService
-        );
-        serviceCache.set(workspaceRoot, {
-          configService,
-          customElementsService,
-          htmlCompletionService,
-          htmlValidationService,
-          htmlService,
-        });
-      }
-      const { htmlService } = serviceCache.get(workspaceRoot)!;
+    create() {
+      // const workspaceFolders = context.env?.workspaceFolders;
+      // const workspaceRoot = workspaceFolders?.[0]?.uri || "";
       return {
-        provideCompletionItems:
-          htmlService.provideCompletionItems.bind(htmlService),
-        provideHover: htmlService.provideHover.bind(htmlService),
-        provideDefinition: htmlService.provideDefinition.bind(htmlService),
-        provideDiagnostics: htmlService.provideDiagnostics.bind(htmlService),
-        dispose: htmlService.dispose.bind(htmlService),
+        provideCompletionItems(document, position) {
+          return customHtmlService.provideCompletionItems(document, position);
+        },
+        provideHover(document, position) {
+          return customHtmlService.provideHover(document, position);
+        },
+        provideDefinition(document, position) {
+          return customHtmlService.provideDefinition(document, position);
+        },
+        provideDiagnostics(document) {
+          return customHtmlService.provideDiagnostics(document);
+        },
+        dispose() {
+          return customHtmlService.dispose();
+        },
       };
     },
   };
@@ -99,7 +66,6 @@ export function vsCodeHtmlAutoCompletePlugin(): LanguageServicePlugin {
  */
 export function vsCodeCustomSnippetsPlugin(): LanguageServicePlugin {
   // Use the same cache as above
-  const serviceCache: ServiceCache = new Map();
 
   return {
     capabilities: {
@@ -107,38 +73,8 @@ export function vsCodeCustomSnippetsPlugin(): LanguageServicePlugin {
         triggerCharacters: [],
       },
     },
-    create(context: LanguageServiceContext) {
-      // @ts-expect-error the type appears to be incorrect here
-      const workspaceRoot = context.env?.workspaceFolders?.[0]?.uri || "";
-      if (!serviceCache.has(workspaceRoot)) {
-        const configService = new ConfigurationService(workspaceRoot);
-        const customElementsService = new CustomElementsService(
-          workspaceRoot,
-          configService
-        );
-        const htmlCompletionService = new VsCodeHtmlCompletionService(
-          customElementsService,
-          configService
-        );
-        const htmlValidationService = new VsCodeHtmlValidationService(
-          customElementsService
-        );
-        const htmlService = new CustomHtmlService(
-          customElementsService,
-          htmlCompletionService,
-          htmlValidationService
-        );
-        serviceCache.set(workspaceRoot, {
-          configService,
-          customElementsService,
-          htmlCompletionService,
-          htmlValidationService,
-          htmlService,
-        });
-      }
-
-      const { customElementsService, htmlCompletionService } =
-        serviceCache.get(workspaceRoot)!;
+    create() {
+      // const workspaceRoot = context.env?.workspaceFolders?.[0]?.uri || "";
       return {
         provideCompletionItems(
           document: html.TextDocument,
@@ -154,11 +90,7 @@ export function vsCodeCustomSnippetsPlugin(): LanguageServicePlugin {
             return { items: [], isIncomplete: false };
           }
 
-          const customElements = customElementsService.getCustomElements();
-          return htmlCompletionService.createCustomSnippets(
-            customElements,
-            beforeText
-          );
+          return htmlCompletionService.createCustomSnippets(beforeText);
         },
 
         dispose() {

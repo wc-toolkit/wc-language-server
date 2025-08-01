@@ -1,15 +1,13 @@
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 import { removeQuotes } from "@wc-toolkit/cem-utilities";
-import { CustomElementsService } from "../../services/custom-elements-service";
+import { customElementsService } from "../../services/custom-elements-service";
 
 /**
  * Service for validating custom element attributes in HTML documents.
  * @param customElementsService - Instance of CustomElementsService to access custom element definitions
  */
 export class VsCodeHtmlValidationService {
-  constructor(private customElementsService: CustomElementsService) {}
-
   /**
    * Main entry point - provides all diagnostics for a document.
    */
@@ -42,7 +40,7 @@ export class VsCodeHtmlValidationService {
    * Validates a single node's attributes if it's a custom element.
    */
   private validateSingleNode(node: html.Node, document: html.TextDocument, diagnostics: html.Diagnostic[]): void {
-    if (!node.tag || !node.attributes || !this.customElementsService.hasCustomElement(node.tag)) {
+    if (!node.tag || !node.attributes || !customElementsService.hasCustomElement(node.tag)) {
       return;
     }
 
@@ -69,7 +67,7 @@ export class VsCodeHtmlValidationService {
    */
   private validateAttributeValue(tagName: string, attributeName: string, value: string): string | null {
     const cleanValue = removeQuotes(value);
-    const attrOptions = this.customElementsService.getAttributeValueOptions(tagName, attributeName);
+    const attrOptions = customElementsService.getAttributeValueOptions(tagName, attributeName);
 
     // No validation possible or needed
     if (!cleanValue || !attrOptions || attrOptions === "string" || attrOptions.includes("string & {}")) {
@@ -123,7 +121,7 @@ export class VsCodeHtmlValidationService {
   ): Array<{ attributeName: string; error: string }> {
     const errors: Array<{ attributeName: string; error: string }> = [];
 
-    if (!this.customElementsService.hasCustomElement(tagName)) {
+    if (!customElementsService.hasCustomElement(tagName)) {
       return errors;
     }
 
@@ -138,6 +136,22 @@ export class VsCodeHtmlValidationService {
   }
 
   public isKnownCustomElement(tagName: string): boolean {
-    return this.customElementsService.hasCustomElement(tagName);
+    return customElementsService.hasCustomElement(tagName);
   }
 }
+
+// Singleton instance holder and factory
+let _singletonService: VsCodeHtmlValidationService | undefined;
+
+/**
+ * Returns a singleton instance of CustomHtmlService for the given services.
+ * If called multiple times with the same arguments, returns the same instance.
+ */
+function getVsCodeHtmlValidationService(): VsCodeHtmlValidationService {
+  if (!_singletonService) {
+    _singletonService = new VsCodeHtmlValidationService();
+  }
+  return _singletonService;
+}
+
+export const htmlValidationService = getVsCodeHtmlValidationService();

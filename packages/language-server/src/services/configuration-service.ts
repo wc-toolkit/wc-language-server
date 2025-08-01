@@ -24,12 +24,13 @@ export class ConfigurationService {
   private configPath: string;
   private watcher?: fs.FSWatcher;
   private changeListeners: Array<() => void> = [];
+  private workspaceRoot: string = "";
 
-  constructor(private workspaceRoot: string) {
+  constructor() {
     this.configPath = path.join(this.workspaceRoot, "wc.config.js");
     this.initialize();
   }
-
+  
   private initialize() {
     this.loadConfig();
     this.watchConfig();
@@ -87,3 +88,14 @@ export class ConfigurationService {
     this.changeListeners = [];
   }
 }
+
+let _singletonConfigService: ConfigurationService | undefined;
+
+export function getConfigurationService(): ConfigurationService {
+  if (!_singletonConfigService) {
+    _singletonConfigService = new ConfigurationService();
+  }
+  return _singletonConfigService;
+}
+
+export const configurationService = getConfigurationService();
