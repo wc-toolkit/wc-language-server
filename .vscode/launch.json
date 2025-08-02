@@ -3,12 +3,23 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch Extension",
+      "name": "Launch HTML",
       "type": "extensionHost",
       "request": "launch",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
         "--folder-uri=${workspaceRoot}/demos/html"
+      ],
+      "outFiles": ["${workspaceFolder}/packages/vscode/dist/**/*.js"],
+      "preLaunchTask": "npm: build"
+    },
+    {
+      "name": "Launch NPM",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
+        "--folder-uri=${workspaceRoot}/demos/npm"
       ],
       "outFiles": ["${workspaceFolder}/packages/vscode/dist/**/*.js"],
       "preLaunchTask": "npm: build"
@@ -25,9 +36,12 @@
   ],
   "compounds": [
     {
-      "name": "Launch Extension + Attach Server",
-      "configurations": ["Launch Extension", "Attach to Language Server"]
+      "name": "HTML Demo",
+      "configurations": ["Launch HTML", "Attach to Language Server"]
+    },
+    {
+      "name": "NPM Demo",
+      "configurations": ["Launch NPM", "Attach to Language Server"]
     }
   ]
-}
 }

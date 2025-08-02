@@ -11,7 +11,8 @@ export class SimpleGreeting extends LitElement {
   render() {
     return html`
       <p>Hello, ${this.name}!</p>
-      <sl-alert closable></sl-alert>
+      <sl-alert closable=${false}></sl-alert>
+
     `;
   }
 }

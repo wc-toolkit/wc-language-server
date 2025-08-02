@@ -1,6 +1,6 @@
 <template>
   <div>
-
+    <sl-alert countdown="ltr"></sl-alert>
   </div>
 </template>
 

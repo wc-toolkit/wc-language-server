@@ -3,7 +3,7 @@
     @RenderBody()
     <sl-alert ></sl-alert>
     <div ></div>
-    <sl-alert variant="success"></sl-alert>
+    <sl-alert variant="@(User.Identity.IsAuthenticated ? "logged-in" : "guest")"></sl-alert>
     <sl-badge variant="primary"></sl-badge>
     <sl-avatar ></sl-avatar>
     <sl-alert ></sl-alert>
