@@ -2,10 +2,10 @@ import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 import { removeQuotes } from "@wc-toolkit/cem-utilities";
 import { customElementsService } from "../../services/custom-elements-service";
+import { configurationService } from "../../services/configuration-service";
 
 /**
  * Service for validating custom element attributes in HTML documents.
- * @param customElementsService - Instance of CustomElementsService to access custom element definitions
  */
 export class VsCodeHtmlValidationService {
   /**
@@ -47,16 +47,16 @@ export class VsCodeHtmlValidationService {
     for (const [attrName, attrValue] of Object.entries(node.attributes)) {
       if (typeof attrValue !== "string") continue;
 
-      const error = this.validateAttributeValue(node.tag, attrName, attrValue);
-      if (!error) continue;
+      const validation = this.validateAttributeValue(node.tag, attrName, attrValue);
+      if (!validation) continue;
 
       const range = this.findAttributeRange(document, node, attrName);
       if (!range) continue;
 
       diagnostics.push({
-        severity: DiagnosticSeverity.Error,
+        severity: this.getSeverityLevel(validation.type),
         range,
-        message: error,
+        message: validation.error,
         source: "web-components",
       });
     }
@@ -65,7 +65,7 @@ export class VsCodeHtmlValidationService {
   /**
    * Validates a single attribute value against its schema.
    */
-  private validateAttributeValue(tagName: string, attributeName: string, value: string): string | null {
+  private validateAttributeValue(tagName: string, attributeName: string, value: string): { error: string; type: 'invalidBoolean' | 'invalidNumber' | 'invalidAttributeValue' } | null {
     const cleanValue = removeQuotes(value);
     const attrOptions = customElementsService.getAttributeValueOptions(tagName, attributeName);
 
@@ -76,20 +76,44 @@ export class VsCodeHtmlValidationService {
 
     // Boolean attributes shouldn't have values
     if (attrOptions === "boolean") {
-      return `The attribute "${attributeName}" is boolean and should not have a value.`;
+      return {
+        error: `The attribute "${attributeName}" is boolean and should not have a value.`,
+        type: 'invalidBoolean'
+      };
     }
 
     // Number validation
     if (attrOptions === "number" && isNaN(Number(cleanValue))) {
-      return `The value for "${attributeName}" must be a valid number.`;
+      return {
+        error: `The value for "${attributeName}" must be a valid number.`,
+        type: 'invalidNumber'
+      };
     }
 
     // Enum validation
     if (Array.isArray(attrOptions) && !attrOptions.includes(cleanValue)) {
-      return `The value "${cleanValue}" is not valid for "${attributeName}". Allowed values: ${attrOptions.join(" | ")}`;
+      return {
+        error: `The value "${cleanValue}" is not valid for "${attributeName}". Allowed values: ${attrOptions.join(" | ")}`,
+        type: 'invalidAttributeValue'
+      };
     }
 
     return null;
+  }
+
+  /**
+   * Maps configuration severity to VSCode DiagnosticSeverity.
+   */
+  private getSeverityLevel(type: 'invalidBoolean' | 'invalidNumber' | 'invalidAttributeValue'): DiagnosticSeverity {
+    const configSeverity = configurationService?.config?.diagnosticSeverity?.[type] || 'error';
+    
+    switch (configSeverity) {
+      case 'error': return DiagnosticSeverity.Error;
+      case 'warning': return DiagnosticSeverity.Warning;
+      case 'info': return DiagnosticSeverity.Information;
+      case 'hint': return DiagnosticSeverity.Hint;
+      default: return DiagnosticSeverity.Error;
+    }
   }
 
   /**
@@ -126,9 +150,9 @@ export class VsCodeHtmlValidationService {
     }
 
     for (const [attrName, attrValue] of Object.entries(attributes)) {
-      const error = this.validateAttributeValue(tagName, attrName, attrValue);
-      if (error) {
-        errors.push({ attributeName: attrName, error });
+      const validation = this.validateAttributeValue(tagName, attrName, attrValue);
+      if (validation) {
+        errors.push({ attributeName: attrName, error: validation.error });
       }
     }
 
