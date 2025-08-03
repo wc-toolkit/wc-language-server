@@ -9,6 +9,8 @@ import {
 import { NullableProviderResult } from "@volar/language-server";
 import { customElementsService } from "../../services/custom-elements-service";
 import { configurationService } from "../../services/configuration-service";
+import path from "path";
+import fs from "fs";
 
 // Helper type for completion context
 type CompletionContext =
@@ -392,19 +394,27 @@ export class VsCodeHtmlCompletionService {
   // Definition methods
   public getTagDefinition(tagName: string): html.Location | null {
     const manifestPath = customElementsService.getManifestPath();
-    if (
-      !manifestPath ||
-      !customElementsService.getCustomElement(tagName)
-    ) {
+    const element = customElementsService.getCustomElement(tagName);
+    if (!manifestPath || !element) {
       return null;
     }
 
+    // Search for the tag name definition in the manifest
+    const searchPatterns = [
+      `"tagName": "${element.tagName}"`,
+      `"name": "${element.name}"`,
+      `"tag": "${element.tagName}"`
+    ];
+
+    let position = 0;
+    for (const pattern of searchPatterns) {
+      position = customElementsService.findPositionInManifest(pattern);
+      if (position > 0) break;
+    }
+
     return {
-      uri: `file://${manifestPath.startsWith("/") ? manifestPath : "/" + manifestPath}`,
-      range: {
-        start: { line: 0, character: 0 },
-        end: { line: 0, character: 0 },
-      },
+      uri: manifestPath.startsWith("file://") ? manifestPath : `file://${path.resolve(manifestPath)}`,
+      range: this.positionToRange(position, manifestPath),
     };
   }
 
@@ -417,14 +427,86 @@ export class VsCodeHtmlCompletionService {
 
     if (!manifestPath || !element) return null;
 
-    const position = customElementsService.findPositionInManifest(
-      `"attribute": "${attributeName}"`
-    );
+    try {
+      const content = fs.readFileSync(manifestPath, 'utf8');
+      console.log(`Searching for attribute "${attributeName}" in element "${tagName}"`);
+      
+      // First find the element definition
+      const elementSearchPatterns = [
+        `"tagName": "${element.tagName}"`,
+        `"name": "${element.name}"`,
+        `"tag": "${element.tagName}"`
+      ];
 
-    return {
-      uri: `file://${manifestPath}`,
-      range: this.positionToRange(position),
-    };
+      let elementPosition = -1;
+      for (const pattern of elementSearchPatterns) {
+        elementPosition = content.indexOf(pattern);
+        if (elementPosition !== -1) {
+          console.log(`Found element at position ${elementPosition} with pattern: ${pattern}`);
+          break;
+        }
+      }
+
+      if (elementPosition === -1) return null;
+
+      // Find the attributes array within this element
+      const attributesStart = content.indexOf('"attributes":', elementPosition);
+      if (attributesStart === -1) {
+        console.log('No attributes array found');
+        return null;
+      }
+
+      console.log(`Found attributes array at position ${attributesStart}`);
+
+      // Find the end of the attributes array by looking for the closing bracket
+      const attributesArrayStart = content.indexOf('[', attributesStart);
+      if (attributesArrayStart === -1) return null;
+
+      // Find the matching closing bracket for the attributes array
+      let bracketCount = 1;
+      let attributesEnd = attributesArrayStart + 1;
+      while (bracketCount > 0 && attributesEnd < content.length) {
+        if (content[attributesEnd] === '[') bracketCount++;
+        else if (content[attributesEnd] === ']') bracketCount--;
+        attributesEnd++;
+      }
+
+      // Search for the specific attribute within the attributes array only
+      const attributesSection = content.substring(attributesArrayStart, attributesEnd);
+      console.log(`Attributes section: ${attributesSection.substring(0, 200)}...`);
+      
+      // More precise regex to find the attribute object
+      const attributeRegex = new RegExp(`\\{[^{}]*"name"\\s*:\\s*"${attributeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^{}]*\\}`, 'g');
+      const match = attributeRegex.exec(attributesSection);
+      
+      let attributePosition = attributesStart;
+      if (match) {
+        attributePosition = attributesArrayStart + match.index;
+        console.log(`Found attribute match at relative position ${match.index}, absolute position ${attributePosition}`);
+        console.log(`Matched text: ${match[0]}`);
+      } else {
+        console.log(`No regex match found, falling back to simple search`);
+        // Fallback: look for just the name field
+        const namePattern = `"name": "${attributeName}"`;
+        const namePos = attributesSection.indexOf(namePattern);
+        if (namePos !== -1) {
+          attributePosition = attributesArrayStart + namePos;
+          console.log(`Found fallback match at position ${attributePosition}`);
+        } else {
+          console.log(`No fallback match found either`);
+        }
+      }
+
+      console.log(`Final attribute position: ${attributePosition}`);
+
+      return {
+        uri: manifestPath.startsWith("file://") ? manifestPath : `file://${path.resolve(manifestPath)}`,
+        range: this.positionToRange(attributePosition, manifestPath),
+      };
+    } catch (error) {
+      console.error('Error in getAttributeDefinition:', error);
+      return null;
+    }
   }
 
   // Method called by CustomHtmlService for attribute definitions
@@ -435,18 +517,35 @@ export class VsCodeHtmlCompletionService {
     position: number
   ): html.Location | null {
     return {
-      uri: `file://${manifestPath}`,
-      range: this.positionToRange(position),
+      uri: manifestPath.startsWith("file://") ? manifestPath : `file://${path.resolve(manifestPath)}`,
+      range: this.positionToRange(position, manifestPath),
     };
   }
 
-  private positionToRange(position: number): html.Range {
-    const line = Math.floor(position / 40);
-    const char = position % 40;
-    return {
-      start: { line, character: char },
-      end: { line, character: char + 10 },
-    };
+  private positionToRange(position: number, manifestPath?: string): html.Range {
+    if (!manifestPath) {
+      return {
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: 10 },
+      };
+    }
+
+    try {
+      const content = fs.readFileSync(manifestPath, 'utf8');
+      const lines = content.substring(0, position).split('\n');
+      const line = Math.max(0, lines.length - 1);
+      const character = lines[line]?.length || 0;
+      
+      return {
+        start: { line, character },
+        end: { line, character: character + 10 },
+      };
+    } catch {
+      return {
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: 10 },
+      };
+    }
   }
 
   // Utility methods that might be needed
