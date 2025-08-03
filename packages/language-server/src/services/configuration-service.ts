@@ -9,6 +9,8 @@ export interface WCConfig {
     invalidBoolean?: DiagnosticSeverity;
     invalidNumber?: DiagnosticSeverity;
     invalidAttributeValue?: DiagnosticSeverity;
+    deprecatedAttribute?: DiagnosticSeverity;
+    deprecatedElement?: DiagnosticSeverity;
   };
   componentModulePath?: (
     componentName: string,
@@ -18,6 +20,16 @@ export interface WCConfig {
   globalModulePath?: string;
   exclude?: string[];
 }
+
+const DEFAULT_CONFIG: WCConfig = {
+  diagnosticSeverity: {
+    invalidBoolean: "error",
+    invalidNumber: "error",
+    invalidAttributeValue: "error",
+    deprecatedAttribute: "warning",
+    deprecatedElement: "warning",
+  },
+};
 
 export class ConfigurationService {
   public config: WCConfig = {};
@@ -36,6 +48,7 @@ export class ConfigurationService {
     this.watchConfig();
   }
 
+
   public loadConfig() {
     try {
       const absConfigPath = path.resolve(this.configPath);
@@ -43,11 +56,46 @@ export class ConfigurationService {
       delete require.cache[absConfigPath];
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const mod = require(absConfigPath);
-      this.config = mod.default || mod || {};
+      const userConfig = this.validateConfig(mod.default || mod || {});
+      this.config = this.mergeWithDefaults(userConfig);
     } catch {
-      this.config = {};
+      this.config = DEFAULT_CONFIG;
     }
     this.notifyListeners();
+  }
+
+  private mergeWithDefaults(userConfig: WCConfig): WCConfig {
+    return {
+      ...DEFAULT_CONFIG,
+      ...userConfig,
+      diagnosticSeverity: {
+        ...DEFAULT_CONFIG.diagnosticSeverity,
+        ...userConfig.diagnosticSeverity,
+      },
+    };
+  }
+
+  private validateConfig(config: WCConfig): WCConfig {
+    const validSeverities: DiagnosticSeverity[] = ["error", "warning", "info", "hint"];
+    
+    if (config.diagnosticSeverity) {
+      const diagnosticKeys = [
+        "invalidBoolean",
+        "invalidNumber", 
+        "invalidAttributeValue",
+        "deprecatedAttribute",
+        "deprecatedElement"
+      ] as const;
+
+      for (const key of diagnosticKeys) {
+        if (config.diagnosticSeverity[key] && !validSeverities.includes(config.diagnosticSeverity[key])) {
+          console.warn(`Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`);
+          config.diagnosticSeverity[key] = "error";
+        }
+      }
+    }
+
+    return config;
   }
 
   public getFormattedTagName(tagName: string): string {
