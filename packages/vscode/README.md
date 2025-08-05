@@ -1,0 +1,111 @@
+# Web Components Language Server
+
+A powerful Visual Studio Code extension that provides intelligent language support for Web Components development. This extension enhances your development experience with advanced IntelliSense and validation for Web Components.
+
+This extension uses the [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest) to generate the necessary information for the component integration and validation.
+
+## Features
+
+### 🚀 Smart IntelliSense
+
+- **Auto-completion** for Web Component properties, methods, and events
+- **Type-aware suggestions** based on component definitions
+
+### 🔍 Advanced Code Analysis
+
+- **Real-time validation** of Web Component syntax and structure
+- **Error detection** for common Web Component patterns
+
+### 🔧 Code Navigation
+
+- **Go to definition** for custom elements and their properties
+
+## Installation
+
+### From VS Code Marketplace
+
+1. Open Visual Studio Code
+2. Go to Extensions (`Ctrl+Shift+X` / `Cmd+Shift+X`)
+3. Search for "Web Components Language Server"
+4. Click "Install"
+
+### Manual Installation
+
+1. Download the `.vsix` file from the releases page
+2. Open VS Code
+3. Run `Extensions: Install from VSIX...` from the Command Palette
+4. Select the downloaded file
+
+## Usage
+
+### IntelliSense in Action
+
+```html
+<!-- Get intelligent suggestions for custom elements -->
+<my-custom-element my-attribute="value"></my-custom-element>
+```
+
+### Supported File Types
+
+This plugin currently works with any file type, but additional configurations will be added to customize this experience in the future.
+
+## Configuration
+
+To configure the Web Components Language serve create a file named `wc.config.js` at the root of your workspace and export the configuration object.
+
+```js
+// wc.config.js
+export default {
+  // your config options here
+}
+```
+
+### Available Settings
+
+```ts
+/** Configuration options for the Web Components Language Server. */
+interface WCConfig {
+  /** Optional function to format tag names before processing. */
+  tagFormatter?: (tagName: string) => string;
+
+  /** Diagnostic severity levels for various validation checks. */
+  diagnosticSeverity?: {
+    /** Severity for invalid boolean attribute values. */
+    invalidBoolean?: DiagnosticSeverity;
+    /** Severity for invalid number attribute values. */
+    invalidNumber?: DiagnosticSeverity;
+    /** Severity for invalid attribute values. */
+    invalidAttributeValue?: DiagnosticSeverity;
+    /** Severity for usage of deprecated attributes. */
+    deprecatedAttribute?: DiagnosticSeverity;
+    /** Severity for usage of deprecated elements. */
+    deprecatedElement?: DiagnosticSeverity;
+  };
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Extension not working?**
+
+- Ensure you have a supported file open
+- Check that the extension is enabled in settings
+- Restart VS Code if needed
+
+**IntelliSense not appearing?**
+
+- Verify TypeScript/JavaScript language support is enabled
+- Check if other extensions are conflicting
+- Try reloading the window (`Ctrl+Shift+P` > `Reload Window`)
+
+### Getting Help
+
+- 📚 [Documentation](https://github.com/your-org/wc-toolkit/docs)
+- 🐛 [Report Issues](https://github.com/your-org/wc-toolkit/issues)
+- 💬 [Discussions](https://github.com/your-org/wc-toolkit/discussions)
+
+---
+
+**Enjoy enhanced Web Components development!** 🎉

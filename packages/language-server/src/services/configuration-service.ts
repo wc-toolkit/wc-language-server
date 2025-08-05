@@ -3,21 +3,42 @@ import * as fs from "fs";
 
 export type DiagnosticSeverity = "error" | "warning" | "info" | "hint";
 
+/** Configuration options for the Web Components Language Server. */
 export interface WCConfig {
+  /** Optional function to format tag names before processing. */
   tagFormatter?: (tagName: string) => string;
+
+  /** Diagnostic severity levels for various validation checks. */
   diagnosticSeverity?: {
+    /** Severity for invalid boolean attribute values. */
     invalidBoolean?: DiagnosticSeverity;
+    /** Severity for invalid number attribute values. */
     invalidNumber?: DiagnosticSeverity;
+    /** Severity for invalid attribute values. */
     invalidAttributeValue?: DiagnosticSeverity;
+    /** Severity for usage of deprecated attributes. */
     deprecatedAttribute?: DiagnosticSeverity;
+    /** Severity for usage of deprecated elements. */
     deprecatedElement?: DiagnosticSeverity;
   };
+
+  /**
+   * Optional function to resolve the module path for a specific component.
+   * @param componentName The name of the component.
+   * @param tagName The tag name of the component.
+   * @param modulePath The original module path.
+   * @returns The resolved module path.
+   */
   componentModulePath?: (
     componentName: string,
     tagName: string,
     modulePath: string
   ) => string;
+
+  /** Path to a global module to include in all files. */
   globalModulePath?: string;
+
+  /** Glob patterns for files or directories to exclude from analysis. */
   exclude?: string[];
 }
 
