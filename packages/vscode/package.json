@@ -1,20 +1,20 @@
 {
   "private": true,
   "name": "web-components-language-server",
-  "version": "0.1.0",
-  "icon": "assets/icon.png",
+  "version": "0.0.1",
+  "icon": "assets/icon_alpha.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/volarjs/starter.git",
+    "url": "https://github.com/wc-toolkit/wc-language-server.git",
     "directory": "packages/vscode"
   },
   "categories": [
     "Programming Languages"
   ],
-  "displayName": "Web Component Language Features",
-  "description": "Web Component Language Features",
-  "author": "volarjs",
-  "publisher": "web-components-toolkit",
+  "displayName": "Web Component Language Server",
+  "description": "Web Component Language Server",
+  "author": "@wc-toolkit",
+  "publisher": "@wc-toolkit",
   "engines": {
     "vscode": "^1.82.0"
   },
@@ -29,15 +29,20 @@
     "pack": "npm run build && vsce package --pre-release",
     "release": "npm run build && vsce publish --pre-release"
   },
-  "dependencies": {
-    "vscode-languageclient": "^8.1.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@wc-toolkit/language-server": "workspace:*",
     "@types/vscode": "^1.82.0",
     "@volar/language-server": "~2.4.0",
     "@volar/vscode": "~2.4.0",
     "esbuild": "latest",
-    "vsce": "latest"
-  }
+    "vsce": "latest",
+    "vscode-languageclient": "^8.1.0",
+    "@types/minimatch": "^3.0.5",
+    "@types/semver": "^7.3.10",
+    "@types/msgpack-lite": "^0.1.7",
+    "shx": "^0.3.4",
+    "msgpack-lite": "^0.1.26"
+  },
+  "license": "MIT"
 }
