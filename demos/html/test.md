@@ -1,1 +1,3 @@
-<sl-alert></sl-alert>
+# Markdown Test Page
+
+<sl-alert closable variant="primary"></sl-alert>

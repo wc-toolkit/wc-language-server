@@ -5,14 +5,10 @@ import {customElement, property} from 'lit/decorators.js';
 export class SimpleGreeting extends LitElement {
   static styles = css`p { color: blue }`;
 
-  @property()
-  name = 'Somebody';
-
   render() {
     return html`
-      <p>Hello, ${this.name}!</p>
-      <sl-alert closable=${false}></sl-alert>
-
+      <h1>Lit Test</h1>
+      <sl-alert dep-attr></sl-alert>
     `;
   }
 }

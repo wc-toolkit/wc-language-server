@@ -1,32 +1,10 @@
 <!doctype html>
 <html>
   <head>
-    <title>Web Components Test</title>
+    <title>HTML Web Components Test Page</title>
   </head>
   <body>
-    <!-- Try typing < to see custom element autocomplete -->
-    <h1>Web Components Test Page</h1>
-    <sl-alert-formatted variant="neutral"></sl-alert-formatted>
-    <sl-alert-formatted closable></sl-alert-formatted>
-    <sl-animation-formatted></sl-animation-formatted>
-    <sl-alert-formatted variant="success"></sl-alert-formatted>
-    <sl-alert closable variant="success"></sl-alert>
-    <sl-alert></sl-alert>
+    <sl-alert variant="neutral"></sl-alert>    
 
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-      }
-    </style>
-
-    <script>
-      console.log("Web components test page loaded");
-      const html = '<sl-alert variant="primary"></sl-alert> <sl-animation></sl-animation>';
-      const taggedTemplate = html`<sl-alert
-        duration="3000"
-        variant="blah"
-      ></sl-alert>`;
-    </script>
   </body>
 </html>

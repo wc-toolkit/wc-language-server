@@ -267,8 +267,17 @@
               },
               "default": "false",
               "description": "Enables a close button that allows the user to dismiss the alert.",
+              "fieldName": "closable"
+            },
+            {
+              "name": "dep-attr",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Enables a close button that allows the user to dismiss the alert.",
               "fieldName": "closable",
-              "deprecated": "Use the `dismissible` attribute instead to control the alert's close behavior."
+              "deprecated": "Use the `variant` attribute instead to control the alert's close behavior."
             },
             {
               "name": "variant",
