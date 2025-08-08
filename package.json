@@ -7,6 +7,7 @@
   },
   "scripts": {
     "build": "tsc --noEmit && cd ./packages/vscode && npm run build",
+    "changeset": "changeset add",
     "watch": "cd ./packages/vscode && npm run watch",
     "vscode:pack": "cd ./packages/vscode && npm run pack",
     "release": "cd ./packages/vscode && npm run release",
