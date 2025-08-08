@@ -50,7 +50,7 @@ export const EXCLUDED_TYPES = [
  */
 export function getAttributeValueOptions(
   attr: cem.Attribute,
-  typeSrc: string = "parsedType"
+  typeSrc: string = "parsedType",
 ): string[] | string {
   const value: string = (attr as any)[`${typeSrc}`]?.text || attr.type?.text;
 

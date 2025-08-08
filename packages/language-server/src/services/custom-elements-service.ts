@@ -73,7 +73,7 @@ export class CustomElementsService {
 
   private findManifestFile(): string | null {
     const paths = ["custom-elements.json", "dist/custom-elements.json"].map(
-      (p) => path.join(this.workspaceRoot, p)
+      (p) => path.join(this.workspaceRoot, p),
     );
 
     return paths.find((p) => fs.existsSync(p)) || null;
@@ -156,7 +156,7 @@ export class CustomElementsService {
 
   public getAttributeValueOptions(
     tagName: string,
-    attributeName: string
+    attributeName: string,
   ): string[] | string | null {
     const options = this.attributeOptions.get(`${tagName}:${attributeName}`);
     return options || null;
@@ -211,7 +211,7 @@ export class CustomElementsService {
 
         if (cemPath) {
           const manifest: cem.Package = JSON.parse(
-            readFileSync(cemPath, "utf8")
+            readFileSync(cemPath, "utf8"),
           );
           this.parseManifest(manifest);
         }
@@ -236,7 +236,7 @@ export class CustomElementsService {
         () => {
           this.loadDependencyCustomElements();
           this.notifyChange();
-        }
+        },
       );
     } catch (error) {
       console.error("Error watching package.json file:", error);

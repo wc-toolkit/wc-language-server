@@ -13,13 +13,13 @@ export class VsCodeHtmlValidationService {
    */
   public provideDiagnostics(
     document: html.TextDocument,
-    htmlLanguageService: html.LanguageService
+    htmlLanguageService: html.LanguageService,
   ): html.Diagnostic[] {
     const textDocument = html.TextDocument.create(
       document.uri,
       "html",
       0,
-      document.getText()
+      document.getText(),
     );
     const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
     const diagnostics: html.Diagnostic[] = [];
@@ -34,7 +34,7 @@ export class VsCodeHtmlValidationService {
   private validateNodes(
     nodes: html.Node[],
     document: html.TextDocument,
-    diagnostics: html.Diagnostic[]
+    diagnostics: html.Diagnostic[],
   ): void {
     for (const node of nodes) {
       this.validateSingleNode(node, document, diagnostics);
@@ -51,7 +51,7 @@ export class VsCodeHtmlValidationService {
   private validateSingleNode(
     node: html.Node,
     document: html.TextDocument,
-    diagnostics: html.Diagnostic[]
+    diagnostics: html.Diagnostic[],
   ): void {
     if (
       !node.tag ||
@@ -84,7 +84,7 @@ export class VsCodeHtmlValidationService {
       const validation = this.validateAttributeValue(
         node.tag,
         attrName,
-        attrValue
+        attrValue,
       );
       if (validation) {
         const range = this.findAttributeRange(document, node, attrName);
@@ -121,7 +121,7 @@ export class VsCodeHtmlValidationService {
   private validateAttributeValue(
     tagName: string,
     attributeName: string,
-    value?: string | null
+    value?: string | null,
   ): {
     error: string;
     type: "invalidBoolean" | "invalidNumber" | "invalidAttributeValue";
@@ -129,7 +129,7 @@ export class VsCodeHtmlValidationService {
     const cleanValue = removeQuotes(value || "");
     const attrOptions = customElementsService.getAttributeValueOptions(
       tagName,
-      attributeName
+      attributeName,
     );
 
     // No validation possible or needed
@@ -178,7 +178,7 @@ export class VsCodeHtmlValidationService {
       | "invalidNumber"
       | "invalidAttributeValue"
       | "deprecatedAttribute"
-      | "deprecatedElement"
+      | "deprecatedElement",
   ): DiagnosticSeverity {
     const configSeverity =
       configurationService?.config?.diagnosticSeverity?.[type] || "error";
@@ -203,7 +203,7 @@ export class VsCodeHtmlValidationService {
   private findAttributeRange(
     document: html.TextDocument,
     node: html.Node,
-    attrName: string
+    attrName: string,
   ): html.Range | null {
     const text = document.getText();
     const elementText = text.substring(node.start, node.end);
@@ -211,7 +211,7 @@ export class VsCodeHtmlValidationService {
     // Simple regex to find attribute position
     const attrRegex = new RegExp(
       `\\s(${attrName})\\s*=\\s*["']([^"']*)["']`,
-      "g"
+      "g",
     );
     const match = attrRegex.exec(elementText);
 
@@ -232,7 +232,7 @@ export class VsCodeHtmlValidationService {
   private findAttributeNameRange(
     document: html.TextDocument,
     node: html.Node,
-    attrName: string
+    attrName: string,
   ): html.Range | null {
     const text = document.getText();
     const elementText = text.substring(node.start, node.end);
@@ -257,7 +257,7 @@ export class VsCodeHtmlValidationService {
    */
   private findElementTagRange(
     document: html.TextDocument,
-    node: html.Node
+    node: html.Node,
   ): html.Range | null {
     if (!node.tag) return null;
 
@@ -301,13 +301,13 @@ export class VsCodeHtmlValidationService {
    */
   private checkAttributeDeprecation(
     tagName: string,
-    attributeName: string
+    attributeName: string,
   ): { error: string } | null {
     const element = customElementsService.getCustomElement(tagName);
     if (!element?.attributes) return null;
 
     const attribute = element.attributes.find(
-      (attr) => attr.name === attributeName
+      (attr) => attr.name === attributeName,
     );
     console.debug("TEST DEPRECATED", attribute);
     if (!attribute?.deprecated) {
@@ -327,7 +327,7 @@ export class VsCodeHtmlValidationService {
   // Legacy methods that might be called by other services
   public validateElementAttributes(
     tagName: string,
-    attributes: Record<string, string>
+    attributes: Record<string, string>,
   ): Array<{ attributeName: string; error: string }> {
     const errors: Array<{ attributeName: string; error: string }> = [];
 
@@ -339,7 +339,7 @@ export class VsCodeHtmlValidationService {
       const validation = this.validateAttributeValue(
         tagName,
         attrName,
-        attrValue
+        attrValue,
       );
       if (validation) {
         errors.push({ attributeName: attrName, error: validation.error });

@@ -16,14 +16,14 @@ export class CustomHtmlService {
   // Direct delegation - no additional logic needed
   public provideCompletionItems(
     document: html.TextDocument,
-    position: html.Position
+    position: html.Position,
   ) {
     return htmlCompletionService.provideCompletionItems(document, position);
   }
 
   public provideHover(
     document: html.TextDocument,
-    position: html.Position
+    position: html.Position,
   ): html.Hover | null {
     return htmlCompletionService.provideHover(document, position);
   }
@@ -31,20 +31,20 @@ export class CustomHtmlService {
   public provideDiagnostics(document: html.TextDocument) {
     return htmlValidationService.provideDiagnostics(
       document,
-      this.htmlLanguageService
+      this.htmlLanguageService,
     );
   }
 
   // Simplified definition provider using HTML parsing
   public provideDefinition(
     document: html.TextDocument,
-    position: html.Position
+    position: html.Position,
   ): LocationLink[] | null {
     const textDocument = html.TextDocument.create(
       document.uri,
       "html",
       0,
-      document.getText()
+      document.getText(),
     );
     const htmlDocument =
       this.htmlLanguageService.parseHTMLDocument(textDocument);
@@ -68,7 +68,7 @@ export class CustomHtmlService {
       const attributeName = this.findAttributeAtPosition(
         document,
         node,
-        position
+        position,
       );
       if (
         !attributeName ||
@@ -79,7 +79,7 @@ export class CustomHtmlService {
 
       const definition = htmlCompletionService.getAttributeDefinition(
         node.tag,
-        attributeName
+        attributeName,
       );
       return definition ? [this.locationToLocationLink(definition)] : null;
     }
@@ -95,7 +95,7 @@ export class CustomHtmlService {
   private findAttributeAtPosition(
     document: html.TextDocument,
     node: html.Node,
-    position: html.Position
+    position: html.Position,
   ): string | null {
     if (!node.attributes) return null;
 

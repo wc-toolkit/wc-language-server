@@ -59,7 +59,7 @@ To configure the Web Components Language serve create a file named `wc.config.js
 // wc.config.js
 export default {
   // your config options here
-}
+};
 ```
 
 ### Available Settings

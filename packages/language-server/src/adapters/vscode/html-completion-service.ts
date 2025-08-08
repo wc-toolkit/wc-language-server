@@ -27,8 +27,7 @@ export class VsCodeHtmlCompletionService {
   private htmlLanguageService!: html.LanguageService;
   private htmlDataProvider: html.IHTMLDataProvider | null = null;
 
-  constructor(
-  ) {
+  constructor() {
     this.initialize();
     customElementsService.onManifestChange(() => this.initialize());
   }
@@ -48,7 +47,7 @@ export class VsCodeHtmlCompletionService {
     const tags: HTMLDataTag[] = Array.from(customElements.entries()).map(
       ([, element]) => {
         const formattedTagName = configurationService.getFormattedTagName(
-          element.tagName!
+          element.tagName!,
         );
         return {
           name: formattedTagName,
@@ -57,7 +56,7 @@ export class VsCodeHtmlCompletionService {
             `Custom element: ${formattedTagName}`,
           attributes: this.extractAttributesData(element, attributeOptions),
         };
-      }
+      },
     );
 
     this.htmlDataProvider = html.newHTMLDataProvider("custom-elements", {
@@ -68,16 +67,16 @@ export class VsCodeHtmlCompletionService {
 
   private extractAttributesData(
     element: Component,
-    attributeOptions: Map<string, string[] | string>
+    attributeOptions: Map<string, string[] | string>,
   ): HTMLDataAttribute[] {
     const formattedTagName = configurationService.getFormattedTagName(
-      element.tagName!
+      element.tagName!,
     );
     return (element?.attributes || []).map((attr) => {
       const typeText =
         (attr as any)["parsedType"]?.text || attr.type?.text || "";
       const attrOptions = attributeOptions.get(
-        `${formattedTagName}:${attr.name}`
+        `${formattedTagName}:${attr.name}`,
       );
 
       return {
@@ -91,7 +90,7 @@ export class VsCodeHtmlCompletionService {
             }))
           : [],
         sourcePosition: customElementsService.findPositionInManifest(
-          `"attribute": "${attr.name}"`
+          `"attribute": "${attr.name}"`,
         ),
       };
     });
@@ -100,7 +99,7 @@ export class VsCodeHtmlCompletionService {
   // This is the main method called by the plugin system
   public provideCompletionItems(
     document: html.TextDocument,
-    position: html.Position
+    position: html.Position,
   ): NullableProviderResult<html.CompletionList> {
     const text = document.getText();
     const offset = document.offsetAt(position);
@@ -110,7 +109,7 @@ export class VsCodeHtmlCompletionService {
       document.uri,
       "html",
       0,
-      text
+      text,
     );
     const htmlDocument =
       this.htmlLanguageService.parseHTMLDocument(textDocument);
@@ -119,7 +118,7 @@ export class VsCodeHtmlCompletionService {
     const htmlCompletions = this.htmlLanguageService.doComplete(
       textDocument,
       position,
-      htmlDocument
+      htmlDocument,
     );
 
     // Enhance with custom completions based on context
@@ -131,13 +130,13 @@ export class VsCodeHtmlCompletionService {
       case "attribute":
         return this.enhanceAttributeCompletions(
           htmlCompletions,
-          context.tagName
+          context.tagName,
         );
       case "attributeValue":
         return this.enhanceAttributeValueCompletions(
           htmlCompletions,
           context.tagName,
-          context.attributeName
+          context.attributeName,
         );
       default:
         return htmlCompletions;
@@ -146,7 +145,7 @@ export class VsCodeHtmlCompletionService {
 
   // This method is called by the vsCodeCustomSnippetsPlugin
   public createCustomSnippets(
-    beforeText: string
+    beforeText: string,
   ): NullableProviderResult<html.CompletionList> {
     // Don't provide snippets in attribute contexts
     if (
@@ -159,7 +158,7 @@ export class VsCodeHtmlCompletionService {
     const elements = customElementsService.getCustomElements();
     const completionItems: html.CompletionItem[] = elements.map((element) => {
       const formattedTagName = configurationService.getFormattedTagName(
-        element.tagName!
+        element.tagName!,
       );
       return {
         label: formattedTagName,
@@ -191,7 +190,7 @@ export class VsCodeHtmlCompletionService {
 
     // Attribute value completion: <my-elem attr="|
     const attrValueMatch = beforeText.match(
-      /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
+      /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/,
     );
     if (attrValueMatch) {
       return {
@@ -203,7 +202,7 @@ export class VsCodeHtmlCompletionService {
 
     // Attribute name completion: <my-elem |
     const attrNameMatch = beforeText.match(
-      /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]*)$/
+      /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]*)$/,
     );
     if (attrNameMatch) {
       return {
@@ -216,15 +215,15 @@ export class VsCodeHtmlCompletionService {
   }
 
   private enhanceTagCompletions(
-    htmlCompletions: html.CompletionList
+    htmlCompletions: html.CompletionList,
   ): html.CompletionList {
     const customElements = customElementsService.getCustomElementsMap();
 
     const customCompletions: html.CompletionItem[] = Array.from(
-      customElements.entries()
+      customElements.entries(),
     ).map(([, element]) => {
       const formattedTagName = configurationService.getFormattedTagName(
-        element.tagName!
+        element.tagName!,
       );
       return {
         label: formattedTagName,
@@ -247,16 +246,15 @@ export class VsCodeHtmlCompletionService {
 
   private enhanceAttributeCompletions(
     htmlCompletions: html.CompletionList,
-    tagName: string
+    tagName: string,
   ): html.CompletionList {
     const formattedTagName = configurationService.getFormattedTagName(tagName);
-    const element =
-      customElementsService.getCustomElement(formattedTagName);
+    const element = customElementsService.getCustomElement(formattedTagName);
     if (!element) return htmlCompletions;
 
     const attributes = this.extractAttributesData(
       element,
-      customElementsService.getAttributeOptions()
+      customElementsService.getAttributeOptions(),
     );
 
     const customCompletions: html.CompletionItem[] = attributes.map((attr) => {
@@ -291,16 +289,15 @@ export class VsCodeHtmlCompletionService {
   private enhanceAttributeValueCompletions(
     htmlCompletions: html.CompletionList,
     tagName: string,
-    attributeName: string
+    attributeName: string,
   ): html.CompletionList {
     const formattedTagName = configurationService.getFormattedTagName(tagName);
-    const element =
-      customElementsService.getCustomElement(formattedTagName);
+    const element = customElementsService.getCustomElement(formattedTagName);
     if (!element) return htmlCompletions;
 
     const attributes = this.extractAttributesData(
       element,
-      customElementsService.getAttributeOptions()
+      customElementsService.getAttributeOptions(),
     );
     const attribute = attributes.find((attr) => attr.name === attributeName);
 
@@ -316,7 +313,7 @@ export class VsCodeHtmlCompletionService {
         },
         insertText: value.name,
         sortText: "0" + value.name,
-      })
+      }),
     );
 
     htmlCompletions.items.push(...customCompletions);
@@ -326,13 +323,13 @@ export class VsCodeHtmlCompletionService {
   // Enhanced hover with custom logic
   public provideHover(
     document: html.TextDocument,
-    position: html.Position
+    position: html.Position,
   ): html.Hover | null {
     const textDocument = html.TextDocument.create(
       document.uri,
       "html",
       0,
-      document.getText()
+      document.getText(),
     );
     const htmlDocument =
       this.htmlLanguageService.parseHTMLDocument(textDocument);
@@ -343,7 +340,7 @@ export class VsCodeHtmlCompletionService {
       return this.htmlLanguageService.doHover(
         textDocument,
         position,
-        htmlDocument
+        htmlDocument,
       );
     }
 
@@ -352,7 +349,7 @@ export class VsCodeHtmlCompletionService {
       return this.htmlLanguageService.doHover(
         textDocument,
         position,
-        htmlDocument
+        htmlDocument,
       );
     }
 
@@ -361,7 +358,7 @@ export class VsCodeHtmlCompletionService {
       const cursorOffset = document.offsetAt(position);
       const attributes = this.extractAttributesData(
         element,
-        customElementsService.getAttributeOptions()
+        customElementsService.getAttributeOptions(),
       );
 
       for (const attrName in node.attributes) {
@@ -403,7 +400,7 @@ export class VsCodeHtmlCompletionService {
     const searchPatterns = [
       `"tagName": "${element.tagName}"`,
       `"name": "${element.name}"`,
-      `"tag": "${element.tagName}"`
+      `"tag": "${element.tagName}"`,
     ];
 
     let position = 0;
@@ -413,14 +410,16 @@ export class VsCodeHtmlCompletionService {
     }
 
     return {
-      uri: manifestPath.startsWith("file://") ? manifestPath : `file://${path.resolve(manifestPath)}`,
+      uri: manifestPath.startsWith("file://")
+        ? manifestPath
+        : `file://${path.resolve(manifestPath)}`,
       range: this.positionToRange(position, manifestPath),
     };
   }
 
   public getAttributeDefinition(
     tagName: string,
-    attributeName: string
+    attributeName: string,
   ): html.Location | null {
     const manifestPath = customElementsService.getManifestPath();
     const element = customElementsService.getCustomElement(tagName);
@@ -428,21 +427,25 @@ export class VsCodeHtmlCompletionService {
     if (!manifestPath || !element) return null;
 
     try {
-      const content = fs.readFileSync(manifestPath, 'utf8');
-      console.log(`Searching for attribute "${attributeName}" in element "${tagName}"`);
-      
+      const content = fs.readFileSync(manifestPath, "utf8");
+      console.log(
+        `Searching for attribute "${attributeName}" in element "${tagName}"`,
+      );
+
       // First find the element definition
       const elementSearchPatterns = [
         `"tagName": "${element.tagName}"`,
         `"name": "${element.name}"`,
-        `"tag": "${element.tagName}"`
+        `"tag": "${element.tagName}"`,
       ];
 
       let elementPosition = -1;
       for (const pattern of elementSearchPatterns) {
         elementPosition = content.indexOf(pattern);
         if (elementPosition !== -1) {
-          console.log(`Found element at position ${elementPosition} with pattern: ${pattern}`);
+          console.log(
+            `Found element at position ${elementPosition} with pattern: ${pattern}`,
+          );
           break;
         }
       }
@@ -452,37 +455,47 @@ export class VsCodeHtmlCompletionService {
       // Find the attributes array within this element
       const attributesStart = content.indexOf('"attributes":', elementPosition);
       if (attributesStart === -1) {
-        console.log('No attributes array found');
+        console.log("No attributes array found");
         return null;
       }
 
       console.log(`Found attributes array at position ${attributesStart}`);
 
       // Find the end of the attributes array by looking for the closing bracket
-      const attributesArrayStart = content.indexOf('[', attributesStart);
+      const attributesArrayStart = content.indexOf("[", attributesStart);
       if (attributesArrayStart === -1) return null;
 
       // Find the matching closing bracket for the attributes array
       let bracketCount = 1;
       let attributesEnd = attributesArrayStart + 1;
       while (bracketCount > 0 && attributesEnd < content.length) {
-        if (content[attributesEnd] === '[') bracketCount++;
-        else if (content[attributesEnd] === ']') bracketCount--;
+        if (content[attributesEnd] === "[") bracketCount++;
+        else if (content[attributesEnd] === "]") bracketCount--;
         attributesEnd++;
       }
 
       // Search for the specific attribute within the attributes array only
-      const attributesSection = content.substring(attributesArrayStart, attributesEnd);
-      console.log(`Attributes section: ${attributesSection.substring(0, 200)}...`);
-      
+      const attributesSection = content.substring(
+        attributesArrayStart,
+        attributesEnd,
+      );
+      console.log(
+        `Attributes section: ${attributesSection.substring(0, 200)}...`,
+      );
+
       // More precise regex to find the attribute object
-      const attributeRegex = new RegExp(`\\{[^{}]*"name"\\s*:\\s*"${attributeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^{}]*\\}`, 'g');
+      const attributeRegex = new RegExp(
+        `\\{[^{}]*"name"\\s*:\\s*"${attributeName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^{}]*\\}`,
+        "g",
+      );
       const match = attributeRegex.exec(attributesSection);
-      
+
       let attributePosition = attributesStart;
       if (match) {
         attributePosition = attributesArrayStart + match.index;
-        console.log(`Found attribute match at relative position ${match.index}, absolute position ${attributePosition}`);
+        console.log(
+          `Found attribute match at relative position ${match.index}, absolute position ${attributePosition}`,
+        );
         console.log(`Matched text: ${match[0]}`);
       } else {
         console.log(`No regex match found, falling back to simple search`);
@@ -500,11 +513,13 @@ export class VsCodeHtmlCompletionService {
       console.log(`Final attribute position: ${attributePosition}`);
 
       return {
-        uri: manifestPath.startsWith("file://") ? manifestPath : `file://${path.resolve(manifestPath)}`,
+        uri: manifestPath.startsWith("file://")
+          ? manifestPath
+          : `file://${path.resolve(manifestPath)}`,
         range: this.positionToRange(attributePosition, manifestPath),
       };
     } catch (error) {
-      console.error('Error in getAttributeDefinition:', error);
+      console.error("Error in getAttributeDefinition:", error);
       return null;
     }
   }
@@ -514,10 +529,12 @@ export class VsCodeHtmlCompletionService {
     _tagName: string,
     _attributeName: string,
     manifestPath: string,
-    position: number
+    position: number,
   ): html.Location | null {
     return {
-      uri: manifestPath.startsWith("file://") ? manifestPath : `file://${path.resolve(manifestPath)}`,
+      uri: manifestPath.startsWith("file://")
+        ? manifestPath
+        : `file://${path.resolve(manifestPath)}`,
       range: this.positionToRange(position, manifestPath),
     };
   }
@@ -531,11 +548,11 @@ export class VsCodeHtmlCompletionService {
     }
 
     try {
-      const content = fs.readFileSync(manifestPath, 'utf8');
-      const lines = content.substring(0, position).split('\n');
+      const content = fs.readFileSync(manifestPath, "utf8");
+      const lines = content.substring(0, position).split("\n");
       const line = Math.max(0, lines.length - 1);
       const character = lines[line]?.length || 0;
-      
+
       return {
         start: { line, character },
         end: { line, character: character + 10 },

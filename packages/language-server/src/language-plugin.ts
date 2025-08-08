@@ -76,7 +76,11 @@ export const wcLanguagePlugin: LanguagePlugin<URI> = {
    */
   createVirtualCode(_uri, languageId, snapshot) {
     // treat .md and .mdx as HTML for virtual code
-    if (languageId === LANGUAGE_IDS.HTML || languageId === LANGUAGE_IDS.MD || languageId === LANGUAGE_IDS.MDX) {
+    if (
+      languageId === LANGUAGE_IDS.HTML ||
+      languageId === LANGUAGE_IDS.MD ||
+      languageId === LANGUAGE_IDS.MDX
+    ) {
       return new WcLanguageServerVirtualCode(snapshot);
     }
     return undefined;
@@ -121,7 +125,7 @@ export const wcLanguagePlugin: LanguagePlugin<URI> = {
         const scriptConfig = getScriptConfig(
           code.languageId,
           fileName,
-          code.id
+          code.id,
         );
         if (scriptConfig) {
           scripts.push({ ...scriptConfig, code });
@@ -191,7 +195,7 @@ export class WcLanguageServerVirtualCode implements VirtualCode {
 
     this.mappings = [createFullDocumentMapping(snapshot.getLength())];
     this.htmlDocument = htmlLs.parseHTMLDocument(
-      html.TextDocument.create("", LANGUAGE_IDS.HTML, 0, text)
+      html.TextDocument.create("", LANGUAGE_IDS.HTML, 0, text),
     );
     this.embeddedCode = [...this.extractEmbeddedCode(snapshot)];
   }
@@ -202,7 +206,7 @@ export class WcLanguageServerVirtualCode implements VirtualCode {
    * @returns Generator yielding virtual code instances for embedded content
    */
   private *extractEmbeddedCode(
-    snapshot: ts.IScriptSnapshot
+    snapshot: ts.IScriptSnapshot,
   ): Generator<VirtualCode> {
     const { styles, scripts } = this.categorizeElements();
 
@@ -229,14 +233,14 @@ export class WcLanguageServerVirtualCode implements VirtualCode {
    */
   private *createStyleCode(
     snapshot: ts.IScriptSnapshot,
-    styles: any[]
+    styles: any[],
   ): Generator<VirtualCode> {
     for (const [index, style] of styles.entries()) {
       const code = this.createEmbeddedCode(
         snapshot,
         style,
         `style_${index}`,
-        LANGUAGE_IDS.CSS
+        LANGUAGE_IDS.CSS,
       );
       if (code) yield code;
     }
@@ -250,7 +254,7 @@ export class WcLanguageServerVirtualCode implements VirtualCode {
    */
   private *createScriptCode(
     snapshot: ts.IScriptSnapshot,
-    scripts: any[]
+    scripts: any[],
   ): Generator<VirtualCode> {
     for (const [index, script] of scripts.entries()) {
       const languageId = this.getScriptLanguageId(script);
@@ -258,7 +262,7 @@ export class WcLanguageServerVirtualCode implements VirtualCode {
         snapshot,
         script,
         `script_${index}`,
-        languageId
+        languageId,
       );
       if (code) yield code;
     }
@@ -287,7 +291,7 @@ export class WcLanguageServerVirtualCode implements VirtualCode {
     snapshot: ts.IScriptSnapshot,
     element: any,
     id: string,
-    languageId: string
+    languageId: string,
   ): VirtualCode | null {
     if (
       element.startTagEnd === undefined ||
@@ -330,7 +334,7 @@ function createFullDocumentMapping(length: number): CodeMapping {
  */
 function createEmbeddedMapping(
   sourceOffset: number,
-  length: number
+  length: number,
 ): CodeMapping {
   return {
     sourceOffsets: [sourceOffset],

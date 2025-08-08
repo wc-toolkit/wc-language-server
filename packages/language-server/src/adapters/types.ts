@@ -18,7 +18,7 @@ export interface LanguageServerAdapter {
   createCompletionItem(
     tag: string,
     description: string,
-    attributes?: HTMLDataAttribute[]
+    attributes?: HTMLDataAttribute[],
   ): html.CompletionItem;
 
   /**
@@ -38,9 +38,9 @@ export interface LanguageServerAdapter {
   extractAttributesForAutoComplete?(
     element: cem.CustomElement,
     attributeOptions: Map<string, string[] | string>,
-    findPositionInManifest: (searchText: string) => number
+    findPositionInManifest: (searchText: string) => number,
   ): HTMLDataAttribute[];
-  
+
   /**
    * Creates completion items for attributes of a custom element
    * @param element The custom element
@@ -53,7 +53,7 @@ export interface LanguageServerAdapter {
     element: cem.CustomElement,
     tagName: string,
     attributeOptions: Map<string, string[] | string>,
-    findPositionInManifest: (searchText: string) => number
+    findPositionInManifest: (searchText: string) => number,
   ): html.CompletionItem[];
 
   /**
@@ -70,7 +70,7 @@ export interface LanguageServerAdapter {
     tagName: string,
     attributeName: string,
     attributeOptions: Map<string, string[] | string>,
-    findPositionInManifest: (searchText: string) => number
+    findPositionInManifest: (searchText: string) => number,
   ): html.CompletionItem[];
 
   /**
@@ -89,7 +89,7 @@ export interface LanguageServerAdapter {
    */
   createAttributeCompletionItem?(
     attribute: HTMLDataAttribute,
-    tagName: string
+    tagName: string,
   ): html.CompletionItem;
 
   /**
@@ -102,7 +102,7 @@ export interface LanguageServerAdapter {
   createAttributeValueCompletionItem?(
     attribute: HTMLDataAttribute,
     value: HTMLDataAttributeValue,
-    tagName: string
+    tagName: string,
   ): html.CompletionItem;
 
   /**
@@ -117,7 +117,7 @@ export interface LanguageServerAdapter {
     tagName: string,
     attributeName: string,
     manifestPath: string,
-    position: number
+    position: number,
   ): html.Location | null;
 
   /**
@@ -137,7 +137,7 @@ export interface LanguageServerAdapter {
   createDiagnostic(
     range: html.Range,
     message: string,
-    severity: DiagnosticSeverity
+    severity: DiagnosticSeverity,
   ): html.Diagnostic;
 }
 

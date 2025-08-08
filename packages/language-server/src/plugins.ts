@@ -1,12 +1,8 @@
-import {
-  LanguageServicePlugin,
-} from "@volar/language-server";
+import { LanguageServicePlugin } from "@volar/language-server";
 import { customHtmlService } from "./adapters/vscode/html-service";
 import { customElementsService } from "./services/custom-elements-service";
 import * as html from "vscode-html-languageservice";
-import {
-  htmlCompletionService,
-} from "./adapters/vscode/html-completion-service";
+import { htmlCompletionService } from "./adapters/vscode/html-completion-service";
 
 /**
  * Creates a language service plugin for custom HTML features.
@@ -78,7 +74,7 @@ export function vsCodeCustomSnippetsPlugin(): LanguageServicePlugin {
       return {
         provideCompletionItems(
           document: html.TextDocument,
-          position: html.Position
+          position: html.Position,
         ) {
           // Only provide completions in HTML-like contexts
           const text = document.getText();

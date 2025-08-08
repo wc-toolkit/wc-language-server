@@ -8,7 +8,10 @@ import { create as createCssService } from "volar-service-css";
 import { create as createEmmetService } from "volar-service-emmet";
 import { create as createTypeScriptServices } from "volar-service-typescript";
 import { wcLanguagePlugin } from "./language-plugin";
-import { vsCodeCustomSnippetsPlugin, vsCodeHtmlAutoCompletePlugin } from "./plugins";
+import {
+  vsCodeCustomSnippetsPlugin,
+  vsCodeHtmlAutoCompletePlugin,
+} from "./plugins";
 
 /** Language Server Protocol connection instance for communication with the client */
 const connection = createConnection();
@@ -43,7 +46,7 @@ connection.onInitialize((params) => {
       createCssService(),
       createEmmetService(),
       ...createTypeScriptServices(tsdk.typescript),
-    ]
+    ],
   );
 });
 

@@ -32,7 +32,7 @@ export interface WCConfig {
   componentModulePath?: (
     componentName: string,
     tagName: string,
-    modulePath: string
+    modulePath: string,
   ) => string;
 
   /** Path to a global module to include in all files. */
@@ -63,12 +63,11 @@ export class ConfigurationService {
     this.configPath = path.join(this.workspaceRoot, "wc.config.js");
     this.initialize();
   }
-  
+
   private initialize() {
     this.loadConfig();
     this.watchConfig();
   }
-
 
   public loadConfig() {
     try {
@@ -97,20 +96,30 @@ export class ConfigurationService {
   }
 
   private validateConfig(config: WCConfig): WCConfig {
-    const validSeverities: DiagnosticSeverity[] = ["error", "warning", "info", "hint"];
-    
+    const validSeverities: DiagnosticSeverity[] = [
+      "error",
+      "warning",
+      "info",
+      "hint",
+    ];
+
     if (config.diagnosticSeverity) {
       const diagnosticKeys = [
         "invalidBoolean",
-        "invalidNumber", 
+        "invalidNumber",
         "invalidAttributeValue",
         "deprecatedAttribute",
-        "deprecatedElement"
+        "deprecatedElement",
       ] as const;
 
       for (const key of diagnosticKeys) {
-        if (config.diagnosticSeverity[key] && !validSeverities.includes(config.diagnosticSeverity[key])) {
-          console.warn(`Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`);
+        if (
+          config.diagnosticSeverity[key] &&
+          !validSeverities.includes(config.diagnosticSeverity[key])
+        ) {
+          console.warn(
+            `Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`,
+          );
           config.diagnosticSeverity[key] = "error";
         }
       }

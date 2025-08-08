@@ -33,9 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
   };
 
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [
-      { scheme: "file", language: "*" },
-    ],
+    documentSelector: [{ scheme: "file", language: "*" }],
     initializationOptions: {
       // Pass any custom settings here
       html: {

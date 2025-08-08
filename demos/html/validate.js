@@ -4,7 +4,7 @@ import pkg from "vscode-html-languageservice";
 import { glob } from "glob";
 import service from "../../packages/vscode/dist/server.js";
 
-console.log('SERVICE KEYS:', Object.keys(service));
+console.log("SERVICE KEYS:", Object.keys(service));
 const { htmlValidationService } = service;
 const { getLanguageService, TextDocument } = pkg;
 /* glob or list of HTML files to check */
@@ -18,13 +18,13 @@ for (const file of files) {
   const htmlLanguageService = getLanguageService();
   const diagnostics = htmlValidationService.provideDiagnostics(
     document,
-    htmlLanguageService
+    htmlLanguageService,
   );
 
   diagnostics.forEach((diag) => {
     hasErrors = true;
     console.error(
-      `${file}:${diag.range.start.line + 1}:${diag.range.start.character + 1} - ${diag.message}`
+      `${file}:${diag.range.start.line + 1}:${diag.range.start.character + 1} - ${diag.message}`,
     );
   });
 }

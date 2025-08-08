@@ -7,4 +7,4 @@ export default {
   //   deprecatedAttribute: 'warning',
   //   deprecatedElement: 'warning'
   // }
-}
+};
