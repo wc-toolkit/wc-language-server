@@ -7,12 +7,14 @@ import { Component, getAllComponents } from "@wc-toolkit/cem-utilities";
 import { getAttributeValueOptions } from "../utilities/cem-utils";
 import { readFileSync } from "fs";
 
-export interface AttributeInfo {
+export type AttributeInfo = {
   name: string;
   description?: string;
+  deprecated?: boolean | string;
   type?: string;
+  options?: string[];
   sourcePosition?: number;
-}
+};
 
 export type AttributeKey = `${string}:${string}`;
 export type AttributeTypes = Map<AttributeKey, string[] | string>;
@@ -32,6 +34,8 @@ export class CustomElementsService {
   private dependencyCustomElements = new Map<string, Component>();
   private packageJsonPath: string = "";
   private packageJsonWatcher?: fs.FSWatcher;
+  
+  public attributeData: Map<AttributeKey, AttributeInfo> = new Map();
 
   constructor() {
     this.initialize();
@@ -73,7 +77,7 @@ export class CustomElementsService {
 
   private findManifestFile(): string | null {
     const paths = ["custom-elements.json", "dist/custom-elements.json"].map(
-      (p) => path.join(this.workspaceRoot, p),
+      (p) => path.join(this.workspaceRoot, p)
     );
 
     return paths.find((p) => fs.existsSync(p)) || null;
@@ -94,9 +98,18 @@ export class CustomElementsService {
   }
 
   private setAttributeOptions(tagName: string, component: Component) {
+    const formattedTagName =
+      configurationService?.getFormattedTagName(tagName) || tagName;
     component.attributes?.forEach((attr) => {
       const options = getAttributeValueOptions(attr);
-      this.attributeOptions.set(`${tagName}:${attr.name}`, options);
+      this.attributeOptions.set(`${formattedTagName}:${attr.name}`, options);
+      this.attributeData.set(`${formattedTagName}:${attr.name}`, {
+        name: attr.name,
+        description: attr.description,
+        deprecated: attr.deprecated,
+        type: Array.isArray(options) ? options.join(" | ") : options,
+        options: Array.isArray(options) ? options : undefined,
+      });
     });
   }
 
@@ -156,10 +169,14 @@ export class CustomElementsService {
 
   public getAttributeValueOptions(
     tagName: string,
-    attributeName: string,
+    attributeName: string
   ): string[] | string | null {
     const options = this.attributeOptions.get(`${tagName}:${attributeName}`);
     return options || null;
+  }
+
+  public getAttributeInfo(tagName: string, attributeName: string): AttributeInfo | null {
+    return this.attributeData.get(`${tagName}:${attributeName}`) || null;
   }
 
   public findPositionInManifest(searchText: string): number {
@@ -211,7 +228,7 @@ export class CustomElementsService {
 
         if (cemPath) {
           const manifest: cem.Package = JSON.parse(
-            readFileSync(cemPath, "utf8"),
+            readFileSync(cemPath, "utf8")
           );
           this.parseManifest(manifest);
         }
@@ -236,7 +253,7 @@ export class CustomElementsService {
         () => {
           this.loadDependencyCustomElements();
           this.notifyChange();
-        },
+        }
       );
     } catch (error) {
       console.error("Error watching package.json file:", error);

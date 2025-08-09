@@ -9,6 +9,7 @@ import type { TypeScriptExtraServiceScript } from "@volar/typescript";
 import type * as ts from "typescript";
 import * as html from "vscode-html-languageservice";
 import { URI } from "vscode-uri";
+import { WebComponentsVirtualCode } from "./language-plugin-enhanced";
 
 /** File extensions supported by the language plugin */
 const SUPPORTED_EXTENSIONS = {
@@ -81,7 +82,8 @@ export const wcLanguagePlugin: LanguagePlugin<URI> = {
       languageId === LANGUAGE_IDS.MD ||
       languageId === LANGUAGE_IDS.MDX
     ) {
-      return new WcLanguageServerVirtualCode(snapshot);
+      // Use the enhanced virtual code for better Web Components support
+      return new WebComponentsVirtualCode(snapshot);
     }
     return undefined;
   },
