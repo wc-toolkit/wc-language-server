@@ -1,6 +1,6 @@
 {
   "name": "web-components-language-server",
-  "version": "0.0.3",
+  "version": "0.0.1",
   "icon": "assets/icon_alpha.png",
   "repository": {
     "type": "git",
@@ -12,8 +12,8 @@
   ],
   "displayName": "Web Component Language Server",
   "description": "Web Component Language Server",
-  "author": "@wc-toolkit",
-  "publisher": "@wc-toolkit",
+  "author": "wc-toolkit",
+  "publisher": "wc-toolkit",
   "engines": {
     "vscode": "^1.82.0"
   },
