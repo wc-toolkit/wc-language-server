@@ -1,7 +1,6 @@
 {
-  "private": true,
   "name": "web-components-language-server",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "icon": "assets/icon_alpha.png",
   "repository": {
     "type": "git",
@@ -29,20 +28,13 @@
     "pack": "npm run build && vsce package --pre-release",
     "release": "npm run build && vsce publish --pre-release"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@wc-toolkit/language-server": "workspace:*",
     "@types/vscode": "^1.82.0",
     "@volar/language-server": "~2.4.0",
     "@volar/vscode": "~2.4.0",
+    "@wc-toolkit/language-server": "workspace:*",
     "esbuild": "latest",
-    "vsce": "latest",
-    "vscode-languageclient": "^8.1.0",
-    "@types/minimatch": "^3.0.5",
-    "@types/semver": "^7.3.10",
-    "@types/msgpack-lite": "^0.1.7",
-    "shx": "^0.3.4",
-    "msgpack-lite": "^0.1.26"
+    "vsce": "latest"
   },
   "license": "MIT"
 }

@@ -10,7 +10,7 @@ require("esbuild")
     bundle: true,
     metafile: process.argv.includes("--metafile"),
     outdir: "./dist",
-    external: ["vscode", "vscode-languageclient"],
+    external: ["vscode"],
     format: "cjs",
     platform: "node",
     tsconfig: "./tsconfig.json",
@@ -31,7 +31,7 @@ require("esbuild")
                 .replace("/umd/", "/esm/")
                 .replace("\\umd\\", "\\esm\\");
               return { path: pathEsm };
-            },
+            }
           );
         },
       },
