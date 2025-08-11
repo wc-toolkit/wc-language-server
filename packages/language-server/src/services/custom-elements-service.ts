@@ -191,8 +191,8 @@ export class CustomElementsService {
     try {
       const pkgJson = JSON.parse(readFileSync(this.packageJsonPath, "utf8"));
       dependencies = pkgJson.dependencies || {};
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error("Error reading package.json:", error);
     }
 
     for (const depName of Object.keys(dependencies)) {
@@ -205,8 +205,8 @@ export class CustomElementsService {
         let depPkg: any = {};
         try {
           depPkg = JSON.parse(readFileSync(depPkgPath, "utf8"));
-        } catch {
-          // ignore
+        } catch (error) {
+          console.error(`Error reading package.json from ${depPkgPath}:`, error);
         }
 
         // Determine the CEM path
@@ -232,11 +232,10 @@ export class CustomElementsService {
           );
           this.parseManifest(manifest);
         }
-      } catch {
-        // ignore missing or broken deps
+      } catch (error) {
+        console.error(`Error loading CEM for dependency ${depName}:`, error);
       }
     }
-    console.debug("TAGS", this.customElements.keys());
   }
 
   private watchPackageJson() {

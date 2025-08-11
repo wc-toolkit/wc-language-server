@@ -83,7 +83,13 @@ function validateRawAttributes(
   diagnostics: html.Diagnostic[]
 ): void {
   const text = document.getText();
-  const elementText = text.substring(node.start, node.end);
+  
+  // Find just the opening tag, not the entire element with children
+  let elementText = text.substring(node.start, node.end);
+  const openTagEnd = elementText.indexOf('>');
+  if (openTagEnd !== -1) {
+    elementText = elementText.substring(0, openTagEnd + 1);
+  }
 
   // Use a simple attribute name regex first to find all occurrences
   const attrNameRegex = /\s([a-zA-Z][a-zA-Z0-9-]*)/g;
@@ -92,6 +98,12 @@ function validateRawAttributes(
 
   while ((match = attrNameRegex.exec(elementText)) !== null) {
     const attrName = match[1];
+    
+    // Skip the tag name itself
+    if (attrName === node.tag) {
+      continue;
+    }
+    
     const attrStart = node.start + match.index + 1; // +1 to skip leading space
     const attrNameEnd = attrStart + attrName.length;
 

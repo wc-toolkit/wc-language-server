@@ -47,8 +47,6 @@ export function getGoToDefinition(document: html.TextDocument, position: html.Po
     ? manifestPath
     : `file://${path.resolve(manifestPath)}`;
 
-  console.log(`Providing definition for ${node.tag} at ${manifestUri}`);
-
   // Convert character position to line/character position
   const manifestRange = convertPositionToRange(
     manifestPath,
