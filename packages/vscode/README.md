@@ -1,6 +1,8 @@
 # Web Components Language Server
 
-![Demonstration of the web components language server](./assets/vscode-wcls_demo.gif)
+> **NOTE:** This is currently in `alpha` and is experimental.
+
+![Demonstration of the web components language server](https://wc-toolkit.com/_astro/vscode-wcls_demo.FCh4LrSK_17j3zC.webp)
 
 A powerful Visual Studio Code extension that provides intelligent language support for Web Components development. This extension enhances your development experience with advanced IntelliSense and validation for Web Components.
 
