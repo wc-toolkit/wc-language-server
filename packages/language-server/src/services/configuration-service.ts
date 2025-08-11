@@ -3,6 +3,9 @@ import * as fs from "fs";
 
 export type DiagnosticSeverity = "error" | "warning" | "info" | "hint";
 
+// Add this type for diagnosticSeverity keys
+export type DiagnosticSeverityOptions = keyof NonNullable<WCConfig['diagnosticSeverity']>;
+
 /** Configuration options for the Web Components Language Server. */
 export interface WCConfig {
   /** Optional function to format tag names before processing. */
@@ -10,16 +13,36 @@ export interface WCConfig {
 
   /** Diagnostic severity levels for various validation checks. */
   diagnosticSeverity?: {
-    /** Severity for invalid boolean attribute values. */
+    /** 
+     * Severity for invalid boolean attribute values. 
+     * @default "error" 
+     */
     invalidBoolean?: DiagnosticSeverity;
-    /** Severity for invalid number attribute values. */
+    /** 
+     * Severity for invalid number attribute values. 
+     * @default "error" 
+     */
     invalidNumber?: DiagnosticSeverity;
-    /** Severity for invalid attribute values. */
+    /** 
+     * Severity for invalid attribute values. 
+     * @default "error" 
+     */
     invalidAttributeValue?: DiagnosticSeverity;
-    /** Severity for usage of deprecated attributes. */
+    /** 
+     * Severity for usage of deprecated attributes. 
+     * @default "warning" 
+     */
     deprecatedAttribute?: DiagnosticSeverity;
-    /** Severity for usage of deprecated elements. */
+    /** 
+     * Severity for usage of deprecated elements. 
+     * @default "warning" 
+     */
     deprecatedElement?: DiagnosticSeverity;
+    /** 
+     * Severity for usage of duplicate attributes. 
+     * @default "error" 
+     */
+    duplicateAttribute?: DiagnosticSeverity;
   };
 
   /**
@@ -49,6 +72,7 @@ const DEFAULT_CONFIG: WCConfig = {
     invalidAttributeValue: "error",
     deprecatedAttribute: "warning",
     deprecatedElement: "warning",
+    duplicateAttribute: "error",
   },
 };
 

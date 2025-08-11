@@ -4,7 +4,7 @@
 
 ![Demonstration of the web components language server](https://wc-toolkit.com/_astro/vscode-wcls_demo.FCh4LrSK_17j3zC.webp)
 
-A powerful Visual Studio Code extension that provides intelligent language support for Web Components development. This extension enhances your development experience with advanced IntelliSense and validation for Web Components.
+A powerful Visual Studio Code extension that provides intelligent language support for building with Web Components. This extension enhances your development experience with advanced IntelliSense and validation for Web Components.
 
 This extension uses the [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest) to generate the necessary information for the component integration and validation.
 
@@ -74,16 +74,36 @@ interface WCConfig {
 
   /** Diagnostic severity levels for various validation checks. */
   diagnosticSeverity?: {
-    /** Severity for invalid boolean attribute values. */
+    /** 
+     * Severity for invalid boolean attribute values. 
+     * @default "error" 
+     */
     invalidBoolean?: DiagnosticSeverity;
-    /** Severity for invalid number attribute values. */
+    /** 
+     * Severity for invalid number attribute values. 
+     * @default "error" 
+     */
     invalidNumber?: DiagnosticSeverity;
-    /** Severity for invalid attribute values. */
+    /** 
+     * Severity for invalid attribute values. 
+     * @default "error" 
+     */
     invalidAttributeValue?: DiagnosticSeverity;
-    /** Severity for usage of deprecated attributes. */
+    /** 
+     * Severity for usage of deprecated attributes. 
+     * @default "warning" 
+     */
     deprecatedAttribute?: DiagnosticSeverity;
-    /** Severity for usage of deprecated elements. */
+    /** 
+     * Severity for usage of deprecated elements. 
+     * @default "warning" 
+     */
     deprecatedElement?: DiagnosticSeverity;
+    /** 
+     * Severity for usage of duplicate attributes. 
+     * @default "error" 
+     */
+    duplicateAttribute?: DiagnosticSeverity;
   };
 }
 ```

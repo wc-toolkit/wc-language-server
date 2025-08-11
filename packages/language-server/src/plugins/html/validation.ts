@@ -2,20 +2,23 @@ import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 import { removeQuotes } from "@wc-toolkit/cem-utilities";
 import { customElementsService } from "../../services/custom-elements-service";
-import { configurationService } from "../../services/configuration-service";
+import {
+  configurationService,
+  DiagnosticSeverityOptions,
+} from "../../services/configuration-service";
 
 /**
  * Main entry point - provides all diagnostics for a document.
  */
 export function getValidation(
   document: html.TextDocument,
-  htmlLanguageService: html.LanguageService,
+  htmlLanguageService: html.LanguageService
 ): html.Diagnostic[] {
   const textDocument = html.TextDocument.create(
     document.uri,
     "html",
     0,
-    document.getText(),
+    document.getText()
   );
   const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
   const diagnostics: html.Diagnostic[] = [];
@@ -30,7 +33,7 @@ export function getValidation(
 function validateNodes(
   nodes: html.Node[],
   document: html.TextDocument,
-  diagnostics: html.Diagnostic[],
+  diagnostics: html.Diagnostic[]
 ): void {
   for (const node of nodes) {
     validateSingleNode(node, document, diagnostics);
@@ -46,13 +49,9 @@ function validateNodes(
 function validateSingleNode(
   node: html.Node,
   document: html.TextDocument,
-  diagnostics: html.Diagnostic[],
+  diagnostics: html.Diagnostic[]
 ): void {
-  if (
-    !node.tag ||
-    !node.attributes ||
-    !customElementsService.hasCustomElement(node.tag)
-  ) {
+  if (!node.tag || !customElementsService.hasCustomElement(node.tag)) {
     return;
   }
 
@@ -70,37 +69,79 @@ function validateSingleNode(
     }
   }
 
-  for (const [attrName, attrValue] of Object.entries(node.attributes)) {
-    // Check attribute value validation
-    const validation = validateAttributeValue(
-      node.tag,
-      attrName,
-      attrValue,
-    );
+  // Parse and validate all raw attributes (handles duplicates and validation)
+  validateRawAttributes(node, document, diagnostics);
+}
+
+/**
+ * Validates all raw attributes by parsing the element text directly.
+ * This handles both duplicate detection and individual attribute validation.
+ */
+function validateRawAttributes(
+  node: html.Node,
+  document: html.TextDocument,
+  diagnostics: html.Diagnostic[]
+): void {
+  const text = document.getText();
+  const elementText = text.substring(node.start, node.end);
+
+  // Use a simple attribute name regex first to find all occurrences
+  const attrNameRegex = /\s([a-zA-Z][a-zA-Z0-9-]*)/g;
+  const seenAttrs = new Set<string>();
+  let match;
+
+  while ((match = attrNameRegex.exec(elementText)) !== null) {
+    const attrName = match[1];
+    const attrStart = node.start + match.index + 1; // +1 to skip leading space
+    const attrNameEnd = attrStart + attrName.length;
+
+    // Check for duplicate attributes
+    if (seenAttrs.has(attrName)) {
+      diagnostics.push({
+        severity: getSeverityLevel("duplicateAttribute"),
+        range: {
+          start: document.positionAt(attrStart),
+          end: document.positionAt(attrNameEnd),
+        },
+        message: `Duplicate attribute "${attrName}" found.`,
+        source: "web-components",
+      });
+    }
+    seenAttrs.add(attrName);
+
+    // Look ahead to see if this attribute has a value
+    const afterAttrName = elementText.substring(match.index + match[0].length);
+    const valueMatch = afterAttrName.match(/^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/);
+    const attrValue = valueMatch ? (valueMatch[1] !== undefined ? valueMatch[1] : valueMatch[2]) : null;
+
+    // Validate this specific attribute occurrence
+    const validation = validateAttributeValue(node.tag || '', attrName, attrValue);
     if (validation) {
-      const range = findAttributeRange(document, node, attrName);
-      if (range) {
-        diagnostics.push({
-          severity: getSeverityLevel(validation.type),
-          range,
-          message: validation.error,
-          source: "web-components",
-        });
-      }
+      const fullMatchLength = match[0].length + (valueMatch ? valueMatch[0].length : 0);
+      const range = {
+        start: document.positionAt(attrStart),
+        end: document.positionAt(attrStart + fullMatchLength - 1),
+      };
+      diagnostics.push({
+        severity: getSeverityLevel(validation.type),
+        range,
+        message: validation.error,
+        source: "web-components",
+      });
     }
 
     // Check attribute deprecation
-    const deprecation = checkAttributeDeprecation(node.tag, attrName);
+    const deprecation = checkAttributeDeprecation(node.tag || '', attrName);
     if (deprecation) {
-      const range = findAttributeNameRange(document, node, attrName);
-      if (range) {
-        diagnostics.push({
-          severity: getSeverityLevel("deprecatedAttribute"),
-          range,
-          message: deprecation.error,
-          source: "web-components",
-        });
-      }
+      diagnostics.push({
+        severity: getSeverityLevel("deprecatedAttribute"),
+        range: {
+          start: document.positionAt(attrStart),
+          end: document.positionAt(attrNameEnd),
+        },
+        message: deprecation.error,
+        source: "web-components",
+      });
     }
   }
 }
@@ -111,20 +152,18 @@ function validateSingleNode(
 function validateAttributeValue(
   tagName: string,
   attributeName: string,
-  value?: string | null,
+  value?: string | null
 ): {
   error: string;
-  type: "invalidBoolean" | "invalidNumber" | "invalidAttributeValue";
+  type: DiagnosticSeverityOptions;
 } | null {
-  const cleanValue = removeQuotes(value || "");
   const attrOptions = customElementsService.getAttributeValueOptions(
     tagName,
-    attributeName,
+    attributeName
   );
 
   // No validation possible or needed
   if (
-    !cleanValue ||
     !attrOptions ||
     attrOptions === "string" ||
     attrOptions.includes("string & {}")
@@ -133,11 +172,23 @@ function validateAttributeValue(
   }
 
   // Boolean attributes shouldn't have values
-  if (attrOptions === "boolean") {
+  if (attrOptions === "boolean" && value !== null) {
     return {
       error: `The attribute "${attributeName}" is boolean and should not have a value.`,
       type: "invalidBoolean",
     };
+  }
+
+  // If no value provided, skip further validation (valid for boolean attributes)
+  if (!value) {
+    return null;
+  }
+
+  const cleanValue = removeQuotes(value);
+
+  // Skip validation if empty value
+  if (!cleanValue) {
+    return null;
   }
 
   // Number validation
@@ -162,14 +213,7 @@ function validateAttributeValue(
 /**
  * Maps configuration severity to VSCode DiagnosticSeverity.
  */
-function getSeverityLevel(
-  type:
-    | "invalidBoolean"
-    | "invalidNumber"
-    | "invalidAttributeValue"
-    | "deprecatedAttribute"
-    | "deprecatedElement",
-): DiagnosticSeverity {
+function getSeverityLevel(type: DiagnosticSeverityOptions): DiagnosticSeverity {
   const configSeverity =
     configurationService?.config?.diagnosticSeverity?.[type] || "error";
 
@@ -188,66 +232,11 @@ function getSeverityLevel(
 }
 
 /**
- * Finds the text range of an attribute within its element.
- */
-function findAttributeRange(
-  document: html.TextDocument,
-  node: html.Node,
-  attrName: string,
-): html.Range | null {
-  const text = document.getText();
-  const elementText = text.substring(node.start, node.end);
-
-  // Simple regex to find attribute position
-  const attrRegex = new RegExp(
-    `\\s(${attrName})\\s*=\\s*["']([^"']*)["']`,
-    "g",
-  );
-  const match = attrRegex.exec(elementText);
-
-  if (!match) return null;
-
-  const attrStart = node.start + match.index + 1; // +1 to skip leading space
-  const attrEnd = attrStart + match[0].length - 1; // -1 to not include trailing space
-
-  return {
-    start: document.positionAt(attrStart),
-    end: document.positionAt(attrEnd),
-  };
-}
-
-/**
- * Finds the text range of an attribute name within its element.
- */
-function findAttributeNameRange(
-  document: html.TextDocument,
-  node: html.Node,
-  attrName: string,
-): html.Range | null {
-  const text = document.getText();
-  const elementText = text.substring(node.start, node.end);
-
-  // Simple regex to find attribute name position
-  const attrRegex = new RegExp(`\\s(${attrName})(?:\\s*=|\\s|>)`, "g");
-  const match = attrRegex.exec(elementText);
-
-  if (!match) return null;
-
-  const attrStart = node.start + match.index + 1; // +1 to skip leading space
-  const attrEnd = attrStart + match[1].length; // just the attribute name
-
-  return {
-    start: document.positionAt(attrStart),
-    end: document.positionAt(attrEnd),
-  };
-}
-
-/**
  * Finds the text range of the element tag name.
  */
 function findElementTagRange(
   document: html.TextDocument,
-  node: html.Node,
+  node: html.Node
 ): html.Range | null {
   if (!node.tag) return null;
 
@@ -291,13 +280,13 @@ function checkElementDeprecation(tagName: string): { error: string } | null {
  */
 function checkAttributeDeprecation(
   tagName: string,
-  attributeName: string,
+  attributeName: string
 ): { error: string } | null {
   const element = customElementsService.getCustomElement(tagName);
   if (!element?.attributes) return null;
 
   const attribute = element.attributes.find(
-    (attr) => attr.name === attributeName,
+    (attr) => attr.name === attributeName
   );
   if (!attribute?.deprecated) {
     return null;
@@ -318,7 +307,7 @@ function checkAttributeDeprecation(
  */
 export function validateElementAttributes(
   tagName: string,
-  attributes: Record<string, string>,
+  attributes: Record<string, string>
 ): Array<{ attributeName: string; error: string }> {
   const errors: Array<{ attributeName: string; error: string }> = [];
 
@@ -327,11 +316,7 @@ export function validateElementAttributes(
   }
 
   for (const [attrName, attrValue] of Object.entries(attributes)) {
-    const validation = validateAttributeValue(
-      tagName,
-      attrName,
-      attrValue,
-    );
+    const validation = validateAttributeValue(tagName, attrName, attrValue);
     if (validation) {
       errors.push({ attributeName: attrName, error: validation.error });
     }
