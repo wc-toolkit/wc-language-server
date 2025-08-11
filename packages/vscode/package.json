@@ -21,7 +21,14 @@
     "*"
   ],
   "main": "./dist/client.js",
-  "contributes": {},
+  "contributes": {
+    "commands": [
+      {
+        "command": "wcLanguageServer.restart",
+        "title": "Web Components: Restart Language Server"
+      }
+    ]
+  },
   "scripts": {
     "build": "node scripts/build -- --minify",
     "watch": "npm run build -- --watch",

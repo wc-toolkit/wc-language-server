@@ -4,6 +4,7 @@ import { BaseLanguageClient, LanguageClient, LanguageClientOptions, ServerOption
 import * as vscode from 'vscode';
 
 let client: BaseLanguageClient;
+let restartCommandRegistered = false;
 
 export async function activate(context: vscode.ExtensionContext) {
 
@@ -45,6 +46,18 @@ export async function activate(context: vscode.ExtensionContext) {
 	// ref: https://twitter.com/johnsoncodehk/status/1656126976774791168
 	const labsInfo = createLabsInfo(serverProtocol);
 	labsInfo.addLanguageClient(client);
+
+	// Register command to restart the extension only once
+	if (!restartCommandRegistered) {
+		const restartCommand = vscode.commands.registerCommand('wcLanguageServer.restart', async () => {
+			await deactivate();
+			await activate(context);
+			vscode.window.showInformationMessage('Web Components Language Server restarted.');
+		});
+		context.subscriptions.push(restartCommand);
+		restartCommandRegistered = true;
+	}
+
 	return labsInfo.extensionExports;
 }
 
