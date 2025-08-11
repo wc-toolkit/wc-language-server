@@ -34,7 +34,7 @@ export class CustomElementsService {
   private dependencyCustomElements = new Map<string, Component>();
   private packageJsonPath: string = "";
   private packageJsonWatcher?: fs.FSWatcher;
-  
+
   public attributeData: Map<AttributeKey, AttributeInfo> = new Map();
 
   constructor() {
@@ -42,8 +42,7 @@ export class CustomElementsService {
   }
 
   private initialize() {
-    this.loadManifest();
-    this.loadDependencyCustomElements();
+    this.loadManifests();
     this.watchManifest();
     this.watchPackageJson();
 
@@ -57,30 +56,16 @@ export class CustomElementsService {
     this.customElements.clear();
     this.attributeOptions.clear();
 
-    this.loadManifest();
-    this.loadDependencyCustomElements();
+    this.loadManifests();
   }
 
-  private loadManifest() {
-    this.manifestPath = this.findManifestFile();
-    if (!this.manifestPath) return;
-
+  private loadLocalManifest(cemPath?: string) {
     try {
-      this.manifestContent = fs.readFileSync(this.manifestPath, "utf8");
-      const manifest: cem.Package = JSON.parse(this.manifestContent);
-      this.parseManifest(manifest);
+      this.loadManifest(this.workspaceRoot, cemPath);
       this.notifyChange();
     } catch (error) {
       console.error("Error loading custom elements manifest:", error);
     }
-  }
-
-  private findManifestFile(): string | null {
-    const paths = ["custom-elements.json", "dist/custom-elements.json"].map(
-      (p) => path.join(this.workspaceRoot, p)
-    );
-
-    return paths.find((p) => fs.existsSync(p)) || null;
   }
 
   private parseManifest(manifest: cem.Package) {
@@ -118,7 +103,7 @@ export class CustomElementsService {
 
     try {
       this.manifestWatcher = fs.watchFile(this.manifestPath, () => {
-        this.loadManifest();
+        this.loadLocalManifest();
       });
     } catch (error) {
       console.error("Error watching manifest file:", error);
@@ -175,7 +160,10 @@ export class CustomElementsService {
     return options || null;
   }
 
-  public getAttributeInfo(tagName: string, attributeName: string): AttributeInfo | null {
+  public getAttributeInfo(
+    tagName: string,
+    attributeName: string
+  ): AttributeInfo | null {
     return this.attributeData.get(`${tagName}:${attributeName}`) || null;
   }
 
@@ -184,16 +172,19 @@ export class CustomElementsService {
     return position >= 0 ? position : 0;
   }
 
-  private loadDependencyCustomElements() {
+  private loadManifests() {
     this.dependencyCustomElements.clear();
     this.packageJsonPath = path.join(this.workspaceRoot, "package.json");
     let dependencies: Record<string, string> = {};
+    let packageJson: any;
     try {
-      const pkgJson = JSON.parse(readFileSync(this.packageJsonPath, "utf8"));
-      dependencies = pkgJson.dependencies || {};
+      packageJson = JSON.parse(readFileSync(this.packageJsonPath, "utf8"));
     } catch (error) {
       console.error("Error reading package.json:", error);
     }
+    
+    this.loadLocalManifest(packageJson?.customElements);
+    dependencies = packageJson?.dependencies || {};
 
     for (const depName of Object.keys(dependencies)) {
       try {
@@ -206,35 +197,35 @@ export class CustomElementsService {
         try {
           depPkg = JSON.parse(readFileSync(depPkgPath, "utf8"));
         } catch (error) {
-          console.error(`Error reading package.json from ${depPkgPath}:`, error);
-        }
-
-        // Determine the CEM path
-        let cemPath: string | undefined;
-        if (depPkg.customElements) {
-          cemPath = path.isAbsolute(depPkg.customElements)
-            ? depPkg.customElements
-            : path.join(depRoot, depPkg.customElements);
-          if (!fs.existsSync(cemPath || "")) {
-            cemPath = undefined;
-          }
-        }
-        if (!cemPath) {
-          cemPath = [
-            path.join(depRoot, "custom-elements.json"),
-            path.join(depRoot, "dist/custom-elements.json"),
-          ].find((p) => fs.existsSync(p));
-        }
-
-        if (cemPath) {
-          const manifest: cem.Package = JSON.parse(
-            readFileSync(cemPath, "utf8")
+          console.error(
+            `Error reading package.json from ${depPkgPath}:`,
+            error
           );
-          this.parseManifest(manifest);
         }
+
+        this.loadManifest(depRoot, depPkg.customElements);
       } catch (error) {
         console.error(`Error loading CEM for dependency ${depName}:`, error);
       }
+    }
+  }
+
+  private loadManifest(packagePath: string, cemPath: string | undefined) {
+    let fullPath = path.join(path.dirname(packagePath), cemPath || "");
+
+    console.debug(`Loading CEM from ${fullPath}`);
+
+    // Check default paths if custom-elements.json is not found
+    if (!cemPath || !fs.existsSync(fullPath)) {
+      fullPath =
+        [
+          path.join(packagePath, "custom-elements.json"),
+          path.join(packagePath, "dist/custom-elements.json"),
+        ].find((p) => fs.existsSync(p)) || "";
+    }
+    const manifest = JSON.parse(readFileSync(fullPath, "utf8"));
+    if (manifest) {
+      this.parseManifest(manifest);
     }
   }
 
@@ -250,7 +241,7 @@ export class CustomElementsService {
         this.packageJsonPath,
         { persistent: false },
         () => {
-          this.loadDependencyCustomElements();
+          this.loadManifests();
           this.notifyChange();
         }
       );

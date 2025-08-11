@@ -4,7 +4,7 @@
 
 ![Demonstration of the web components language server](https://wc-toolkit.com/_astro/vscode-wcls_demo.FCh4LrSK_17j3zC.webp)
 
-A powerful Visual Studio Code extension that provides intelligent language support for building with Web Components. This extension enhances your development experience with advanced IntelliSense and validation for Web Components.
+This extension extension provides intelligent language support for building with Web Components. This extension enhances your development experience with advanced IntelliSense and validation for Web Components.
 
 This extension uses the [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest) to generate the necessary information for the component integration and validation.
 
@@ -22,7 +22,7 @@ This extension uses the [Custom Elements Manifest](https://github.com/webcompone
 
 ### 🔧 Code Navigation
 
-- **Go to definition** for custom elements and their properties
+- **Go to definition** for custom elements that will take you to the relevant position the in the Custom Elements Manifest
 
 ## Installation
 
@@ -126,10 +126,9 @@ interface WCConfig {
 
 ### Getting Help
 
-- 📚 [Documentation](https://github.com/your-org/wc-toolkit/docs)
-- 🐛 [Report Issues](https://github.com/your-org/wc-toolkit/issues)
-- 💬 [Discussions](https://github.com/your-org/wc-toolkit/discussions)
+- 📚 [Documentation](https://wc-toolkit.com/integrations/web-components-language-server/)
+- 🐛 [Report Issues](https://github.com/wc-toolkit/wc-language-server/issues)
 
 ---
 
-**Enjoy enhanced Web Components development!** 🎉
+**Enjoy building with Web Components!** 🎉

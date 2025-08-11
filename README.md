@@ -1,38 +1,68 @@
-# language-tools-starter
+# Web Components Language Server
 
-This is a template for building Embedded Language Tools based on Volar Framework.
+This project provides a language server and editor extensions for using Web Components and custom elements. It offers advanced HTML diagnostics, completion, and validation for custom elements, including support for attribute types, deprecation, and duplicate attribute detection.
 
-If you're working on something like this, you probably started with VSCode's [Embedded Programming Languages](https://code.visualstudio.com/api/language-extensions/embedded-languages) chapter. If not, I strongly suggest you read it carefully first.
+## Features
 
-The article mentions two methods to implement Embedded Language support. This template belongs to the extension of the "Language Server for Embedded Language with Language Services" method, but we abstract all the places you don't need to care about, such as virtual code mapping, formatting edits merge etc.
+- HTML diagnostics for custom elements and attributes
+- Attribute type validation (boolean, number, enum, string)
+- Deprecated element and attribute warnings
+- Duplicate attribute detection
+- Completion and hover support for custom elements
+- Configurable diagnostics severity
+- Works with any Web Components library that provides a Custom Elements Manifest
 
-Same with the article, this template uses .html1 as an example to implement embedded HTML and CSS support.
+## Monorepo Structure
 
-## Tools
+- `packages/language-server`: Core language server implementation
+- `packages/vscode`: VSCode extension client
+- `packages/cem-utilities`: Utilities for parsing custom element manifests
 
-- pnpm: monorepo support
-- esbuild: bundle extension
+## Getting Started
 
-## Running the Demo
+1. **Install dependencies:**
+   ```sh
+   pnpm install
+   ```
 
-- Run `pnpm install` in this folder. This installs all necessary npm modules in both the client and server folder
-- Open VS Code on this folder.
-- Press Ctrl+Shift+B to compile the client and server.
-- Switch to the Debug viewlet.
-- Select `Launch Client` from the drop down.
-- Run the launch config.
-- If you want to debug the server as well use the launch configuration `Attach to Server`
-- In the [Extension Development Host] instance of VSCode, open a `test.html1`
-  - Type `<d|` to try HTML completion
-  - Type `<style>.foo { c| }</style>` to try CSS completion
-  - Have `<style>.foo { }</style>` to see CSS Diagnostics
+2. **Build the project:**
+   ```sh
+   pnpm run build
+   ```
 
-## Build .vsix
+3. **Open in VSCode:**
+   - Open this folder in VSCode.
+   - Press `Ctrl+Shift+B` to compile the client and server.
 
-- Run `pnpm run pack` in this folder
-- `packages/vscode/vscode-html1-0.0.1.vsix` will be created, and you can manual install it to VSCode.
+4. **Debug the extension:**
+   - Switch to the Debug view.
+   - Select `Launch Client` and start debugging.
+   - Optionally, use `Attach to Server` to debug the server process.
+
+5. **Try it out:**
+   - Open an HTML file and use custom elements.
+   - See diagnostics for invalid attributes, deprecated usage, and duplicates.
+
+## Packaging & Publishing
+
+### VS Code
+
+- To create a local `.vsix` package run:
+  ```sh
+  pnpm vscode:pack
+  ```
+- The `.vsix` file will be created in `packages/vscode/` for manual installation.
+- To publish the package run:
+  ```sh
+  pnpm vscode:release
+  ```
+
+## Configuration
+
+You can customize diagnostics and other behaviors via a `wc.config.js` file in your workspace root. See the documentation in `packages/language-server/src/services/configuration-service.ts` for available options.
 
 ## References
 
-- https://code.visualstudio.com/api/language-extensions/embedded-languages
-- https://github.com/microsoft/vscode-extension-samples/tree/main/lsp-embedded-language-service
+- [Web Components](https://developer.mozilla.org/en-US/docs/Web/Web_Components)
+- [VSCode Language Server Protocol](https://microsoft.github.io/language-server-protocol/)
+- [Volar Framework](https://github.com/volarjs/volar)
