@@ -120,9 +120,9 @@ interface WCConfig {
 
 **IntelliSense not appearing?**
 
+- Try restarting the language server (`Ctrl/Cmd+Shift+P` > `Web Components: Restart Language Server`)
 - Verify TypeScript/JavaScript language support is enabled
 - Check if other extensions are conflicting
-- Try reloading the window (`Ctrl+Shift+P` > `Reload Window`)
 
 ### Getting Help
 
