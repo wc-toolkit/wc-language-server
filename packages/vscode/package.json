@@ -10,8 +10,8 @@
   "categories": [
     "Programming Languages"
   ],
-  "displayName": "Web Component Language Server",
-  "description": "Web Component Language Server",
+  "displayName": "Web Components Language Server",
+  "description": "Editor tools for working with web components / custom elements",
   "author": "wc-toolkit",
   "publisher": "wc-toolkit",
   "engines": {
