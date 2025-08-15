@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
+import { minimatch } from "minimatch";
 
 export type DiagnosticSeverity = "error" | "warning" | "info" | "hint";
 
@@ -8,6 +9,15 @@ export type DiagnosticSeverityOptions = keyof NonNullable<WCConfig['diagnosticSe
 
 /** Configuration options for the Web Components Language Server. */
 export interface WCConfig {
+  /** 
+   * Specifies a list of glob patterns that match files to be included in compilation. 
+   * If no 'files' or 'include' property is present in a tsconfig.json, the compiler defaults to including all files in the containing directory and subdirectories except those specified by 'exclude'. 
+   */
+  include?: string[];
+
+  /** Specifies a list of files to be excluded from compilation. The 'exclude' property only affects the files included via the 'include'. */
+  exclude?: string[];
+
   /** Optional function to format tag names before processing. */
   tagFormatter?: (tagName: string) => string;
 
@@ -60,9 +70,6 @@ export interface WCConfig {
 
   /** Path to a global module to include in all files. */
   globalModulePath?: string;
-
-  /** Glob patterns for files or directories to exclude from analysis. */
-  exclude?: string[];
 }
 
 const DEFAULT_CONFIG: WCConfig = {
@@ -119,6 +126,36 @@ export class ConfigurationService {
     };
   }
 
+  /**
+   * Checks if a file should be included based on include/exclude patterns.
+   * @param filePath - Absolute file path to check
+   * @returns true if the file should be processed, false otherwise
+   */
+  public shouldIncludeFile(filePath: string): boolean {
+    
+    // If include patterns are specified, file must match at least one
+    if (this.config.include && this.config.include.length > 0) {
+      const includeMatch = this.config.include.some(pattern => 
+        minimatch(filePath, pattern, { matchBase: true })
+      );
+      if (!includeMatch) {
+        return false;
+      }
+    }
+
+    // If exclude patterns are specified, file must not match any
+    if (this.config.exclude && this.config.exclude.length > 0) {
+      const excludeMatch = this.config.exclude.some(pattern => 
+        minimatch(filePath, pattern, { matchBase: true })
+      );
+      if (excludeMatch) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   private validateConfig(config: WCConfig): WCConfig {
     const validSeverities: DiagnosticSeverity[] = [
       "error",
@@ -134,6 +171,7 @@ export class ConfigurationService {
         "invalidAttributeValue",
         "deprecatedAttribute",
         "deprecatedElement",
+        "duplicateAttribute",
       ] as const;
 
       for (const key of diagnosticKeys) {
@@ -147,6 +185,17 @@ export class ConfigurationService {
           config.diagnosticSeverity[key] = "error";
         }
       }
+    }
+
+    // Validate include/exclude patterns
+    if (config.include && !Array.isArray(config.include)) {
+      console.warn("Invalid 'include' configuration: must be an array of glob patterns.");
+      config.include = undefined;
+    }
+
+    if (config.exclude && !Array.isArray(config.exclude)) {
+      console.warn("Invalid 'exclude' configuration: must be an array of glob patterns.");
+      config.exclude = undefined;
     }
 
     return config;
@@ -164,8 +213,7 @@ export class ConfigurationService {
     try {
       this.watcher = fs.watch(this.configPath, { persistent: false }, () => {
         this.loadConfig();
-        // Reload the language server process
-        process.exit(0);
+        // File watcher in html-plugin will handle restart
       });
     } catch {
       // Config file doesn't exist yet - that's fine

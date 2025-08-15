@@ -69,39 +69,48 @@ export default {
 ```ts
 /** Configuration options for the Web Components Language Server. */
 interface WCConfig {
+  /**
+   * Specifies a list of glob patterns that match files to be included in compilation.
+   * If no 'include' property is present, the server defaults to including all files in the containing directory and subdirectories except those specified by 'exclude'.
+   */
+  include?: string[];
+
+  /** Specifies a list of files to be excluded from the language server. */
+  exclude?: string[];
+
   /** Optional function to format tag names before processing. */
   tagFormatter?: (tagName: string) => string;
 
   /** Diagnostic severity levels for various validation checks. */
   diagnosticSeverity?: {
-    /** 
-     * Severity for invalid boolean attribute values. 
-     * @default "error" 
+    /**
+     * Severity for invalid boolean attribute values.
+     * @default "error"
      */
     invalidBoolean?: DiagnosticSeverity;
-    /** 
-     * Severity for invalid number attribute values. 
-     * @default "error" 
+    /**
+     * Severity for invalid number attribute values.
+     * @default "error"
      */
     invalidNumber?: DiagnosticSeverity;
-    /** 
-     * Severity for invalid attribute values. 
-     * @default "error" 
+    /**
+     * Severity for invalid attribute values.
+     * @default "error"
      */
     invalidAttributeValue?: DiagnosticSeverity;
-    /** 
-     * Severity for usage of deprecated attributes. 
-     * @default "warning" 
+    /**
+     * Severity for usage of deprecated attributes.
+     * @default "warning"
      */
     deprecatedAttribute?: DiagnosticSeverity;
-    /** 
-     * Severity for usage of deprecated elements. 
-     * @default "warning" 
+    /**
+     * Severity for usage of deprecated elements.
+     * @default "warning"
      */
     deprecatedElement?: DiagnosticSeverity;
-    /** 
-     * Severity for usage of duplicate attributes. 
-     * @default "error" 
+    /**
+     * Severity for usage of duplicate attributes.
+     * @default "error"
      */
     duplicateAttribute?: DiagnosticSeverity;
   };

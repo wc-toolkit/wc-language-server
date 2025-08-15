@@ -20,6 +20,7 @@
     "@volar/typescript": "~2.4.0",
     "@wc-toolkit/cem-utilities": "^1.4.1",
     "custom-elements-manifest": "2.1.0",
+    "minimatch": "^10.0.3",
     "volar-service-css": "volar-2.4",
     "volar-service-emmet": "volar-2.4",
     "volar-service-html": "volar-2.4",
