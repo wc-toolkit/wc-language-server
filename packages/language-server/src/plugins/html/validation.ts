@@ -364,10 +364,3 @@ export function validateElementAttributes(
 
   return errors;
 }
-
-/**
- * Checks if a tag is a known custom element.
- */
-export function isKnownCustomElement(tagName: string): boolean {
-  return customElementsService.hasCustomElement(tagName);
-}

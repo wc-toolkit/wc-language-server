@@ -6,7 +6,10 @@ import {
 import * as html from "vscode-html-languageservice";
 import { configurationService } from "../../services/configuration-service";
 
-export function getAutoCompleteSuggestions(document: html.TextDocument, position: html.Position) {
+export function getAutoCompleteSuggestions(
+  document: html.TextDocument,
+  position: html.Position
+) {
   const text = document.getText();
   const offset = document.offsetAt(position);
   const beforeText = text.substring(0, offset);
@@ -85,31 +88,31 @@ function getTagCompletions(
   htmlCompletions: html.CompletionList,
   includeOpeningBrackets: boolean = false
 ): html.CompletionList {
-  const customElements = customElementsService.getCustomElementsMap();
+  const customElements = customElementsService.getCustomElements();
 
-  const customCompletions: html.CompletionItem[] = Array.from(
-    customElements.entries()
-  ).map(([, element]) => {
-    const formattedTagName = configurationService.getFormattedTagName(
-      element.tagName!,
-      element.dependency as string
-    );
-    const tag = includeOpeningBrackets
-      ? `<${formattedTagName}>$0</${formattedTagName}>`
-      : `${formattedTagName}>$0</${formattedTagName}>`;
-    return {
-      label: formattedTagName,
-      kind: html.CompletionItemKind.Snippet,
-      documentation: {
-        kind: "markdown",
-        value: getComponentDetailsTemplate(element),
-      },
-      insertText: tag,
-      insertTextFormat: html.InsertTextFormat.Snippet,
-      detail: "Custom Element",
-      sortText: "0" + formattedTagName,
-    };
-  });
+  const customCompletions: html.CompletionItem[] = customElements.map(
+    (element) => {
+      const formattedTagName = configurationService.getFormattedTagName(
+        element.tagName!,
+        element.dependency as string
+      );
+      const tag = includeOpeningBrackets
+        ? `<${formattedTagName}>$0</${formattedTagName}>`
+        : `${formattedTagName}>$0</${formattedTagName}>`;
+      return {
+        label: formattedTagName,
+        kind: html.CompletionItemKind.Snippet,
+        documentation: {
+          kind: "markdown",
+          value: getComponentDetailsTemplate(element),
+        },
+        insertText: tag,
+        insertTextFormat: html.InsertTextFormat.Snippet,
+        detail: "Custom Element",
+        sortText: "0" + formattedTagName,
+      };
+    }
+  );
 
   htmlCompletions.items.push(...customCompletions);
   return htmlCompletions;

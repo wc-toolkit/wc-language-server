@@ -133,15 +133,6 @@ export class CustomElementsService {
     return Array.from(all.values());
   }
 
-  public getCustomElementsMap(): Map<string, Component> {
-    // Merge local and dependency custom elements
-    return new Map([...this.dependencyCustomElements, ...this.customElements]);
-  }
-
-  public getAttributeOptions(): AttributeTypes {
-    return new Map(this.attributeOptions);
-  }
-
   public hasCustomElement(tagName: string): boolean {
     return this.customElements.has(tagName);
   }
