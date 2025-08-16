@@ -91,7 +91,8 @@ function getTagCompletions(
     customElements.entries()
   ).map(([, element]) => {
     const formattedTagName = configurationService.getFormattedTagName(
-      element.tagName!
+      element.tagName!,
+      element.dependency as string
     );
     const tag = includeOpeningBrackets
       ? `<${formattedTagName}>$0</${formattedTagName}>`
@@ -118,13 +119,12 @@ function getAttributeCompletions(
   htmlCompletions: html.CompletionList,
   tagName: string
 ): html.CompletionList {
-  const formattedTagName = configurationService.getFormattedTagName(tagName);
-  const element = customElementsService.getCustomElement(formattedTagName);
+  const element = customElementsService.getCustomElement(tagName);
   if (!element) {
     return htmlCompletions;
   }
 
-  const attributes = getAttributeInfo(formattedTagName);
+  const attributes = getAttributeInfo(tagName);
   const customCompletions: html.CompletionItem[] = attributes.map((attr) => {
     const hasValues = attr.options && attr.options.length > 0;
     const isBoolean = attr.type === "boolean";

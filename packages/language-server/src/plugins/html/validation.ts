@@ -51,7 +51,12 @@ function validateSingleNode(
   document: html.TextDocument,
   diagnostics: html.Diagnostic[]
 ): void {
-  if (!node.tag || !customElementsService.hasCustomElement(node.tag)) {
+  if (!node.tag) {
+    return;
+  }
+
+  const element = customElementsService.getCustomElement(node.tag);
+  if (!element) {
     return;
   }
 
@@ -61,7 +66,10 @@ function validateSingleNode(
     const elementRange = findElementTagRange(document, node);
     if (elementRange) {
       diagnostics.push({
-        severity: getSeverityLevel("deprecatedElement"),
+        severity: getSeverityLevel(
+          "deprecatedElement",
+          element.package as string
+        ),
         range: elementRange,
         message: elementDeprecation.error,
         source: "web-components",
@@ -70,7 +78,7 @@ function validateSingleNode(
   }
 
   // Parse and validate all raw attributes (handles duplicates and validation)
-  validateRawAttributes(node, document, diagnostics);
+  validateRawAttributes(node, document, diagnostics, element.package as string);
 }
 
 /**
@@ -80,13 +88,14 @@ function validateSingleNode(
 function validateRawAttributes(
   node: html.Node,
   document: html.TextDocument,
-  diagnostics: html.Diagnostic[]
+  diagnostics: html.Diagnostic[],
+  packageName?: string
 ): void {
   const text = document.getText();
-  
+
   // Find just the opening tag, not the entire element with children
   let elementText = text.substring(node.start, node.end);
-  const openTagEnd = elementText.indexOf('>');
+  const openTagEnd = elementText.indexOf(">");
   if (openTagEnd !== -1) {
     elementText = elementText.substring(0, openTagEnd + 1);
   }
@@ -98,19 +107,19 @@ function validateRawAttributes(
 
   while ((match = attrNameRegex.exec(elementText)) !== null) {
     const attrName = match[1];
-    
+
     // Skip the tag name itself
     if (attrName === node.tag) {
       continue;
     }
-    
+
     const attrStart = node.start + match.index + 1; // +1 to skip leading space
     const attrNameEnd = attrStart + attrName.length;
 
     // Check for duplicate attributes
     if (seenAttrs.has(attrName)) {
       diagnostics.push({
-        severity: getSeverityLevel("duplicateAttribute"),
+        severity: getSeverityLevel("duplicateAttribute", packageName),
         range: {
           start: document.positionAt(attrStart),
           end: document.positionAt(attrNameEnd),
@@ -123,19 +132,30 @@ function validateRawAttributes(
 
     // Look ahead to see if this attribute has a value
     const afterAttrName = elementText.substring(match.index + match[0].length);
-    const valueMatch = afterAttrName.match(/^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/);
-    const attrValue = valueMatch ? (valueMatch[1] !== undefined ? valueMatch[1] : valueMatch[2]) : null;
+    const valueMatch = afterAttrName.match(
+      /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/
+    );
+    const attrValue = valueMatch
+      ? valueMatch[1] !== undefined
+        ? valueMatch[1]
+        : valueMatch[2]
+      : null;
 
     // Validate this specific attribute occurrence
-    const validation = validateAttributeValue(node.tag || '', attrName, attrValue);
+    const validation = validateAttributeValue(
+      node.tag || "",
+      attrName,
+      attrValue
+    );
     if (validation) {
-      const fullMatchLength = match[0].length + (valueMatch ? valueMatch[0].length : 0);
+      const fullMatchLength =
+        match[0].length + (valueMatch ? valueMatch[0].length : 0);
       const range = {
         start: document.positionAt(attrStart),
         end: document.positionAt(attrStart + fullMatchLength - 1),
       };
       diagnostics.push({
-        severity: getSeverityLevel(validation.type),
+        severity: getSeverityLevel(validation.type, packageName),
         range,
         message: validation.error,
         source: "web-components",
@@ -143,10 +163,10 @@ function validateRawAttributes(
     }
 
     // Check attribute deprecation
-    const deprecation = checkAttributeDeprecation(node.tag || '', attrName);
+    const deprecation = checkAttributeDeprecation(node.tag || "", attrName);
     if (deprecation) {
       diagnostics.push({
-        severity: getSeverityLevel("deprecatedAttribute"),
+        severity: getSeverityLevel("deprecatedAttribute", packageName),
         range: {
           start: document.positionAt(attrStart),
           end: document.positionAt(attrNameEnd),
@@ -225,9 +245,17 @@ function validateAttributeValue(
 /**
  * Maps configuration severity to VSCode DiagnosticSeverity.
  */
-function getSeverityLevel(type: DiagnosticSeverityOptions): DiagnosticSeverity {
-  const configSeverity =
+function getSeverityLevel(
+  type: DiagnosticSeverityOptions,
+  packageName?: string
+): DiagnosticSeverity {
+  const libraryConfig = packageName
+    ? configurationService?.config?.libraries?.[packageName]
+        ?.diagnosticSeverity?.[type]
+    : undefined;
+  const globalConfig =
     configurationService?.config?.diagnosticSeverity?.[type] || "error";
+  const configSeverity = libraryConfig || globalConfig;
 
   switch (configSeverity) {
     case "error":

@@ -114,7 +114,91 @@ interface WCConfig {
      */
     duplicateAttribute?: DiagnosticSeverity;
   };
+
+  /** Library specific configuration. */
+  libraries?: {
+    /** Configuration for each library by name where the `libraryName` is package name */
+    [libraryName: string]: {
+      /** Optional function to format tag names before processing. */
+      tagFormatter?: (tagName: string) => string;
+
+      /** Diagnostic severity levels for various validation checks. */
+      diagnosticSeverity?: {
+        /**
+         * Severity for invalid boolean attribute values.
+         * @default "error"
+         */
+        invalidBoolean?: DiagnosticSeverity;
+        /**
+         * Severity for invalid number attribute values.
+         * @default "error"
+         */
+        invalidNumber?: DiagnosticSeverity;
+        /**
+         * Severity for invalid attribute values.
+         * @default "error"
+         */
+        invalidAttributeValue?: DiagnosticSeverity;
+        /**
+         * Severity for usage of deprecated attributes.
+         * @default "warning"
+         */
+        deprecatedAttribute?: DiagnosticSeverity;
+        /**
+         * Severity for usage of deprecated elements.
+         * @default "warning"
+         */
+        deprecatedElement?: DiagnosticSeverity;
+        /**
+         * Severity for usage of duplicate attributes.
+         * @default "error"
+         */
+        duplicateAttribute?: DiagnosticSeverity;
+      };
+    };
+  };
 }
+```
+
+#### Example Configuration
+
+```js
+// wc.config.js
+export default {
+  /**
+   * Only enable the LAnguage Server feature for the TypeScript
+   * and HTML Files in the `src` directory of the project.
+   */
+  include: ['src/**/*.ts', 'src/**/*.html'];
+
+  /**
+   * Add the custom suffix `_global` for all components
+   * Language server options will now work for `my-button_global`
+   */
+  tagFormatter: (tagName) => `${tagName}_global`;
+
+  diagnosticSeverity: {
+    /** When a duplicate attribute appears, it will now globally only show a warning instead of an error */
+    deprecatedAttribute: 'warning';
+  }
+
+  /** Library specific configurations */
+  libraries: {
+    /** Use the  */
+    "@awesome.me/webawesome": {
+      /**
+       * Replace `wa-` prefix with `awesome-` for all Web Awesome components
+       * Language server options will now work for `awesome-button` instead of `wa-button`
+       */
+      tagFormatter: (tagName) => tagName.replace('wa-', 'awesome-');
+
+        diagnosticSeverity: {
+          /** Deprecated attributes will now all show as an error for Web Awesome components */
+          duplicateAttribute: 'warning';
+        }
+    }
+  }
+};
 ```
 
 ## Troubleshooting

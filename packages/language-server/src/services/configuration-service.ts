@@ -5,52 +5,45 @@ import { minimatch } from "minimatch";
 export type DiagnosticSeverity = "error" | "warning" | "info" | "hint";
 
 // Add this type for diagnosticSeverity keys
-export type DiagnosticSeverityOptions = keyof NonNullable<WCConfig['diagnosticSeverity']>;
+export type DiagnosticSeverityOptions = keyof NonNullable<
+  WCConfig["diagnosticSeverity"]
+>;
 
-/** Configuration options for the Web Components Language Server. */
-export interface WCConfig {
-  /** 
-   * Specifies a list of glob patterns that match files to be included in compilation. 
-   * If no 'files' or 'include' property is present in a tsconfig.json, the compiler defaults to including all files in the containing directory and subdirectories except those specified by 'exclude'. 
-   */
-  include?: string[];
-
-  /** Specifies a list of files to be excluded from compilation. The 'exclude' property only affects the files included via the 'include'. */
-  exclude?: string[];
-
+/**  */
+export interface LibraryConfig {
   /** Optional function to format tag names before processing. */
   tagFormatter?: (tagName: string) => string;
 
   /** Diagnostic severity levels for various validation checks. */
   diagnosticSeverity?: {
-    /** 
-     * Severity for invalid boolean attribute values. 
-     * @default "error" 
+    /**
+     * Severity for invalid boolean attribute values.
+     * @default "error"
      */
     invalidBoolean?: DiagnosticSeverity;
-    /** 
-     * Severity for invalid number attribute values. 
-     * @default "error" 
+    /**
+     * Severity for invalid number attribute values.
+     * @default "error"
      */
     invalidNumber?: DiagnosticSeverity;
-    /** 
-     * Severity for invalid attribute values. 
-     * @default "error" 
+    /**
+     * Severity for invalid attribute values.
+     * @default "error"
      */
     invalidAttributeValue?: DiagnosticSeverity;
-    /** 
-     * Severity for usage of deprecated attributes. 
-     * @default "warning" 
+    /**
+     * Severity for usage of deprecated attributes.
+     * @default "warning"
      */
     deprecatedAttribute?: DiagnosticSeverity;
-    /** 
-     * Severity for usage of deprecated elements. 
-     * @default "warning" 
+    /**
+     * Severity for usage of deprecated elements.
+     * @default "warning"
      */
     deprecatedElement?: DiagnosticSeverity;
-    /** 
-     * Severity for usage of duplicate attributes. 
-     * @default "error" 
+    /**
+     * Severity for usage of duplicate attributes.
+     * @default "error"
      */
     duplicateAttribute?: DiagnosticSeverity;
   };
@@ -65,11 +58,29 @@ export interface WCConfig {
   componentModulePath?: (
     componentName: string,
     tagName: string,
-    modulePath: string,
+    modulePath: string
   ) => string;
 
   /** Path to a global module to include in all files. */
   globalModulePath?: string;
+}
+
+/** Configuration options for the Web Components Language Server. */
+export interface WCConfig extends LibraryConfig {
+  /**
+   * Specifies a list of glob patterns that match files to be included in compilation.
+   * If no 'files' or 'include' property is present in a tsconfig.json, the compiler defaults to including all files in the containing directory and subdirectories except those specified by 'exclude'.
+   */
+  include?: string[];
+
+  /** Specifies a list of files to be excluded from compilation. The 'exclude' property only affects the files included via the 'include'. */
+  exclude?: string[];
+
+  /** Library specific configuration. */
+  libraries?: {
+    /** Configuration for each library by name where the key is package name */
+    [libraryName: string]: LibraryConfig;
+  };
 }
 
 const DEFAULT_CONFIG: WCConfig = {
@@ -116,7 +127,7 @@ export class ConfigurationService {
   }
 
   private mergeWithDefaults(userConfig: WCConfig): WCConfig {
-    return {
+    const mergedConfig: WCConfig = {
       ...DEFAULT_CONFIG,
       ...userConfig,
       diagnosticSeverity: {
@@ -124,6 +135,17 @@ export class ConfigurationService {
         ...userConfig.diagnosticSeverity,
       },
     };
+
+    // Set default values for each library
+    userConfig.libraries = userConfig.libraries || {};
+    for (const [libraryName, libraryConfig] of Object.entries(userConfig.libraries)) {
+      mergedConfig.libraries![libraryName] = {
+        ...DEFAULT_CONFIG,
+        ...libraryConfig,
+      };
+    }
+
+    return mergedConfig;
   }
 
   /**
@@ -132,10 +154,9 @@ export class ConfigurationService {
    * @returns true if the file should be processed, false otherwise
    */
   public shouldIncludeFile(filePath: string): boolean {
-    
     // If include patterns are specified, file must match at least one
     if (this.config.include && this.config.include.length > 0) {
-      const includeMatch = this.config.include.some(pattern => 
+      const includeMatch = this.config.include.some((pattern) =>
         minimatch(filePath, pattern, { matchBase: true })
       );
       if (!includeMatch) {
@@ -145,7 +166,7 @@ export class ConfigurationService {
 
     // If exclude patterns are specified, file must not match any
     if (this.config.exclude && this.config.exclude.length > 0) {
-      const excludeMatch = this.config.exclude.some(pattern => 
+      const excludeMatch = this.config.exclude.some((pattern) =>
         minimatch(filePath, pattern, { matchBase: true })
       );
       if (excludeMatch) {
@@ -180,7 +201,7 @@ export class ConfigurationService {
           !validSeverities.includes(config.diagnosticSeverity[key])
         ) {
           console.warn(
-            `Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`,
+            `Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`
           );
           config.diagnosticSeverity[key] = "error";
         }
@@ -189,22 +210,27 @@ export class ConfigurationService {
 
     // Validate include/exclude patterns
     if (config.include && !Array.isArray(config.include)) {
-      console.warn("Invalid 'include' configuration: must be an array of glob patterns.");
+      console.warn(
+        "Invalid 'include' configuration: must be an array of glob patterns."
+      );
       config.include = undefined;
     }
 
     if (config.exclude && !Array.isArray(config.exclude)) {
-      console.warn("Invalid 'exclude' configuration: must be an array of glob patterns.");
+      console.warn(
+        "Invalid 'exclude' configuration: must be an array of glob patterns."
+      );
       config.exclude = undefined;
     }
 
     return config;
   }
 
-  public getFormattedTagName(tagName: string): string {
-    return this.config.tagFormatter
-      ? this.config.tagFormatter(tagName)
-      : tagName;
+  public getFormattedTagName(tagName: string, library?: string): string {
+    if (library && this.config.libraries && this.config.libraries[library]?.tagFormatter) {
+      return this.config.libraries[library]!.tagFormatter!(tagName);
+    }
+    return this.config.tagFormatter ? this.config.tagFormatter(tagName) : tagName;
   }
 
   private watchConfig() {

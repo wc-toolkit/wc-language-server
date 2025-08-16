@@ -59,23 +59,27 @@ export class CustomElementsService {
     this.loadManifests();
   }
 
-  private loadLocalManifest(cemPath?: string) {
+  private loadLocalManifest(cemPath?: string, depName?: string) {
     try {
-      this.loadManifest(this.workspaceRoot, cemPath);
+      this.loadManifest(this.workspaceRoot, cemPath, depName);
       this.notifyChange();
     } catch (error) {
       console.error("Error loading custom elements manifest:", error);
     }
   }
 
-  private parseManifest(manifest: cem.Package) {
+  private parseManifest(manifest: cem.Package, depName?: string) {
     if (!manifest.modules) return;
 
     const components = getAllComponents(manifest);
 
     components.forEach((element) => {
+      if (depName) {
+        element.dependency = depName;
+      }
+
       const tagName =
-        configurationService?.getFormattedTagName(element.tagName!) ||
+        configurationService?.getFormattedTagName(element.tagName!, element.dependency as string) ||
         element.tagName!;
       this.customElements.set(tagName, element);
       this.setAttributeOptions(tagName, element);
@@ -83,12 +87,10 @@ export class CustomElementsService {
   }
 
   private setAttributeOptions(tagName: string, component: Component) {
-    const formattedTagName =
-      configurationService?.getFormattedTagName(tagName) || tagName;
     component.attributes?.forEach((attr) => {
       const options = getAttributeValueOptions(attr);
-      this.attributeOptions.set(`${formattedTagName}:${attr.name}`, options);
-      this.attributeData.set(`${formattedTagName}:${attr.name}`, {
+      this.attributeOptions.set(`${tagName}:${attr.name}`, options);
+      this.attributeData.set(`${tagName}:${attr.name}`, {
         name: attr.name,
         description: attr.description,
         deprecated: attr.deprecated,
@@ -203,14 +205,14 @@ export class CustomElementsService {
           );
         }
 
-        this.loadManifest(depRoot, depPkg.customElements);
+        this.loadManifest(depRoot, depPkg.customElements, depName);
       } catch (error) {
         console.error(`Error loading CEM for dependency ${depName}:`, error);
       }
     }
   }
 
-  private loadManifest(packagePath: string, cemPath: string | undefined) {
+  private loadManifest(packagePath: string, cemPath?: string, depName?: string) {
     let fullPath = path.join(path.dirname(packagePath), cemPath || "");
 
     console.debug(`Loading CEM from ${fullPath}`);
@@ -225,7 +227,7 @@ export class CustomElementsService {
     }
     const manifest = JSON.parse(readFileSync(fullPath, "utf8"));
     if (manifest) {
-      this.parseManifest(manifest);
+      this.parseManifest(manifest, depName);
     }
   }
 
