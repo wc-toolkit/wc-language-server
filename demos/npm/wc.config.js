@@ -9,13 +9,13 @@ export default {
   //   deprecatedAttribute: 'warning',
   //   deprecatedElement: 'warning'
   // }
-  // manifestSrc: "./_custom-elements.json",
-  manifestSrc: "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/custom-elements.json",
-
+  // tagFormatter: (tag) => `${tag}-global`,
   libraries: {
-    "@shoelace-style": {
-      // manifestSrc: 'https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/custom-elements.json'
-      // manifestSrc: "./_custom-elements.json",
-    },
+    // "@nordhealth/components": {
+    //   tagFormatter: (tag) => `${tag}-formatted`,
+    // },
+    // "@shoelace-style/shoelace": {
+    //   tagFormatter: (tag) => `${tag}-test`,
+    // },
   },
 };

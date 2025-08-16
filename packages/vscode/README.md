@@ -70,6 +70,12 @@ export default {
 /** Configuration options for the Web Components Language Server. */
 interface WCConfig {
   /**
+   * Specify a custom path to the CustomElements Manifest
+   * The path can be for a local file or a remote URL.
+   */
+  manifestSrc?: string;
+
+  /**
    * Specifies a list of glob patterns that match files to be included in compilation.
    * If no 'include' property is present, the server defaults to including all files in the containing directory and subdirectories except those specified by 'exclude'.
    */
@@ -119,6 +125,12 @@ interface WCConfig {
   libraries?: {
     /** Configuration for each library by name where the `libraryName` is package name */
     [libraryName: string]: {
+      /**
+       * Specify a custom path to the CustomElements Manifest
+       * The path can be for a local file or a remote URL.
+       */
+      manifestSrc?: string;
+
       /** Optional function to format tag names before processing. */
       tagFormatter?: (tagName: string) => string;
 
@@ -165,17 +177,20 @@ interface WCConfig {
 ```js
 // wc.config.js
 export default {
+  /** Fetch manifest from a local directory */
+  manifestSrc: './build/custom-elements.json',
+
   /**
    * Only enable the LAnguage Server feature for the TypeScript
    * and HTML Files in the `src` directory of the project.
    */
-  include: ['src/**/*.ts', 'src/**/*.html'];
+  include: ['src/**/*.ts', 'src/**/*.html'],
 
   /**
    * Add the custom suffix `_global` for all components
    * Language server options will now work for `my-button_global`
    */
-  tagFormatter: (tagName) => `${tagName}_global`;
+  tagFormatter: (tagName) => `${tagName}_global`,
 
   diagnosticSeverity: {
     /** When a duplicate attribute appears, it will now globally only show a warning instead of an error */
@@ -186,15 +201,21 @@ export default {
   libraries: {
     /** Use the  */
     "@awesome.me/webawesome": {
+      /** 
+       * Fetch manifest from a URL
+       * This isn't needed if you have the NPM package installed
+       */
+      manifestSrc: '[./build/custom-elements.json](https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0-beta.4/dist/custom-elements.json)',
+
       /**
        * Replace `wa-` prefix with `awesome-` for all Web Awesome components
        * Language server options will now work for `awesome-button` instead of `wa-button`
        */
-      tagFormatter: (tagName) => tagName.replace('wa-', 'awesome-');
+      tagFormatter: (tagName) => tagName.replace('wa-', 'awesome-'),
 
         diagnosticSeverity: {
           /** Deprecated attributes will now all show as an error for Web Awesome components */
-          duplicateAttribute: 'warning';
+          duplicateAttribute: 'warning'
         }
     }
   }

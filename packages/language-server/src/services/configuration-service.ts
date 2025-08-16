@@ -11,6 +11,12 @@ export type DiagnosticSeverityOptions = keyof NonNullable<
 
 /**  */
 export interface LibraryConfig {
+  /** 
+   * Specify a custom path to the CustomElements Manifest 
+   * The path can be for a local file or a remote URL.
+   */
+  manifestSrc?: string;
+
   /** Optional function to format tag names before processing. */
   tagFormatter?: (tagName: string) => string;
 

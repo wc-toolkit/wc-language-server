@@ -59,9 +59,16 @@ export class CustomElementsService {
     this.loadManifests();
   }
 
-  private loadLocalManifest(cemPath?: string, depName?: string) {
+  private loadGlobalManifest() {
+    const cemPath = configurationService.config?.manifestSrc;
+    const { isUrl } = this.isPathOrUrl(cemPath);
+
     try {
-      this.loadManifest(this.workspaceRoot, cemPath, depName);
+      if (isUrl) {
+        this.loadManifestFromUrl(cemPath!);
+      } else {
+        this.loadManifestFromFile(this.workspaceRoot, cemPath);
+      }
       this.notifyChange();
     } catch (error) {
       console.error("Error loading custom elements manifest:", error);
@@ -79,8 +86,10 @@ export class CustomElementsService {
       }
 
       const tagName =
-        configurationService?.getFormattedTagName(element.tagName!, element.dependency as string) ||
-        element.tagName!;
+        configurationService?.getFormattedTagName(
+          element.tagName!,
+          element.dependency as string
+        ) || element.tagName!;
       this.customElements.set(tagName, element);
       this.setAttributeOptions(tagName, element);
     });
@@ -105,7 +114,7 @@ export class CustomElementsService {
 
     try {
       this.manifestWatcher = fs.watchFile(this.manifestPath, () => {
-        this.loadLocalManifest();
+        this.loadGlobalManifest();
       });
     } catch (error) {
       console.error("Error watching manifest file:", error);
@@ -165,21 +174,52 @@ export class CustomElementsService {
     return position >= 0 ? position : 0;
   }
 
+  public dispose() {
+    this.manifestWatcher?.unref();
+    this.packageJsonWatcher?.close();
+    this.changeListeners = [];
+  }
+
   private loadManifests() {
     this.dependencyCustomElements.clear();
     this.packageJsonPath = path.join(this.workspaceRoot, "package.json");
-    let dependencies: Record<string, string> = {};
-    let packageJson: any;
     try {
-      packageJson = JSON.parse(readFileSync(this.packageJsonPath, "utf8"));
+      this.loadGlobalManifest();
+      this.loadConfigManifests();
+      this.loadDependencyManifests();
     } catch (error) {
-      console.error("Error reading package.json:", error);
+      console.error("There was an error loading manifests:", error);
     }
-    
-    this.loadLocalManifest(packageJson?.customElements);
-    dependencies = packageJson?.dependencies || {};
+  }
 
-    for (const depName of Object.keys(dependencies)) {
+  private loadConfigManifests() {
+    const libraryConfigs = configurationService.config.libraries;
+    if (!libraryConfigs) {
+      return;
+    }
+    for (const [name, libConfig] of Object.entries(libraryConfigs)) {
+      if (!libConfig.manifestSrc) {
+        continue;
+      }
+
+      const { isUrl, isFilePath } = this.isPathOrUrl(libConfig.manifestSrc);
+      if (isUrl) {
+        this.loadManifestFromUrl(libConfig.manifestSrc);
+      } else if (isFilePath) {
+        this.loadManifestFromFile(libConfig.manifestSrc, undefined, name);
+      }
+    }
+  }
+
+  private loadDependencyManifests() {
+    if (!fs.existsSync(this.packageJsonPath)) {
+      console.error("package.json not found.");
+      return;
+    }
+
+    const packageJson = JSON.parse(readFileSync(this.packageJsonPath, "utf8"));
+
+    for (const depName of Object.keys(packageJson.dependencies)) {
       try {
         // Try to resolve the dependency's package root
         const depPkgPath = path.join("node_modules", depName, "package.json");
@@ -196,17 +236,19 @@ export class CustomElementsService {
           );
         }
 
-        this.loadManifest(depRoot, depPkg.customElements, depName);
+        this.loadManifestFromFile(depRoot, depPkg.customElements, depName);
       } catch (error) {
         console.error(`Error loading CEM for dependency ${depName}:`, error);
       }
     }
   }
 
-  private loadManifest(packagePath: string, cemPath?: string, depName?: string) {
+  private loadManifestFromFile(
+    packagePath: string,
+    cemPath?: string,
+    depName?: string
+  ) {
     let fullPath = path.join(path.dirname(packagePath), cemPath || "");
-
-    console.debug(`Loading CEM from ${fullPath}`);
 
     // Check default paths if custom-elements.json is not found
     if (!cemPath || !fs.existsSync(fullPath)) {
@@ -216,10 +258,25 @@ export class CustomElementsService {
           path.join(packagePath, "dist/custom-elements.json"),
         ].find((p) => fs.existsSync(p)) || "";
     }
-    const manifest = JSON.parse(readFileSync(fullPath, "utf8"));
-    if (manifest) {
-      this.parseManifest(manifest, depName);
+    if (fullPath) {
+      const manifest = JSON.parse(readFileSync(fullPath, "utf8"));
+      if (manifest) {
+        this.parseManifest(manifest, depName);
+      }
     }
+  }
+
+  private loadManifestFromUrl(url: string) {
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${url}`);
+        }
+        return response.json().then((manifest) => this.parseManifest(manifest));
+      })
+      .catch((error) => {
+        console.error(`Error loading manifest from ${url}:`, error);
+      });
   }
 
   private watchPackageJson() {
@@ -243,10 +300,27 @@ export class CustomElementsService {
     }
   }
 
-  public dispose() {
-    this.manifestWatcher?.unref();
-    this.packageJsonWatcher?.close();
-    this.changeListeners = [];
+  private isPathOrUrl(str?: string): { isUrl: boolean; isFilePath: boolean } {
+    if (!str || typeof str !== "string") {
+      return { isUrl: false, isFilePath: false };
+    }
+
+    // URL detection
+    const urlRegex = /^(https?:\/\/|www\.|ftp:\/\/|file:\/\/)/i;
+    const isUrl = urlRegex.test(str.trim());
+
+    // File path detection - common patterns for different OS
+    const unixPathRegex = /^(\/[\w-]+(\/[\w-. ]+)+|\/[\w-. ]+)$/;
+    const windowsPathRegex =
+      /^([a-zA-Z]:\\|\\\\)([\w-]+(\\[\w-. ]+)+|[\w-. ]+)$/;
+    const relativePathRegex = /^\.{1,2}\/[\w-]+(\/[\w-. ]+)*$/;
+
+    const isFilePath =
+      unixPathRegex.test(str.trim()) ||
+      windowsPathRegex.test(str.trim()) ||
+      relativePathRegex.test(str.trim());
+
+    return { isUrl, isFilePath };
   }
 }
 
