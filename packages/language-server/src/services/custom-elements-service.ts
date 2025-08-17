@@ -204,7 +204,7 @@ export class CustomElementsService {
 
       const { isUrl, isFilePath } = this.isPathOrUrl(libConfig.manifestSrc);
       if (isUrl) {
-        this.loadManifestFromUrl(libConfig.manifestSrc);
+        this.loadManifestFromUrl(libConfig.manifestSrc, name);
       } else if (isFilePath) {
         this.loadManifestFromFile(libConfig.manifestSrc, undefined, name);
       }
@@ -266,13 +266,13 @@ export class CustomElementsService {
     }
   }
 
-  private loadManifestFromUrl(url: string) {
+  private loadManifestFromUrl(url: string, depName?: string) {
     fetch(url)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`Failed to fetch ${url}`);
         }
-        return response.json().then((manifest) => this.parseManifest(manifest));
+        return response.json().then((manifest) => this.parseManifest(manifest, depName));
       })
       .catch((error) => {
         console.error(`Error loading manifest from ${url}:`, error);
