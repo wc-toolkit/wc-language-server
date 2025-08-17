@@ -4,10 +4,23 @@
     <title>HTML Web Components Test Page</title>
   </head>
   <body>
-    <sl-alert variant="primaryee" closable="true" dep-attr></sl-alert>
-    <sl-alert duration="3000ms"></sl-alert>
+    <sl-alert variant="primaryee" closable="true" dep-attr closable></sl-alert>
+    <sl-alert duration="3000ms" closable></sl-alert>
     <sl-alert closable variant="danger"></sl-alert>
     <sl-alert variant="primary"></sl-alert>
-    <sl-alert dep-attr variant="primaryy"></sl-alert>
+    <sl-alert dep-attr></sl-alert>
+    <sl-dropdown>
+      <sl-button>Dropdown Button</sl-button>
+      <sl-menu>
+        <sl-menu-item disabled>Item 1</sl-menu-item>
+        <sl-menu-item disabled>Item 2</sl-menu-item>
+        <sl-menu-item>Item 3</sl-menu-item>
+      </sl-menu>
+    </sl-dropdown>
+    <sl-alert></sl-alert>
+    <sl-alert-formatted duration="3000"></sl-alert-formatted>
+    <wa-badge pill=""></wa-badge>
+    <wa-button appearance="outlined"></wa-button>
+    <awesome-animated-image></awesome-animated-image>
   </body>
 </html>
