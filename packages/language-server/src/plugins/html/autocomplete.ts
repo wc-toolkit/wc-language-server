@@ -110,6 +110,7 @@ function getTagCompletions(
         insertTextFormat: html.InsertTextFormat.Snippet,
         detail: "Custom Element",
         sortText: "0" + formattedTagName,
+        deprecated: !!element.deprecated,
       };
     }
   );
@@ -150,6 +151,7 @@ function getAttributeCompletions(
         hasValues && !isBoolean
           ? { command: "editor.action.triggerSuggest", title: "Suggest" }
           : undefined,
+      deprecated: !!attr.deprecated,
     };
   });
 
