@@ -4,7 +4,7 @@ import * as path from "path";
 import { configurationService } from "./configuration-service";
 import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
 import { Component, getAllComponents } from "@wc-toolkit/cem-utilities";
-import { getAttributeValueOptions } from "../utilities/cem-utils";
+import { parseAttributeValueOptions } from "../utilities/cem-utils";
 import { readFileSync } from "fs";
 
 export type AttributeInfo = {
@@ -91,13 +91,14 @@ export class CustomElementsService {
           element.dependency as string
         ) || element.tagName!;
       this.customElements.set(tagName, element);
-      this.setAttributeOptions(tagName, element);
+      this.setAttributeOptions(tagName, element, depName);
     });
   }
 
-  private setAttributeOptions(tagName: string, component: Component) {
+  private setAttributeOptions(tagName: string, component: Component, depName?: string) {
     component.attributes?.forEach((attr) => {
-      const options = getAttributeValueOptions(attr);
+      const typeSrc = configurationService.config.libraries?.[`${depName}`]?.typeSrc || configurationService.config.typeSrc;
+      const options = parseAttributeValueOptions(attr, typeSrc);
       this.attributeOptions.set(`${tagName}:${attr.name}`, options);
       this.attributeData.set(`${tagName}:${attr.name}`, {
         name: attr.name,

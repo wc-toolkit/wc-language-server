@@ -48,7 +48,7 @@ export const EXCLUDED_TYPES = [
  * @param typeSrc - Property name of the type source (defaults to "parsedType")
  * @returns Primitive type name or array of literal values
  */
-export function getAttributeValueOptions(
+export function parseAttributeValueOptions(
   attr: cem.Attribute,
   typeSrc: string = "parsedType",
 ): string[] | string {

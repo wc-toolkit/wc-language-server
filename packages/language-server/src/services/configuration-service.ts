@@ -20,6 +20,12 @@ export interface LibraryConfig {
   /** Optional function to format tag names before processing. */
   tagFormatter?: (tagName: string) => string;
 
+  /** 
+   * Alternative property name that types may be mapped to 
+   * @default "parsedType"
+   */
+  typeSrc?: string;
+
   /** Diagnostic severity levels for various validation checks. */
   diagnosticSeverity?: {
     /**
@@ -90,6 +96,7 @@ export interface WCConfig extends LibraryConfig {
 }
 
 const DEFAULT_CONFIG: WCConfig = {
+  typeSrc: "parsedType",
   diagnosticSeverity: {
     invalidBoolean: "error",
     invalidNumber: "error",
