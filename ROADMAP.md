@@ -7,6 +7,7 @@ Here is a high level overview of some of the features coming. These will not nec
 - [x] Hover documentation
 - [x] Diagnostic/API validation
 - [x] Alternate Type reference
+- [ ] CSS Parts and Variables autocomplete integration
 - [ ] Global Types for Components and Events
 - [ ] AI Integration
 - [ ] JSX Types
