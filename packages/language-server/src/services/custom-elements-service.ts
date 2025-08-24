@@ -30,11 +30,14 @@ export class CustomElementsService {
   private manifestContent = "";
   private attributeOptions: AttributeTypes = new Map();
   private changeListeners: (() => void)[] = [];
+  private loadListeners: ((depName: string, manifest: cem.Package) => void)[] =
+    [];
   private workspaceRoot: string = "";
   private dependencyCustomElements = new Map<string, Component>();
   private packageJsonPath: string = "";
   private packageJsonWatcher?: fs.FSWatcher;
 
+  public manifests: Map<string, cem.Package> = new Map();
   public attributeData: Map<AttributeKey, AttributeInfo> = new Map();
 
   constructor() {
@@ -78,6 +81,7 @@ export class CustomElementsService {
   private parseManifest(manifest: cem.Package, depName?: string) {
     if (!manifest.modules) return;
 
+    this.manifests.set(depName || "local", manifest);
     const components = getAllComponents(manifest);
 
     components.forEach((element) => {
@@ -93,11 +97,19 @@ export class CustomElementsService {
       this.customElements.set(tagName, element);
       this.setAttributeOptions(tagName, element, depName);
     });
+    
+    this.notifyManifestLoad(depName || "local", manifest);
   }
 
-  private setAttributeOptions(tagName: string, component: Component, depName?: string) {
+  private setAttributeOptions(
+    tagName: string,
+    component: Component,
+    depName?: string
+  ) {
     component.attributes?.forEach((attr) => {
-      const typeSrc = configurationService.config.libraries?.[`${depName}`]?.typeSrc || configurationService.config.typeSrc;
+      const typeSrc =
+        configurationService.config.libraries?.[`${depName}`]?.typeSrc ||
+        configurationService.config.typeSrc;
       const options = parseAttributeValueOptions(attr, typeSrc);
       this.attributeOptions.set(`${tagName}:${attr.name}`, options);
       this.attributeData.set(`${tagName}:${attr.name}`, {
@@ -131,6 +143,21 @@ export class CustomElementsService {
     return () => {
       const index = this.changeListeners.indexOf(callback);
       if (index > -1) this.changeListeners.splice(index, 1);
+    };
+  }
+
+  private notifyManifestLoad(depName: string, manifest: cem.Package) {
+    console.debug("Loaded manifest:", depName, this.loadListeners.length);
+    this.loadListeners.forEach((callback) => callback(depName, manifest));
+  }
+
+  public onManifestLoad(
+    callback: (depName: string, manifest: cem.Package) => void
+  ): () => void {
+    this.loadListeners.push(callback);
+    return () => {
+      const index = this.loadListeners.indexOf(callback);
+      if (index > -1) this.loadListeners.splice(index, 1);
     };
   }
 
@@ -179,6 +206,7 @@ export class CustomElementsService {
     this.manifestWatcher?.unref();
     this.packageJsonWatcher?.close();
     this.changeListeners = [];
+    this.loadListeners = [];
   }
 
   private loadManifests() {
@@ -273,7 +301,9 @@ export class CustomElementsService {
         if (!response.ok) {
           throw new Error(`Failed to fetch ${url}`);
         }
-        return response.json().then((manifest) => this.parseManifest(manifest, depName));
+        return response
+          .json()
+          .then((manifest) => this.parseManifest(manifest, depName));
       })
       .catch((error) => {
         console.error(`Error loading manifest from ${url}:`, error);

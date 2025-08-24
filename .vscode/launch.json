@@ -25,6 +25,17 @@
       "preLaunchTask": "npm: build"
     },
     {
+      "name": "Launch React",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
+        "--folder-uri=${workspaceRoot}/demos/react"
+      ],
+      "outFiles": ["${workspaceFolder}/packages/vscode/dist/**/*.js"],
+      "preLaunchTask": "npm: build"
+    },
+    {
       "name": "Attach to Language Server",
       "type": "node",
       "request": "attach",
@@ -42,6 +53,10 @@
     {
       "name": "NPM Demo",
       "configurations": ["Launch NPM", "Attach to Language Server"]
+    },
+    {
+      "name": "React Demo",
+      "configurations": ["Launch React", "Attach to Language Server"]
     }
   ]
 }

@@ -19,6 +19,7 @@
     "@volar/language-server": "~2.4.0",
     "@volar/typescript": "~2.4.0",
     "@wc-toolkit/cem-utilities": "^1.4.1",
+    "@wc-toolkit/jsx-types": "^1.4.2",
     "custom-elements-manifest": "2.1.0",
     "minimatch": "^10.0.3",
     "volar-service-css": "volar-2.4",

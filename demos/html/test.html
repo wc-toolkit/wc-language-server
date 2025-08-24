@@ -18,9 +18,21 @@
       </sl-menu>
     </sl-dropdown>
     <sl-alert></sl-alert>
-    <sl-alert-formatted duration="3000"></sl-alert-formatted>
-    <wa-badge pill=""></wa-badge>
-    <wa-button appearance="outlined"></wa-button>
+    <sl-alert-formatted duration="3000" style="color: aliceblue;"></sl-alert-formatted>
+    <wa-badge pill></wa-badge>
+    <wa-button appearance="outlined" style="--arrow-color: blue; --arrow-color: var(--border-color); --arrow-color: blue; --arrow-size: 10px; color: aqua;"></wa-button>
     <awesome-animated-image></awesome-animated-image>
+    <sl-alert closable></sl-alert>
+    <sl-badge pill variant="primary"></sl-badge>
+    <sl-alert variation=""></sl-alert>
+    <style>
+      sl-menu::part(label) {
+        display: var();
+        --test: 5px;
+        query: "test";
+        align-self: start;
+        -
+      }
+    </style>
   </body>
 </html>

@@ -1,0 +1,6 @@
+.test::part(label) {
+  display: var();
+  --control-box-size: var(--arrow-size);
+  --control-box-size: 40px; /* IGNORE */
+  
+}

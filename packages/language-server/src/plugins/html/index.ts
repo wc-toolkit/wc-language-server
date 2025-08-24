@@ -62,7 +62,7 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
 
         if (shouldRestart) {
           // Restart the language server process
-          process.exit(0);
+          // process.exit(0);
         }
       });
 
