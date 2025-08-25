@@ -1,18 +1,13 @@
 export default {
-  // include: ['**/*.html', '**/*.js', '**/*.md'],
-  // exclude: ['**/*.json'],
-  // tagFormatter: (tag) => `${tag}-formatted`,
-  // diagnosticSeverity: {
-  //   invalidBoolean: 'warning',
-  //   invalidNumber: 'error',
-  //   invalidAttributeValue: 'error',
-  //   deprecatedAttribute: 'warning',
-  //   deprecatedElement: 'warning'
-  // }
-  // manifestSrc: "./_custom-elements.json",
-  // manifestSrc:
-  //   "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/custom-elements.json",
-
+  // Point to the local Shoelace manifest for testing
+  manifestSrc: "./custom-elements.json",
+  
+  validationRules: {
+    deprecation: 'warn',
+    unknownTag: 'warn',
+    unknownAttribute: 'info'
+  },
+  
   libraries: {
     "@shoelace-style": {
       // manifestSrc: 'https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/custom-elements.json'

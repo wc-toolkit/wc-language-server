@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "./my-components.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "A sample custom component",
+          "name": "MyComponent",
+          "tagName": "my-component",
+          "customElement": true,
+          "attributes": [
+            {
+              "name": "name",
+              "type": {
+                "text": "string"
+              },
+              "description": "The name attribute"
+            },
+            {
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "description": "The value attribute"
+            }
+          ]
+        },
+        {
+          "kind": "class",
+          "description": "A sample input component",
+          "name": "MyInput",
+          "tagName": "my-input",
+          "customElement": true,
+          "attributes": [
+            {
+              "name": "type",
+              "type": {
+                "text": "string"
+              },
+              "description": "Input type"
+            },
+            {
+              "name": "placeholder",
+              "type": {
+                "text": "string"
+              },
+              "description": "Placeholder text"
+            }
+          ]
+        },
+        {
+          "kind": "class",
+          "description": "A sample button component",
+          "name": "MyButton",
+          "tagName": "my-button",
+          "customElement": true,
+          "attributes": [
+            {
+              "name": "type",
+              "type": {
+                "text": "string"
+              },
+              "description": "Button type"
+            },
+            {
+              "name": "disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the button is disabled"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

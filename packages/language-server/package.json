@@ -1,11 +1,15 @@
 {
   "name": "@wc-toolkit/language-server",
   "version": "0.0.1",
-  "main": "out/index.js",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./services": "./dist/services/index.js"
+  },
   "license": "MIT",
   "files": [
-    "out/**/*.js",
-    "out/**/*.d.ts"
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
   ],
   "bin": {
     "wc-language-server": "./bin/wc-language-server.js"

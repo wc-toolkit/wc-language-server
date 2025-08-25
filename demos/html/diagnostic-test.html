@@ -1,0 +1,13 @@
+<!-- Test file demonstrating all diagnostic features -->
+
+<!-- Unknown element - should show warning -->
+<unknown-element></unknown-element>
+
+<!-- Known element with unknown attribute - should show info -->
+<sl-alert invalid-attribute="test"></sl-alert>
+
+<!-- Known element with deprecated attribute - should show warning -->
+<sl-alert dep-attr="test"></sl-alert>
+
+<!-- Known element with valid attributes - should show no diagnostics -->
+<sl-button variant="primary" size="large">Click me</sl-button>

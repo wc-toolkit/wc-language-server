@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Components Test</title>
+</head>
+<body>
+    <!-- Valid custom element -->
+    <my-component name="test" value="123"></my-component>
+    
+    <!-- Unknown custom element -->
+    <unknown-element some-attr="value"></unknown-element>
+    
+    <!-- Self-closing custom element -->
+    <my-input type="text" placeholder="Enter text" />
+    
+    <!-- Custom element with unknown attribute -->
+    <my-button type="button" unknown-attr="value">Click me</my-button>
+</body>
+</html>
