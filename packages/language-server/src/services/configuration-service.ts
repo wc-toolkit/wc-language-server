@@ -2,17 +2,19 @@ import * as path from "path";
 import * as fs from "fs";
 import { minimatch } from "minimatch";
 
-export type DiagnosticSeverity = "error" | "warning" | "info" | "hint";
+export type DiagnosticSeverity = "error" | "warning" | "info" | "hint" | "off";
 
 // Add this type for diagnosticSeverity keys
 export type DiagnosticSeverityOptions = keyof NonNullable<
   WCConfig["diagnosticSeverity"]
 >;
 
+type DiagnosticOptions = keyof NonNullable<WCConfig["diagnosticSeverity"]>;
+
 /**  */
 export interface LibraryConfig {
-  /** 
-   * Specify a custom path to the CustomElements Manifest 
+  /**
+   * Specify a custom path to the CustomElements Manifest
    * The path can be for a local file or a remote URL.
    */
   manifestSrc?: string;
@@ -20,8 +22,8 @@ export interface LibraryConfig {
   /** Optional function to format tag names before processing. */
   tagFormatter?: (tagName: string) => string;
 
-  /** 
-   * Alternative property name that types may be mapped to 
+  /**
+   * Alternative property name that types may be mapped to
    * @default "parsedType"
    */
   typeSrc?: string;
@@ -58,6 +60,16 @@ export interface LibraryConfig {
      * @default "error"
      */
     duplicateAttribute?: DiagnosticSeverity;
+    /**
+     * Severity for usage of unknown elements.
+     * @default "warning"
+     */
+    unknownElement?: DiagnosticSeverity;
+    /**
+     * Severity for usage of unknown attributes.
+     * @default "info"
+     */
+    unknownAttribute?: DiagnosticSeverity;
   };
 
   /**
@@ -104,6 +116,8 @@ const DEFAULT_CONFIG: WCConfig = {
     deprecatedAttribute: "warning",
     deprecatedElement: "warning",
     duplicateAttribute: "error",
+    unknownElement: "hint",
+    unknownAttribute: "hint",
   },
 };
 
@@ -151,7 +165,9 @@ export class ConfigurationService {
 
     // Set default values for each library
     userConfig.libraries = userConfig.libraries || {};
-    for (const [libraryName, libraryConfig] of Object.entries(userConfig.libraries)) {
+    for (const [libraryName, libraryConfig] of Object.entries(
+      userConfig.libraries
+    )) {
       mergedConfig.libraries![libraryName] = {
         ...DEFAULT_CONFIG,
         ...libraryConfig,
@@ -199,14 +215,9 @@ export class ConfigurationService {
     ];
 
     if (config.diagnosticSeverity) {
-      const diagnosticKeys = [
-        "invalidBoolean",
-        "invalidNumber",
-        "invalidAttributeValue",
-        "deprecatedAttribute",
-        "deprecatedElement",
-        "duplicateAttribute",
-      ] as const;
+      const diagnosticKeys = Object.keys(
+        DEFAULT_CONFIG.diagnosticSeverity!
+      ) as DiagnosticOptions[];
 
       for (const key of diagnosticKeys) {
         if (
@@ -240,10 +251,16 @@ export class ConfigurationService {
   }
 
   public getFormattedTagName(tagName: string, library?: string): string {
-    if (library && this.config.libraries && this.config.libraries[library]?.tagFormatter) {
+    if (
+      library &&
+      this.config.libraries &&
+      this.config.libraries[library]?.tagFormatter
+    ) {
       return this.config.libraries[library]!.tagFormatter!(tagName);
     }
-    return this.config.tagFormatter ? this.config.tagFormatter(tagName) : tagName;
+    return this.config.tagFormatter
+      ? this.config.tagFormatter(tagName)
+      : tagName;
   }
 
   private watchConfig() {

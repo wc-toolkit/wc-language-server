@@ -1,6 +1,6 @@
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
-import { removeQuotes } from "@wc-toolkit/cem-utilities";
+import { removeQuotes, Component } from "@wc-toolkit/cem-utilities";
 import { customElementsService } from "../../services/custom-elements-service.js";
 import {
   configurationService,
@@ -30,7 +30,7 @@ export function getValidation(
 /**
  * Recursively validates all nodes in the document.
  */
-function validateNodes(
+export function validateNodes(
   nodes: html.Node[],
   document: html.TextDocument,
   diagnostics: html.Diagnostic[]
@@ -44,9 +44,9 @@ function validateNodes(
 }
 
 /**
- * Validates a single node's attributes if it's a custom element.
+ * Validates a single node - checks for unknown elements and validates attributes.
  */
-function validateSingleNode(
+export function validateSingleNode(
   node: html.Node,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[]
@@ -55,30 +55,82 @@ function validateSingleNode(
     return;
   }
 
+  // Check if this looks like a custom element (contains hyphen)
+  const isCustomElement = node.tag.includes("-");
+  if (!isCustomElement) {
+    return; // Only validate custom elements
+  }
+
   const element = customElementsService.getCustomElement(node.tag);
+
+  // Handle unknown custom elements
   if (!element) {
-    return;
+    validateUnknownElement(node, document, diagnostics);
+    return; // Can't validate attributes on unknown elements
   }
 
   // Check if the element itself is deprecated
-  const elementDeprecation = checkElementDeprecation(node.tag);
-  if (elementDeprecation) {
-    const elementRange = findElementTagRange(document, node);
-    if (elementRange) {
-      diagnostics.push({
-        severity: getSeverityLevel(
-          "deprecatedElement",
-          element.package as string
-        ),
-        range: elementRange,
-        message: elementDeprecation.error,
-        source: "web-components",
-      });
-    }
-  }
+  validateElementDeprecation(node, document, diagnostics, element);
 
   // Parse and validate all raw attributes (handles duplicates and validation)
-  validateRawAttributes(node, document, diagnostics, element.package as string);
+  validateRawAttributes(
+    node,
+    document,
+    diagnostics,
+    element.package as string,
+    element
+  );
+}
+
+/**
+ * Validates and reports unknown custom elements.
+ */
+function validateUnknownElement(
+  node: html.Node,
+  document: html.TextDocument,
+  diagnostics: html.Diagnostic[]
+): void {
+  const elementRange = findElementTagRange(document, node);
+  const severity = getSeverityLevel("unknownElement");
+  
+  if (elementRange && severity) {
+    diagnostics.push({
+      severity: severity,
+      range: elementRange,
+      message: `'${node.tag}' is an unknown custom element. Verify that your dependencies have been correctly installed and that the element is defined in the Custom Elements Manifest.`,
+      source: "wc-toolkit",
+    });
+  }
+}
+
+/**
+ * Validates and reports deprecated elements.
+ */
+function validateElementDeprecation(
+  node: html.Node,
+  document: html.TextDocument,
+  diagnostics: html.Diagnostic[],
+  element: Component
+): void {
+  const elementDeprecationSeverity = getSeverityLevel(
+    "deprecatedElement",
+    element.package as string
+  );
+
+  if (elementDeprecationSeverity) {
+    const elementDeprecation = checkElementDeprecation(node.tag!);
+    if (elementDeprecation) {
+      const elementRange = findElementTagRange(document, node);
+      if (elementRange) {
+        diagnostics.push({
+          severity: elementDeprecationSeverity,
+          range: elementRange,
+          message: elementDeprecation.error,
+          source: "wc-toolkit",
+        });
+      }
+    }
+  }
 }
 
 /**
@@ -89,20 +141,48 @@ function validateRawAttributes(
   node: html.Node,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
-  packageName?: string
+  packageName?: string,
+  element?: Component
 ): void {
-  const text = document.getText();
+  const elementText = extractElementOpeningTag(node, document.getText());
+  const attributes = parseAttributesFromText(elementText, node);
 
-  // Find just the opening tag, not the entire element with children
+  validateAttributeList(attributes, document, diagnostics, packageName, element, node);
+}
+
+/**
+ * Extracts the opening tag text from the full element text.
+ */
+function extractElementOpeningTag(node: html.Node, text: string): string {
   let elementText = text.substring(node.start, node.end);
   const openTagEnd = elementText.indexOf(">");
   if (openTagEnd !== -1) {
     elementText = elementText.substring(0, openTagEnd + 1);
   }
+  return elementText;
+}
 
-  // Use a simple attribute name regex first to find all occurrences
+/**
+ * Parses attributes from element text and returns attribute information.
+ */
+function parseAttributesFromText(
+  elementText: string,
+  node: html.Node
+): Array<{
+  name: string;
+  value: string | null;
+  start: number;
+  end: number;
+  match: RegExpExecArray;
+}> {
   const attrNameRegex = /\s([a-zA-Z][a-zA-Z0-9-]*)/g;
-  const seenAttrs = new Set<string>();
+  const attributes: Array<{
+    name: string;
+    value: string | null;
+    start: number;
+    end: number;
+    match: RegExpExecArray;
+  }> = [];
   let match;
 
   while ((match = attrNameRegex.exec(elementText)) !== null) {
@@ -115,65 +195,242 @@ function validateRawAttributes(
 
     const attrStart = node.start + match.index + 1; // +1 to skip leading space
     const attrNameEnd = attrStart + attrName.length;
+    const attrValue = extractAttributeValue(elementText, match);
 
+    attributes.push({
+      name: attrName,
+      value: attrValue,
+      start: attrStart,
+      end: attrNameEnd,
+      match: match,
+    });
+  }
+
+  return attributes;
+}
+
+/**
+ * Validates a list of parsed attributes.
+ */
+function validateAttributeList(
+  attributes: Array<{
+    name: string;
+    value: string | null;
+    start: number;
+    end: number;
+    match: RegExpExecArray;
+  }>,
+  document: html.TextDocument,
+  diagnostics: html.Diagnostic[],
+  packageName?: string,
+  element?: Component,
+  node?: html.Node
+): void {
+  const seenAttrs = new Set<string>();
+
+  for (const attr of attributes) {
     // Check for duplicate attributes
-    if (seenAttrs.has(attrName)) {
+    validateDuplicateAttribute(
+      attr.name,
+      seenAttrs,
+      document,
+      diagnostics,
+      attr.start,
+      attr.end,
+      packageName
+    );
+
+    seenAttrs.add(attr.name);
+
+    // Validate attribute value
+    if (node) {
+      validateSingleAttributeValue(
+        node,
+        document,
+        diagnostics,
+        attr.name,
+        attr.value,
+        attr.start,
+        attr.match,
+        packageName
+      );
+
+      // Check attribute deprecation
+      validateAttributeDeprecation(
+        node,
+        document,
+        diagnostics,
+        attr.name,
+        attr.start,
+        attr.end,
+        packageName
+      );
+
+      // Check for unknown attributes on known elements
+      validateUnknownAttribute(
+        element,
+        document,
+        diagnostics,
+        attr.name,
+        node.tag!,
+        attr.start,
+        attr.end,
+        packageName
+      );
+    }
+  }
+}
+
+/**
+ * Validates and reports duplicate attributes.
+ */
+function validateDuplicateAttribute(
+  attrName: string,
+  seenAttrs: Set<string>,
+  document: html.TextDocument,
+  diagnostics: html.Diagnostic[],
+  attrStart: number,
+  attrNameEnd: number,
+  packageName?: string
+): void {
+  if (seenAttrs.has(attrName)) {
+    const severity = getSeverityLevel("duplicateAttribute", packageName);
+    if (severity) {
       diagnostics.push({
-        severity: getSeverityLevel("duplicateAttribute", packageName),
+        severity: severity,
         range: {
           start: document.positionAt(attrStart),
           end: document.positionAt(attrNameEnd),
         },
         message: `Duplicate attribute "${attrName}" found.`,
-        source: "web-components",
+        source: "wc-toolkit",
       });
     }
-    seenAttrs.add(attrName);
+  }
+}
 
-    // Look ahead to see if this attribute has a value
-    const afterAttrName = elementText.substring(match.index + match[0].length);
+/**
+ * Extracts the value of an attribute from the element text.
+ */
+function extractAttributeValue(
+  elementText: string,
+  match: RegExpExecArray
+): string | null {
+  const afterAttrName = elementText.substring(match.index + match[0].length);
+  const valueMatch = afterAttrName.match(
+    /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/
+  );
+  return valueMatch
+    ? valueMatch[1] !== undefined
+      ? valueMatch[1]
+      : valueMatch[2]
+    : null;
+}
+
+/**
+ * Validates a single attribute's value.
+ */
+function validateSingleAttributeValue(
+  node: html.Node,
+  document: html.TextDocument,
+  diagnostics: html.Diagnostic[],
+  attrName: string,
+  attrValue: string | null,
+  attrStart: number,
+  match: RegExpExecArray,
+  packageName?: string
+): void {
+  const validation = validateAttributeValue(
+    node.tag || "",
+    attrName,
+    attrValue
+  );
+  
+  if (validation) {
+    const afterAttrName = document.getText().substring(node.start + match.index + match[0].length);
     const valueMatch = afterAttrName.match(
       /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/
     );
-    const attrValue = valueMatch
-      ? valueMatch[1] !== undefined
-        ? valueMatch[1]
-        : valueMatch[2]
-      : null;
-
-    // Validate this specific attribute occurrence
-    const validation = validateAttributeValue(
-      node.tag || "",
-      attrName,
-      attrValue
-    );
-    if (validation) {
-      const fullMatchLength =
-        match[0].length + (valueMatch ? valueMatch[0].length : 0);
-      const range = {
-        start: document.positionAt(attrStart),
-        end: document.positionAt(attrStart + fullMatchLength - 1),
-      };
+    const fullMatchLength =
+      match[0].length + (valueMatch ? valueMatch[0].length : 0);
+    const range = {
+      start: document.positionAt(attrStart),
+      end: document.positionAt(attrStart + fullMatchLength - 1),
+    };
+    const severity = getSeverityLevel(validation.type, packageName);
+    if (severity) {
       diagnostics.push({
-        severity: getSeverityLevel(validation.type, packageName),
+        severity,
         range,
         message: validation.error,
-        source: "web-components",
+        source: "wc-toolkit",
       });
     }
+  }
+}
 
-    // Check attribute deprecation
+/**
+ * Validates and reports deprecated attributes.
+ */
+function validateAttributeDeprecation(
+  node: html.Node,
+  document: html.TextDocument,
+  diagnostics: html.Diagnostic[],
+  attrName: string,
+  attrStart: number,
+  attrNameEnd: number,
+  packageName?: string
+): void {
+  const attributeDeprecationSeverity = getSeverityLevel("deprecatedAttribute", packageName);
+  if (attributeDeprecationSeverity) {
     const deprecation = checkAttributeDeprecation(node.tag || "", attrName);
     if (deprecation) {
-      diagnostics.push({
-        severity: getSeverityLevel("deprecatedAttribute", packageName),
-        range: {
-          start: document.positionAt(attrStart),
-          end: document.positionAt(attrNameEnd),
-        },
-        message: deprecation.error,
-        source: "web-components",
-      });
+      const severity = getSeverityLevel("deprecatedAttribute", packageName);
+      if (severity) {
+        diagnostics.push({
+          severity,
+          range: {
+            start: document.positionAt(attrStart),
+            end: document.positionAt(attrNameEnd),
+          },
+          message: deprecation.error,
+          source: "wc-toolkit",
+        });
+      }
+    }
+  }
+}
+
+/**
+ * Validates and reports unknown attributes on known elements.
+ */
+function validateUnknownAttribute(
+  element: Component | undefined,
+  document: html.TextDocument,
+  diagnostics: html.Diagnostic[],
+  attrName: string,
+  tagName: string,
+  attrStart: number,
+  attrNameEnd: number,
+  packageName?: string
+): void {
+  if (element && element.attributes) {
+    const isKnownAttribute = element.attributes.some(
+      (attr: { name: string }) => attr.name === attrName
+    );
+    if (!isKnownAttribute) {
+      const severity = getSeverityLevel("unknownAttribute", packageName);
+      if (severity) {
+        diagnostics.push({
+          severity: severity,
+          range: {
+            start: document.positionAt(attrStart),
+            end: document.positionAt(attrNameEnd),
+          },
+          message: `'${attrName}' is not a defined attribute for '${tagName}', so this may not behave as expected.`,
+          source: "wc-toolkit",
+        });
+      }
     }
   }
 }
@@ -248,7 +505,7 @@ function validateAttributeValue(
 function getSeverityLevel(
   type: DiagnosticSeverityOptions,
   packageName?: string
-): DiagnosticSeverity {
+): DiagnosticSeverity | 0 {
   const libraryConfig = packageName
     ? configurationService?.config?.libraries?.[packageName]
         ?.diagnosticSeverity?.[type]
@@ -267,7 +524,7 @@ function getSeverityLevel(
     case "hint":
       return DiagnosticSeverity.Hint;
     default:
-      return DiagnosticSeverity.Error;
+      return 0;
   }
 }
 
@@ -340,27 +597,4 @@ function checkAttributeDeprecation(
   return {
     error: deprecationMessage,
   };
-}
-
-/**
- * Validates element attributes (legacy API).
- */
-export function validateElementAttributes(
-  tagName: string,
-  attributes: Record<string, string>
-): Array<{ attributeName: string; error: string }> {
-  const errors: Array<{ attributeName: string; error: string }> = [];
-
-  if (!customElementsService.hasCustomElement(tagName)) {
-    return errors;
-  }
-
-  for (const [attrName, attrValue] of Object.entries(attributes)) {
-    const validation = validateAttributeValue(tagName, attrName, attrValue);
-    if (validation) {
-      errors.push({ attributeName: attrName, error: validation.error });
-    }
-  }
-
-  return errors;
 }
