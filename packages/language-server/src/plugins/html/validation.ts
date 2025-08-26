@@ -1,11 +1,11 @@
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 import { removeQuotes } from "@wc-toolkit/cem-utilities";
-import { customElementsService } from "../../services/custom-elements-service";
+import { customElementsService } from "../../services/custom-elements-service.js";
 import {
   configurationService,
   DiagnosticSeverityOptions,
-} from "../../services/configuration-service";
+} from "../../services/configuration-service.js";
 
 /**
  * Main entry point - provides all diagnostics for a document.

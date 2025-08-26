@@ -1,7 +1,7 @@
 import { CodeMapping, VirtualCode } from "@volar/language-core";
 import type * as ts from "typescript";
 import * as html from "vscode-html-languageservice";
-import { customElementsService } from "./services/custom-elements-service";
+import { customElementsService } from "./services/custom-elements-service.js";
 
 /**
  * Enhanced virtual code that creates better mappings for Web Components
@@ -68,7 +68,7 @@ export class WebComponentsVirtualCode implements VirtualCode {
           const element = customElementsService.getCustomElement(node.tag);
           Object.keys(node.attributes).forEach(attrName => {
             const isCustomAttribute = element?.attributes?.some(
-              attr => attr.name === attrName
+              (attr: { name: string }) => attr.name === attrName
             );
             
             if (isCustomAttribute) {

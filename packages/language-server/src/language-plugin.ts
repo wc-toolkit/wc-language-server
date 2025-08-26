@@ -9,7 +9,7 @@ import type { TypeScriptExtraServiceScript } from "@volar/typescript";
 import type * as ts from "typescript";
 import * as html from "vscode-html-languageservice";
 import { URI } from "vscode-uri";
-import { WebComponentsVirtualCode } from "./language-plugin-enhanced";
+import { WebComponentsVirtualCode } from "./language-plugin-enhanced.js";
 
 /** File extensions supported by the language plugin */
 const SUPPORTED_EXTENSIONS = {
