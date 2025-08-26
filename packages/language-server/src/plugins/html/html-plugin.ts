@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { LanguageServiceContext, LanguageServicePlugin } from "@volar/language-server";
 import { create as createHtmlService } from "volar-service-html";
-import { customElementsService } from "../../services/custom-elements-service";
-import { configurationService } from "../../services/configuration-service";
+import { customElementsService } from "../../services/custom-elements-service.js";
+import { configurationService } from "../../services/configuration-service.js";
 import * as html from "vscode-html-languageservice";
-import { getHoverContent } from "./hover";
-import { getAutoCompleteSuggestions } from "./autocomplete";
-import { getGoToDefinition } from "./go-to-definition";
-import { getValidation } from "./validation";
+import { getHoverContent } from "./hover.js";
+import { getAutoCompleteSuggestions } from "./autocomplete.js";
+import { getGoToDefinition } from "./go-to-definition.js";
+import { getValidation } from "./validation.js";
 
 /**
  * Consolidated Web Components HTML service that leverages Volar's built-in HTML service

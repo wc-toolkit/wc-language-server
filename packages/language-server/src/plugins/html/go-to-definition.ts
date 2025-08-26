@@ -1,4 +1,4 @@
-import { customElementsService } from "../../services/custom-elements-service";
+import { customElementsService } from "../../services/custom-elements-service.js";
 import * as html from "vscode-html-languageservice";
 import * as fs from "fs";
 import * as path from "path";
