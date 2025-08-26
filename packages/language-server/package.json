@@ -1,7 +1,13 @@
 {
   "name": "@wc-toolkit/language-server",
   "version": "0.0.1",
+  "type": "module",
   "main": "out/index.js",
+  "exports": {
+    ".": "./out/index.js",
+    "./services": "./out/services/index.js",
+    "./plugins/html": "./out/plugins/html/index.js"
+  },
   "license": "MIT",
   "files": [
     "out/**/*.js",

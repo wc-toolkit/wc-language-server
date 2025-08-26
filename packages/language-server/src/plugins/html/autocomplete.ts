@@ -2,9 +2,9 @@ import { getComponentDetailsTemplate } from "@wc-toolkit/cem-utilities";
 import {
   AttributeInfo,
   customElementsService,
-} from "../../services/custom-elements-service";
+} from "../../services/custom-elements-service.js";
 import * as html from "vscode-html-languageservice";
-import { configurationService } from "../../services/configuration-service";
+import { configurationService } from "../../services/configuration-service.js";
 
 export function getAutoCompleteSuggestions(
   document: html.TextDocument,

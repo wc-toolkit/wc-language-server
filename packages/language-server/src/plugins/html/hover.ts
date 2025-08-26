@@ -1,5 +1,5 @@
 import * as html from "vscode-html-languageservice";
-import { customElementsService } from "../../services/custom-elements-service";
+import { customElementsService } from "../../services/custom-elements-service.js";
 import { getComponentDetailsTemplate } from "@wc-toolkit/cem-utilities";
 import { Hover, NullableProviderResult } from "@volar/language-server";
 

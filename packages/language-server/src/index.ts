@@ -3,12 +3,13 @@ import {
   createServer,
   createTypeScriptProject,
   loadTsdkByPath,
-} from "@volar/language-server/node";
+  InitializeParams,
+} from "@volar/language-server/node.js";
 import { create as createCssService } from "volar-service-css";
 import { create as createEmmetService } from "volar-service-emmet";
 import { create as createTypeScriptServices } from "volar-service-typescript";
-import { wcLanguagePlugin } from "./language-plugin";
-import { webComponentHtmlPlugin } from "./plugins/html/html-plugin";
+import { wcLanguagePlugin } from "./language-plugin.js";
+import { webComponentHtmlPlugin } from "./plugins/html/html-plugin.js";
 
 /** Language Server Protocol connection instance for communication with the client */
 const connection = createConnection();
@@ -26,7 +27,7 @@ connection.listen();
  * @param params - Initialization parameters from the client containing workspace info and settings
  * @returns Promise that resolves with server initialization result
  */
-connection.onInitialize((params) => {
+connection.onInitialize((params: InitializeParams) => {
   // Handle case where TypeScript SDK might not be provided
   const tsdkPath =
     params.initializationOptions?.typescript?.tsdk || "typescript/lib";
