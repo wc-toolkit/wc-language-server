@@ -8,6 +8,8 @@ import { Component, getAllComponents } from '@wc-toolkit/cem-utilities';
 export interface WCConfig {
   manifestSrc?: string;
   typeSrc?: string;
+  include?: string[];
+  exclude?: string[];
   libraries?: Record<string, {
     manifestSrc?: string;
     typeSrc?: string;
