@@ -15,4 +15,3 @@ export {
   BaseConfigurationManager
 } from "./shared-configuration.js";
 export { customElementsService, CustomElementsService } from "./custom-elements-service.js";
-export { ReactiveService } from "./reactive-service.js";

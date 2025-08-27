@@ -300,8 +300,8 @@ export class BaseConfigurationManager {
     for (const listener of this.changeListeners) {
       try {
         listener();
-      } catch (err) {
-        error('Error in config change listener:', err as any);
+      } catch (err: unknown) {
+        error('Error in config change listener:', err);
       }
     }
   }
