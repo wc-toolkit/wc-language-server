@@ -1,0 +1,53 @@
+{
+  "name": "@wc-toolkit/cli",
+  "version": "1.0.0",
+  "description": "CLI tool for validating Web Components using Custom Elements Manifest",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "wc-validate": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "dev2": "node --experimental-strip-types src/cli.ts",
+    "start": "node dist/cli.js",
+    "demo:validate": "node dist/cli.js validate --config demo/wc.config.js demo/*.html",
+    "predemo:validate": "pnpm --filter @wc-toolkit/language-server run build && pnpm --filter @wc-toolkit/cli run build",
+    "demo:validate-json": "node dist/cli.js validate --config demo/wc.config.js --format json demo/*.html",
+    "demo:validate-junit": "node dist/cli.js validate --config demo/wc.config.js --format junit demo/*.html",
+    "demo:init": "node dist/cli.js init demo/sample-config.js",
+    "demo:all": "pnpm run demo:validate && pnpm run demo:validate-json && pnpm run demo:validate-junit",
+    "demo:test": "node demo/test-runner.mjs",
+    "smoke:validate": "node ./smoke/smoke-validate.mjs",
+    "smoke:config": "node ./smoke/smoke-config-resolution.mjs",
+    "test:unit": "node --test ./test/config-resolution.test.mjs",
+    "pretest:unit": "pnpm --filter @wc-toolkit/language-server run build",
+    "test:demo": "cd demo && node ../dist/cli.js validate *.html"
+  },
+  "keywords": [
+    "web-components",
+    "custom-elements",
+    "validation",
+    "cli",
+    "html"
+  ],
+  "dependencies": {
+    "@wc-toolkit/language-server": "workspace:*",
+    "commander": "^11.0.0",
+    "chalk": "^5.3.0",
+    "glob": "^10.3.0",
+    "minimatch": "^10.0.3",
+    "vscode-html-languageservice": "^5.3.1",
+    "vscode-languageserver-textdocument": "^1.0.11",
+    "vscode-languageserver-types": "^3.17.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

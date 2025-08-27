@@ -9,7 +9,7 @@ let restartCommandRegistered = false;
 export async function activate(context: vscode.ExtensionContext) {
 
 	const serverModule = vscode.Uri.joinPath(context.extensionUri, 'dist', 'server.js');
-	const runOptions = { execArgv: <string[]>[] };
+	const runOptions = { execArgv: [] as string[] };
 	const debugOptions = { execArgv: ['--nolazy', '--inspect=' + 6009] };
 	const serverOptions: ServerOptions = {
 		run: {

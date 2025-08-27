@@ -22,20 +22,18 @@ export function getGoToDefinition(document: html.TextDocument, position: html.Po
 
   const manifestPath = customElementsService.getManifestPath();
   if (!manifestPath) {
-    console.warn("No manifest path found for custom elements");
+    // silent
     return null;
   }
 
   // Check if the manifest file actually exists
-  try {
-    if (!fs.existsSync(manifestPath)) {
-      console.warn(`Manifest file not found: ${manifestPath}`);
+    try {
+      if (!fs.existsSync(manifestPath)) {
+        return null;
+      }
+    } catch {
       return null;
     }
-  } catch (error) {
-    console.warn(`Error checking manifest file: ${error}`);
-    return null;
-  }
 
   // Find position in manifest - look for the tag name definition
   const positionInManifest = customElementsService.findPositionInManifest(
@@ -93,11 +91,8 @@ function convertPositionToRange(
       start: { line: 0, character: 0 },
       end: { line: 0, character: 10 },
     };
-  } catch (error) {
-    console.warn(
-      `Error reading manifest file for position conversion: ${error}`
-    );
-    // Fallback range
+  } catch {
+    // suppressed
     return {
       start: { line: 0, character: 0 },
       end: { line: 0, character: 10 },

@@ -13,16 +13,18 @@ export class WebComponentsVirtualCode implements VirtualCode {
   mappings: CodeMapping[];
   embeddedCode: VirtualCode[] = [];
   htmlDocument: html.HTMLDocument;
+  snapshot: ts.IScriptSnapshot
 
-  constructor(public snapshot: ts.IScriptSnapshot) {
-    const text = snapshot.getText(0, snapshot.getLength());
+  constructor(_snapshot: ts.IScriptSnapshot) {
+    this.snapshot = _snapshot;
+    const text = this.snapshot.getText(0, this.snapshot.getLength());
     this.htmlDocument = html.getLanguageService().parseHTMLDocument(
       html.TextDocument.create("", "html", 0, text)
     );
     
     // Create more granular mappings for custom elements
     this.mappings = this.createCustomElementMappings(text);
-    this.embeddedCode = [...this.extractEmbeddedCode(snapshot)];
+    this.embeddedCode = [...this.extractEmbeddedCode(this.snapshot)];
   }
 
   /**

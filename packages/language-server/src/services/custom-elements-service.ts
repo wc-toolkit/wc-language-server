@@ -2,6 +2,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { configurationService } from "./configuration-service.js";
+import { debug, warn, error } from "../util/logger.js";
 import type * as cem from "custom-elements-manifest/schema.js";
 import { Component, getAllComponents } from "@wc-toolkit/cem-utilities";
 import { parseAttributeValueOptions } from "../utilities/cem-utils.js";
@@ -41,6 +42,12 @@ export class CustomElementsService {
     this.initialize();
   }
 
+  public setWorkspaceRoot(root: string): void {
+  this.workspaceRoot = root;
+  debug("Setting workspace root to:", root);
+    this.reLoadManifests();
+  }
+
   private initialize() {
     this.loadManifests();
     this.watchManifest();
@@ -70,8 +77,8 @@ export class CustomElementsService {
         this.loadManifestFromFile(this.workspaceRoot, cemPath);
       }
       this.notifyChange();
-    } catch (error) {
-      console.error("Error loading custom elements manifest:", error);
+    } catch (err) {
+      error("Error loading custom elements manifest:", err);
     }
   }
 
@@ -95,9 +102,15 @@ export class CustomElementsService {
     });
   }
 
-  private setAttributeOptions(tagName: string, component: Component, depName?: string) {
-    component.attributes?.forEach((attr) => {
-      const typeSrc = configurationService.config.libraries?.[`${depName}`]?.typeSrc || configurationService.config.typeSrc;
+  private setAttributeOptions(
+    tagName: string,
+    component: Component,
+    depName?: string
+  ) {
+  component.attributes?.forEach((attr) => {
+      const typeSrc =
+        configurationService.config.libraries?.[`${depName}`]?.typeSrc ||
+        configurationService.config.typeSrc;
       const options = parseAttributeValueOptions(attr, typeSrc);
       this.attributeOptions.set(`${tagName}:${attr.name}`, options);
       this.attributeData.set(`${tagName}:${attr.name}`, {
@@ -117,8 +130,8 @@ export class CustomElementsService {
       this.manifestWatcher = fs.watchFile(this.manifestPath, () => {
         this.loadGlobalManifest();
       });
-    } catch (error) {
-      console.error("Error watching manifest file:", error);
+    } catch (err) {
+      error("Error watching manifest file:", err);
     }
   }
 
@@ -189,11 +202,15 @@ export class CustomElementsService {
       this.loadConfigManifests();
       this.loadDependencyManifests();
     } catch (error) {
-      console.error("There was an error loading manifests:", error);
+      void error;
     }
   }
 
   private loadConfigManifests() {
+    if (configurationService.config.manifestSrc) {
+      this.loadManifestFromFile(this.workspaceRoot, configurationService.config.manifestSrc);
+    }
+
     const libraryConfigs = configurationService.config.libraries;
     if (!libraryConfigs) {
       return;
@@ -214,32 +231,30 @@ export class CustomElementsService {
 
   private loadDependencyManifests() {
     if (!fs.existsSync(this.packageJsonPath)) {
-      console.error("package.json not found.");
+      warn('package.json not found.');
       return;
     }
 
-    const packageJson = JSON.parse(readFileSync(this.packageJsonPath, "utf8"));
+  const packageJson = JSON.parse(readFileSync(this.packageJsonPath, "utf8")) || {};
+  const dependencies = packageJson.dependencies || {};
 
-    for (const depName of Object.keys(packageJson.dependencies)) {
+  for (const depName of Object.keys(dependencies)) {
       try {
         // Try to resolve the dependency's package root
         const depPkgPath = path.join("node_modules", depName, "package.json");
         const depRoot = path.join("node_modules", depName);
 
         // Read the dependency's package.json
-        let depPkg: any = {};
+        let depPkg: Record<string, unknown> = {};
         try {
-          depPkg = JSON.parse(readFileSync(depPkgPath, "utf8"));
-        } catch (error) {
-          console.error(
-            `Error reading package.json from ${depPkgPath}:`,
-            error
-          );
+          depPkg = JSON.parse(readFileSync(depPkgPath, "utf8")) as Record<string, unknown>;
+        } catch (err) {
+          warn(`Error reading package.json from ${depPkgPath}:`, err as any);
         }
 
-        this.loadManifestFromFile(depRoot, depPkg.customElements, depName);
-      } catch (error) {
-        console.error(`Error loading CEM for dependency ${depName}:`, error);
+        this.loadManifestFromFile(depRoot, (depPkg as any).customElements, depName);
+      } catch (err) {
+        error(`Error loading CEM for dependency ${depName}:`, err as any);
       }
     }
   }
@@ -273,11 +288,13 @@ export class CustomElementsService {
         if (!response.ok) {
           throw new Error(`Failed to fetch ${url}`);
         }
-        return response.json().then((manifest) => this.parseManifest(manifest, depName));
+        return response
+          .json()
+          .then((manifest) => this.parseManifest(manifest, depName));
       })
-      .catch((error) => {
-        console.error(`Error loading manifest from ${url}:`, error);
-      });
+      .catch((err) => {
+          error(`Error loading manifest from ${url}:`, err as any);
+        });
   }
 
   private watchPackageJson() {
@@ -296,8 +313,8 @@ export class CustomElementsService {
           this.notifyChange();
         }
       );
-    } catch (error) {
-      console.error("Error watching package.json file:", error);
+    } catch (err) {
+      error("Error watching package.json file:", err as any);
     }
   }
 

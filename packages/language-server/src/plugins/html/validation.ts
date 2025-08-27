@@ -7,20 +7,26 @@ import {
   DiagnosticSeverityOptions,
 } from "../../services/configuration-service.js";
 
+// Compatible document interface that matches both vscode-languageserver-textdocument and html.TextDocument
+interface DocumentLike {
+  uri: string;
+  languageId: string;
+  version: number;
+  lineCount: number;
+  getText(): string;
+  positionAt(offset: number): { line: number; character: number };
+  offsetAt(position: { line: number; character: number }): number;
+}
+
 /**
  * Main entry point - provides all diagnostics for a document.
  */
 export function getValidation(
-  document: html.TextDocument,
+  document: DocumentLike,
   htmlLanguageService: html.LanguageService
 ): html.Diagnostic[] {
-  const textDocument = html.TextDocument.create(
-    document.uri,
-    "html",
-    0,
-    document.getText()
-  );
-  const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
+  // Use the document directly for parsing
+  const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
   const diagnostics: html.Diagnostic[] = [];
 
   validateNodes(htmlDocument.roots, document, diagnostics);
@@ -32,7 +38,7 @@ export function getValidation(
  */
 export function validateNodes(
   nodes: html.Node[],
-  document: html.TextDocument,
+  document: DocumentLike,
   diagnostics: html.Diagnostic[]
 ): void {
   for (const node of nodes) {
@@ -48,7 +54,7 @@ export function validateNodes(
  */
 export function validateSingleNode(
   node: html.Node,
-  document: html.TextDocument,
+  document: DocumentLike,
   diagnostics: html.Diagnostic[]
 ): void {
   if (!node.tag) {

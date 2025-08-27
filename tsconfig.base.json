@@ -10,6 +10,7 @@
     "skipLibCheck": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
     "baseUrl": "./",
     "paths": {
       "@wc-toolkit/language-server": ["packages/language-server/src"]
