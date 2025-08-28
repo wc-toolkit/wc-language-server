@@ -1,3 +1,7 @@
 {
-  "cSpell.words": ["languageservice"]
+  "cSpell.words": [
+    "languageservice",
+    "sarif",
+    "wclint"
+  ]
 }

@@ -1,12 +1,12 @@
-# Contributing to @wc-toolkit/cli
+# Contributing to @wc-toolkit/wclint
 
 Thanks for helping improve the CLI demo and validation tooling — this document explains how to get the repo running locally, how to run the demo validations, and a few troubleshooting tips (including the manifest path issue and how it was fixed).
 
 ## Quick checklist
 
 - [ ] Build the workspace: `pnpm -w run build` (or build packages individually)
-- [ ] Build the CLI: `pnpm --filter @wc-toolkit/cli run build`
-- [ ] Run demo validation: `pnpm --filter @wc-toolkit/cli run demo:validate`
+- [ ] Build the CLI: `pnpm --filter @wc-toolkit/wclint run build`
+- [ ] Run demo validation: `pnpm --filter @wc-toolkit/wclint run demo:validate`
 
 ## Local development setup
 
@@ -25,7 +25,7 @@ pnpm -w run build
 3. Build CLI package (when changing CLI source)
 
 ```bash
-pnpm --filter @wc-toolkit/cli run build
+pnpm --filter @wc-toolkit/wclint run build
 ```
 
 ## Demo validation usage
@@ -35,7 +35,7 @@ The demo lives in `packages/cli/demo` and includes sample components and a `wc.c
 - Run the demo validation (recommended):
 
 ```bash
-pnpm --filter @wc-toolkit/cli demo:validate
+pnpm --filter @wc-toolkit/wclint demo:validate
 ```
 
 - Or run directly from the CLI package (useful during development):
@@ -72,7 +72,7 @@ export default {
 
 ## Fix applied for manifest path issue
 
-Symptom: Running `pnpm --filter @wc-toolkit/cli demo:validate` used to fail to find the manifest because the CLI package's working directory differed from the demo config location. The CLI loaded the configuration but the services initially tried to load the manifest before the CLI had set/configured the workspace and config context.
+Symptom: Running `pnpm --filter @wc-toolkit/wclint demo:validate` used to fail to find the manifest because the CLI package's working directory differed from the demo config location. The CLI loaded the configuration but the services initially tried to load the manifest before the CLI had set/configured the workspace and config context.
 
 What was changed:
 
@@ -88,7 +88,7 @@ This ensures the custom elements manifest is found and loaded regardless of whet
 
 - Manifest not found (`No manifest file found`):
   - Ensure `manifestSrc` in your `wc.config.js` is correct and is resolved relative to the config file location when using `--config`.
-  - If you changed config location or file name, run `pnpm --filter @wc-toolkit/cli build` to rebuild the CLI so debug/logging and code changes are used.
+  - If you changed config location or file name, run `pnpm --filter @wc-toolkit/wclint build` to rebuild the CLI so debug/logging and code changes are used.
 
 - Still not working: capture the CLI output to a file and inspect it to see the workspace root and resolved manifest path.
 
@@ -138,15 +138,15 @@ Open issues and PRs in this repository. For configuration or manifest issues inc
 - Full CLI output (redirect to a file as shown above)
 
 Thanks for contributing — small reproducible changes and tests are very helpful!
-# Contributing to @wc-toolkit/cli
+# Contributing to @wc-toolkit/wclint
 
 Thanks for helping improve the CLI demo and validation tooling — this document explains how to get the repo running locally, how to run the demo validations, and a few troubleshooting tips (including the manifest path issue and how it was fixed).
 
 ## Quick checklist
 
 - [ ] Build the workspace: `pnpm -w run build` (or build packages individually)
-- [ ] Build the CLI: `pnpm --filter @wc-toolkit/cli run build`
-- [ ] Run demo validation: `pnpm --filter @wc-toolkit/cli run demo:validate`
+- [ ] Build the CLI: `pnpm --filter @wc-toolkit/wclint run build`
+- [ ] Run demo validation: `pnpm --filter @wc-toolkit/wclint run demo:validate`
 
 ## Local development setup
 
@@ -165,7 +165,7 @@ pnpm -w run build
 3. Build CLI package (when changing CLI source)
 
 ```bash
-pnpm --filter @wc-toolkit/cli run build
+pnpm --filter @wc-toolkit/wclint run build
 ```
 
 ## Demo validation usage
@@ -175,7 +175,7 @@ The demo lives in `packages/cli/demo` and includes sample components and a `wc.c
 - Run the demo validation (recommended):
 
 ```bash
-pnpm --filter @wc-toolkit/cli demo:validate
+pnpm --filter @wc-toolkit/wclint demo:validate
 ```
 
 - Or run directly from the CLI package (useful during development):
@@ -212,7 +212,7 @@ export default {
 
 ## Fix applied for manifest path issue
 
-Symptom: Running `pnpm --filter @wc-toolkit/cli demo:validate` used to fail to find the manifest because the CLI package's working directory differed from the demo config location. The CLI loaded the configuration but the services initially tried to load the manifest before the CLI had set/configured the workspace and config context.
+Symptom: Running `pnpm --filter @wc-toolkit/wclint demo:validate` used to fail to find the manifest because the CLI package's working directory differed from the demo config location. The CLI loaded the configuration but the services initially tried to load the manifest before the CLI had set/configured the workspace and config context.
 
 What was changed:
 
@@ -228,7 +228,7 @@ This ensures the custom elements manifest is found and loaded regardless of whet
 
 - Manifest not found (`No manifest file found`):
   - Ensure `manifestSrc` in your `wc.config.js` is correct and is resolved relative to the config file location when using `--config`.
-  - If you changed config location or file name, run `pnpm --filter @wc-toolkit/cli build` to rebuild the CLI so debug/logging and code changes are used.
+  - If you changed config location or file name, run `pnpm --filter @wc-toolkit/wclint build` to rebuild the CLI so debug/logging and code changes are used.
 
 - Still not working: capture the CLI output to a file and inspect it to see the workspace root and resolved manifest path.
 

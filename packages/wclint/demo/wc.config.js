@@ -3,7 +3,9 @@ export default {
   manifestSrc: "./custom-elements.json",
   include: [
     "*.html",
-    "**/*.html"
+    "**/*.html",
+    "**/*.md",
+    "**/*.ts"
   ],
   exclude: [
     "node_modules/**"

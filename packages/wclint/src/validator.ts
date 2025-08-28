@@ -6,7 +6,7 @@ import { getLanguageService } from "vscode-html-languageservice";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Diagnostic } from "vscode-languageserver-types";
 import { getValidation } from "@wc-toolkit/language-server/plugins";
-import { info, debug, warn } from "./logger.js";
+import { debug, warn } from "./logger.js";
 import {
   configurationService as servicesConfiguration,
   customElementsService as servicesCustomElements,
@@ -91,7 +91,6 @@ export async function validateFiles(
     }
   }
 
-  info(`[CLI Validator] Setting workspace root to: ${workspaceRoot}`);
   debug(
     `[CLI Validator] Configuration:`,
     JSON.stringify(resolvedConfig, null, 2)
@@ -107,7 +106,6 @@ export async function validateFiles(
     // Use the service API to update configuration rather than mutating the object directly
     if (typeof configurationService.updateConfig === "function") {
       configurationService.updateConfig(resolvedConfig as Partial<WCConfig>);
-      info(`[CLI Validator] Configuration applied to service`);
     } else {
       throw new Error(
         "configurationService.updateConfig is required; please upgrade @wc-toolkit/language-server"
@@ -120,7 +118,6 @@ export async function validateFiles(
     customElementsService &&
     typeof customElementsService.setWorkspaceRoot === "function"
   ) {
-    info(`[CLI Validator] Setting custom elements service workspace root`);
     customElementsService.setWorkspaceRoot(workspaceRoot);
   }
 
@@ -134,11 +131,21 @@ export async function validateFiles(
   for (const file of files) {
     try {
       const content = await fs.promises.readFile(file, "utf-8");
+      let fileContent = content;
+      const ext = path.extname(file).toLowerCase();
+
+      if (ext === ".md" || ext === ".mdx") {
+        // Extract HTML fragments from Markdown/MDX. Prefer fenced HTML blocks
+        // (```html) and fall back to stripping code fences so inline HTML
+        // remains for validation.
+        fileContent = extractHtmlFromMarkdown(fileContent);
+      }
+
       const document = TextDocument.create(
         `file://${file}`,
         getLanguageId(file),
         1,
-        content
+        fileContent
       );
 
       const diagnostics = getValidation(document, htmlLanguageService);
@@ -208,6 +215,8 @@ function shouldValidateFile(filePath: string, config: WCConfig): boolean {
     ".tsx",
     ".vue",
     ".svelte",
+    ".md",
+    ".mdx",
   ];
 
   // Check if file extension is supported
@@ -255,7 +264,37 @@ function getLanguageId(filePath: string): string {
       return "vue";
     case ".svelte":
       return "svelte";
+    case ".md":
+    case ".mdx":
+      // Treat Markdown/MDX as HTML for embedded markup validation. MDX may
+      // contain JSX, but we validate HTML fragments (custom elements) inside
+      // markdown pages by using the HTML language service.
+      return "html";
     default:
       return "html"; // Default to HTML for unknown extensions
   }
+}
+
+/**
+ * Very small Markdown/MDX HTML extractor.
+ *
+ * - Collects content from fenced HTML blocks (```html ... ```).
+ * - Removes other fenced code blocks so their code doesn't get treated as HTML.
+ * - Leaves inline HTML untouched.
+ */
+function extractHtmlFromMarkdown(md: string): string {
+  // Capture ```html blocks
+  const htmlFenceRegex = /```html\n([\s\S]*?)\n```/gi;
+  let match: RegExpExecArray | null;
+  const parts: string[] = [];
+
+  while ((match = htmlFenceRegex.exec(md))) {
+    parts.push(match[1]);
+  }
+
+  // Remove all fenced code blocks (```lang ... ```) to avoid validating non-HTML code
+  const stripped = md.replace(/```[\s\S]*?```/g, "\n");
+
+  // Combine extracted HTML fences and stripped markdown (which may still contain inline HTML)
+  return parts.join("\n") + "\n" + stripped;
 }

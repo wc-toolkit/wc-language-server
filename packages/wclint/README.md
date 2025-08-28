@@ -1,6 +1,6 @@
-# @wc-toolkit/cli
+# @wc-toolkit/wclint
 
-A command-line interface for validating Web Components using Custom Elements Manifest (CEM). This CLI tool reuses the validation logic from the `@wc-toolkit/language-server` to provide standalone validation capabilities outside of your editor.
+A command-line interface for validating Web Components using Custom Elements Manifest (CEM). This CLI tool reuses the validation logic from the `@wc-toolkit/language-server` to provide standalone validation capabilities outside of your editor. This can be used independently form the Language server, but works best when it is used with it.
 
 ## Features
 
@@ -16,22 +16,22 @@ A command-line interface for validating Web Components using Custom Elements Man
 
 ```bash
 # Install globally
-npm install -g @wc-toolkit/cli
+npm install -g @wc-toolkit/wclint
 
 # Or install locally in your project
-npm install --save-dev @wc-toolkit/cli
+npm install --save-dev @wc-toolkit/wclint
 ```
 
 ## Quick Start
 
 1. **Initialize configuration**:
    ```bash
-   wc-validate init
+   wclint init
    ```
 
 2. **Validate your files**:
    ```bash
-   wc-validate validate "src/**/*.html"
+   wclint validate "src/**/*.html"
    ```
 
 ## Usage
@@ -44,18 +44,18 @@ Validate Web Component files against Custom Elements Manifest.
 
 ```bash
 # Validate specific files
-wc-validate validate src/components/*.html
+wclint validate src/components/*.html
 
 # Validate with glob patterns
-wc-validate validate "src/**/*.{html,js,ts}"
+wclint validate "src/**/*.{html,js,ts}"
 
 # Validate with custom config
-wc-validate validate --config my-config.json "**/*.html"
+wclint validate --config my-config.json "**/*.html"
 
 # Different output formats
-wc-validate validate --format json src/*.html
-wc-validate validate --format junit src/*.html > results.xml
-wc-validate validate --format checkstyle src/*.html
+wclint validate --format json src/*.html
+wclint validate --format junit src/*.html > results.xml
+wclint validate --format checkstyle src/*.html
 ```
 
 **Options:**
@@ -64,58 +64,40 @@ wc-validate validate --format checkstyle src/*.html
 - `--no-color` - Disable colored output
 - `-v, --verbose` - Show files with no issues
 
-#### `init [options]`
+**Additional Options:**
+- `-o, --output <file>` - Write results to a file. When `--format` is omitted, the CLI will try to autodetect the format from the output filename extension (for example: `.sarif`, `.html`, `.json`, `.xml`).
 
-Create a sample configuration file.
+#### `init`
+
+Create a sample configuration file. This file uses the same format as the Language Server and will be shared by both.
 
 ```bash
 # Create default config
-wc-validate init
-
-# Create with custom filename
-wc-validate init --file wc.config.js
+wclint init
 ```
+
+## Programmatic API
+
+You can also import types and the programmatic adapter directly from `@wc-toolkit/wclint` when using this package as a dependency:
+
+```ts
+import type { WCConfig } from '@wc-toolkit/wclint';
+import { runValidate } from '@wc-toolkit/wclint';
+
+const config: WCConfig = { manifestSrc: 'custom-elements.json' };
+await runValidate(['src/**/*.html'], { config: './wc.config.js', format: 'html' });
+```
+
+This is useful for embedding the validator in build scripts or custom tooling without spawning child processes.
 
 **Options:**
 - `-f, --file <filename>` - Configuration file name (default: `wc.config.json`)
 
 ## Configuration
 
-The CLI supports multiple configuration file formats:
-
-- `wc.config.json`
-- `wc.config.js`
-- `.wcrc.json`
-- `.wcrc.js`
-- `.wcrc`
+The CLI will use a default configuration if one isn't specified. You can set custom configurations by creating a `wc.config.js` file at the root of your project.
 
 ### Configuration Example
-
-```json
-{
-  "manifestSrc": "custom-elements.json",
-  "include": [
-    "src/**/*.html",
-    "src/**/*.js",
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules/**",
-    "dist/**",
-    "build/**"
-  ],
-  "diagnosticSeverity": {
-    "unknownElement": "warning",
-    "unknownAttribute": "warning",
-    "deprecatedElement": "warning",
-    "deprecatedAttribute": "warning",
-    "invalidBoolean": "error",
-    "invalidNumber": "error",
-    "invalidAttributeValue": "error",
-    "duplicateAttribute": "error"
-  }
-}
-```
 
 ### JavaScript Configuration
 
@@ -170,6 +152,15 @@ Configure the severity level for different types of validation issues:
 
 ## Output Formats
 
+Choose an output format based on who (or what) will consume the results:
+
+- Use the default Text format for quick, human-readable checks in a terminal.
+- Use JSON when you need a machine-readable export for dashboards, scripts, or editor integrations.
+- Use JUnit XML to integrate with CI systems that display test reports (GitHub Actions, GitLab, Jenkins).
+- Use Checkstyle XML when you want to feed results into code-quality tools or PR annotation bots that understand the Checkstyle schema.
+
+Below are short notes on common consumers and why a format might be preferred.
+
 ### Text Format (Default)
 
 ```
@@ -204,7 +195,7 @@ Found 2 hints in 1 file.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="wc-validate" tests="1" failures="0">
+<testsuite name="wclint" tests="1" failures="0">
   <testcase name="src/components/my-element.html" classname="WebComponentValidation"/>
 </testsuite>
 ```
@@ -215,10 +206,40 @@ Found 2 hints in 1 file.
 <?xml version="1.0" encoding="UTF-8"?>
 <checkstyle version="1.0">
   <file name="src/components/my-element.html">
-    <error line="1" column="15" severity="hint" message="Unknown element: my-custom-element" source="wc-validate"/>
+    <error line="1" column="15" severity="hint" message="Unknown element: my-custom-element" source="wclint"/>
   </file>
 </checkstyle>
 ```
+
+### SARIF Format
+
+SARIF is useful for CI code-scanning integrations and security tools. To produce a SARIF file use either `--format sarif` or an output filename ending in `.sarif`:
+
+```bash
+wclint validate --format sarif "src/**/*.html" > results.sarif
+# or
+wclint validate --output results.sarif "src/**/*.html"
+```
+
+The CLI emits SARIF 2.1.0 with basic tool/driver metadata and rules mapped to diagnostics so code scanning and SARIF viewers can display issues correctly.
+
+### HTML Report
+
+Generate a single-file HTML report suitable for attaching as CI artifacts or sharing with teammates. The HTML is styled and responsive for quick inspection in a browser:
+
+```bash
+wclint validate --format html --output report.html "src/**/*.html"
+# or let the CLI infer HTML from the filename
+wclint validate --output report.html "src/**/*.html"
+```
+
+When saving HTML as a CI artifact you can open it in the browser or attach it to pull requests for easy review.
+
+Which to pick
+
+- Local developer runs: `text` (fast, readable).
+- Automation / integrations: `json`, `junit`, or `checkstyle` depending on the consuming tool.
+- CI reporting & historical metrics: prefer structured formats (`junit`, `json`, or `sarif`) so results can be stored and trended.
 
 ## CI/CD Integration
 
@@ -237,7 +258,7 @@ jobs:
         with:
           node-version: '18'
       - run: npm ci
-      - run: npx wc-validate validate "src/**/*.html"
+      - run: npx wclint validate
 ```
 
 ### GitLab CI
@@ -247,7 +268,7 @@ validate-web-components:
   stage: test
   script:
     - npm ci
-    - npx wc-validate validate --format junit "src/**/*.html" > validation-results.xml
+    - npx wclint validate --format junit "src/**/*.html" > validation-results.xml
   artifacts:
     reports:
       junit: validation-results.xml
@@ -258,8 +279,8 @@ validate-web-components:
 ```json
 {
   "scripts": {
-    "validate:wc": "wc-validate validate \"src/**/*.{html,js,ts}\"",
-    "validate:wc:ci": "wc-validate validate --format junit \"src/**/*.html\" > validation-results.xml"
+    "validate:wc": "wclint validate \"src/**/*.{html,js,ts}\"",
+    "validate:wc:ci": "wclint validate --format junit \"src/**/*.html\" > validation-results.xml"
   }
 }
 ```
@@ -270,47 +291,40 @@ validate-web-components:
 
 ```bash
 # Validate all HTML files in src directory
-wc-validate validate "src/**/*.html"
+wclint validate "src/**/*.html"
 
 # Validate specific files
-wc-validate validate src/button.html src/card.html
+wclint validate src/button.html src/card.html
 
 # Validate with verbose output to see all files processed
-wc-validate validate --verbose "**/*.html"
+wclint validate --verbose "**/*.html"
 ```
 
 ### Custom Configuration
 
 ```bash
 # Use specific config file
-wc-validate validate --config ./configs/strict.json "src/**/*.html"
+wclint validate --config ./configs/strict.js "src/**/*.html"
 
 # Different output formats for CI
-wc-validate validate --format junit "src/**/*.html" > results.xml
-wc-validate validate --format checkstyle "src/**/*.html" > checkstyle.xml
-wc-validate validate --format json "src/**/*.html" > results.json
+wclint validate --format junit "src/**/*.html" > results.xml
+wclint validate --format checkstyle "src/**/*.html" > checkstyle.xml
+wclint validate --format json "src/**/*.html" > results.json
 ```
 
 ### Integration with Build Tools
 
 ```bash
-# Validate before build
-npm run validate:wc && npm run build
+# Validate with build
+npm run build && npm run validate:wc
 
 # Validate in watch mode (using nodemon or similar)
-nodemon --watch src --ext html,js,ts --exec "wc-validate validate 'src/**/*.html'"
+nodemon --watch src --ext html,js,ts --exec "wclint validate 'src/**/*.html'"
 ```
 
 ## Supported File Types
 
-The CLI validates Web Components usage in:
-
-- **HTML** (`.html`, `.htm`) - Template files
-- **JavaScript** (`.js`) - Component definitions and usage
-- **TypeScript** (`.ts`) - Component definitions and usage  
-- **JSX/TSX** (`.jsx`, `.tsx`) - React components using Web Components
-- **Vue** (`.vue`) - Vue single-file components
-- **Svelte** (`.svelte`) - Svelte components
+The CLI currently validates Web Components usage in any file format.
 
 ## Custom Elements Manifest
 
@@ -331,40 +345,6 @@ npm run build
 
 # Using Lit
 npx cem analyze --litelement
-```
-
-## Development
-
-### Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/wc-toolkit/wc-language-server.git
-cd wc-language-server
-
-# Install dependencies
-pnpm install
-
-# Build the language server
-cd packages/language-server
-pnpm build
-
-# Build the CLI
-cd ../cli
-pnpm build
-
-# Test the CLI
-pnpm dev --help
-```
-
-### Running Tests
-
-```bash
-# Run CLI in development mode
-pnpm dev validate "test.html"
-
-# Create test configuration
-pnpm dev init --file test.config.json
 ```
 
 ## Related Projects

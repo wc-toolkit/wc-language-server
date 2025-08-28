@@ -43,8 +43,8 @@ export class CustomElementsService {
   }
 
   public setWorkspaceRoot(root: string): void {
-  this.workspaceRoot = root;
-  debug("Setting workspace root to:", root);
+    this.workspaceRoot = root;
+    debug("Setting workspace root to:", root);
     this.reLoadManifests();
   }
 
@@ -107,7 +107,7 @@ export class CustomElementsService {
     component: Component,
     depName?: string
   ) {
-  component.attributes?.forEach((attr) => {
+    component.attributes?.forEach((attr) => {
       const typeSrc =
         configurationService.config.libraries?.[`${depName}`]?.typeSrc ||
         configurationService.config.typeSrc;
@@ -208,7 +208,10 @@ export class CustomElementsService {
 
   private loadConfigManifests() {
     if (configurationService.config.manifestSrc) {
-      this.loadManifestFromFile(this.workspaceRoot, configurationService.config.manifestSrc);
+      this.loadManifestFromFile(
+        this.workspaceRoot,
+        configurationService.config.manifestSrc
+      );
     }
 
     const libraryConfigs = configurationService.config.libraries;
@@ -231,14 +234,14 @@ export class CustomElementsService {
 
   private loadDependencyManifests() {
     if (!fs.existsSync(this.packageJsonPath)) {
-      warn('package.json not found.');
       return;
     }
 
-  const packageJson = JSON.parse(readFileSync(this.packageJsonPath, "utf8")) || {};
-  const dependencies = packageJson.dependencies || {};
+    const packageJson =
+      JSON.parse(readFileSync(this.packageJsonPath, "utf8")) || {};
+    const dependencies = packageJson.dependencies || {};
 
-  for (const depName of Object.keys(dependencies)) {
+    for (const depName of Object.keys(dependencies)) {
       try {
         // Try to resolve the dependency's package root
         const depPkgPath = path.join("node_modules", depName, "package.json");
@@ -247,12 +250,19 @@ export class CustomElementsService {
         // Read the dependency's package.json
         let depPkg: Record<string, unknown> = {};
         try {
-          depPkg = JSON.parse(readFileSync(depPkgPath, "utf8")) as Record<string, unknown>;
+          depPkg = JSON.parse(readFileSync(depPkgPath, "utf8")) as Record<
+            string,
+            unknown
+          >;
         } catch (err) {
           warn(`Error reading package.json from ${depPkgPath}:`, err as any);
         }
 
-        this.loadManifestFromFile(depRoot, (depPkg as any).customElements, depName);
+        this.loadManifestFromFile(
+          depRoot,
+          (depPkg as any).customElements,
+          depName
+        );
       } catch (err) {
         error(`Error loading CEM for dependency ${depName}:`, err as any);
       }
@@ -293,8 +303,8 @@ export class CustomElementsService {
           .then((manifest) => this.parseManifest(manifest, depName));
       })
       .catch((err) => {
-          error(`Error loading manifest from ${url}:`, err as any);
-        });
+        error(`Error loading manifest from ${url}:`, err as any);
+      });
   }
 
   private watchPackageJson() {
