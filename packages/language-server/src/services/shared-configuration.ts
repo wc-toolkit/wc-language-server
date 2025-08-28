@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
-import { debug, info, warn, error } from "../util/logger.js";
+import { debug, info, warn, error } from "../utilities/logger.js";
 import { minimatch } from "minimatch";
 
 export type DiagnosticSeverity = "error" | "warning" | "info" | "hint" | "off";
@@ -409,12 +409,7 @@ export async function createConfigFile(filePath: string = 'wc.config.js'): Promi
     manifestSrc: 'custom-elements.json',
     include: ['src/**/*.html', 'src/**/*.js', 'src/**/*.ts'],
     exclude: ['node_modules/**', 'dist/**', 'build/**'],
-    diagnosticSeverity: {
-      unknownElement: 'warning',
-      unknownAttribute: 'warning',
-      deprecatedElement: 'warning',
-      deprecatedAttribute: 'warning',
-    },
+    ...DEFAULT_CONFIG
   };
 
   // Create JavaScript module format instead of JSON

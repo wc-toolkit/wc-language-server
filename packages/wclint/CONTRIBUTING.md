@@ -7,6 +7,7 @@ Thanks for helping improve the CLI demo and validation tooling — this document
 - [ ] Build the workspace: `pnpm -w run build` (or build packages individually)
 - [ ] Build the CLI: `pnpm --filter @wc-toolkit/wclint run build`
 - [ ] Run demo validation: `pnpm --filter @wc-toolkit/wclint run demo:validate`
+- [ ] Run tests: `pnpm --filter @wc-toolkit/wclint run test`
 
 ## Local development setup
 

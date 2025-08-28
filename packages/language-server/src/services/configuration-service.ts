@@ -6,7 +6,7 @@ import {
   loadConfig as loadConfigFileOrDir,
   WCConfig,
 } from "./shared-configuration.js";
-import { warn } from "../util/logger.js";
+import { warn } from "../utilities/logger.js";
 
 export { 
   WCConfig, 

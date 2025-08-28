@@ -1,6 +1,6 @@
-# @wc-toolkit/wclint
+# Web Component Linting (`WCLint`)
 
-A command-line interface for validating Web Components using Custom Elements Manifest (CEM). This CLI tool reuses the validation logic from the `@wc-toolkit/language-server` to provide standalone validation capabilities outside of your editor. This can be used independently form the Language server, but works best when it is used with it.
+WCLint statically analyzes your code to quickly find problems using information from the [Custom Elements Manifest (CEM)](https://github.com/webcomponents/custom-elements-manifest). Editor support can be found using the [Web Component Language Server](https://wc-toolkit.com/integrations/web-components-language-server/) and you can run WCLint as part of your continuous integration pipeline.
 
 ## Features
 
@@ -24,14 +24,14 @@ npm install --save-dev @wc-toolkit/wclint
 
 ## Quick Start
 
-1. **Initialize configuration**:
+1. **Validate your files** - use the default configuration:
    ```bash
-   wclint init
+   wclint validate
    ```
 
-2. **Validate your files**:
+2. **Initialize a configuration (optional)** - create custom behavior for the linter:
    ```bash
-   wclint validate "src/**/*.html"
+   wclint init
    ```
 
 ## Usage
@@ -49,17 +49,13 @@ wclint validate src/components/*.html
 # Validate with glob patterns
 wclint validate "src/**/*.{html,js,ts}"
 
-# Validate with custom config
-wclint validate --config my-config.json "**/*.html"
-
-# Different output formats
+# Different output formats - default is `text`
 wclint validate --format json src/*.html
 wclint validate --format junit src/*.html > results.xml
 wclint validate --format checkstyle src/*.html
 ```
 
 **Options:**
-- `-c, --config <path>` - Path to configuration file
 - `-f, --format <format>` - Output format: `text`, `json`, `junit`, `checkstyle` (default: `text`)
 - `--no-color` - Disable colored output
 - `-v, --verbose` - Show files with no issues
@@ -67,9 +63,11 @@ wclint validate --format checkstyle src/*.html
 **Additional Options:**
 - `-o, --output <file>` - Write results to a file. When `--format` is omitted, the CLI will try to autodetect the format from the output filename extension (for example: `.sarif`, `.html`, `.json`, `.xml`).
 
-#### `init`
+### Custom Configuration
 
 Create a sample configuration file. This file uses the same format as the Language Server and will be shared by both.
+
+The configuration will give you default values, but all of the settings are required, so feel fre to remove those that you don't need. 
 
 ```bash
 # Create default config
@@ -303,9 +301,6 @@ wclint validate --verbose "**/*.html"
 ### Custom Configuration
 
 ```bash
-# Use specific config file
-wclint validate --config ./configs/strict.js "src/**/*.html"
-
 # Different output formats for CI
 wclint validate --format junit "src/**/*.html" > results.xml
 wclint validate --format checkstyle "src/**/*.html" > checkstyle.xml

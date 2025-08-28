@@ -2,7 +2,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { configurationService } from "./configuration-service.js";
-import { debug, warn, error } from "../util/logger.js";
+import { debug, warn, error } from "../utilities/logger.js";
 import type * as cem from "custom-elements-manifest/schema.js";
 import { Component, getAllComponents } from "@wc-toolkit/cem-utilities";
 import { parseAttributeValueOptions } from "../utilities/cem-utils.js";
