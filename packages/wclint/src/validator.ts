@@ -10,25 +10,8 @@ import { debug, warn } from "./logger.js";
 import {
   configurationService as servicesConfiguration,
   customElementsService as servicesCustomElements,
+  WCConfig,
 } from "@wc-toolkit/language-server/services";
-
-// Define WCConfig type locally to avoid import issues
-interface WCConfig {
-  manifestSrc?: string;
-  include?: string[];
-  exclude?: string[];
-  libraries?: Record<string, unknown>;
-  diagnostics?: {
-    missingCustomElements?: "error" | "warning" | "info" | "ignore";
-    missingMixins?: "error" | "warning" | "info" | "ignore";
-    attributeValidation?: "error" | "warning" | "info" | "ignore";
-    cssPropertyValidation?: "error" | "warning" | "info" | "ignore";
-    slot?: {
-      missing?: "error" | "warning" | "info" | "ignore";
-      allowUnknown?: boolean;
-    };
-  };
-}
 
 // Minimal interfaces for the language-server services we call.
 interface ConfigurationService {

@@ -111,7 +111,6 @@ function formatText(
     lines.push(""); // Empty line between files
   }
 
-  // Summary
   const summary: string[] = [];
   if (totalErrors > 0) {
     summary.push(`${totalErrors} error${totalErrors !== 1 ? "s" : ""}`);

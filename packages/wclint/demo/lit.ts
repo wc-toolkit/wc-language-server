@@ -1,8 +1,5 @@
-import { html, css, LitElement } from "lit";
-import { customElement } from "lit/decorators.js";
-
-@customElement("simple-greeting")
-export class SimpleGreeting extends LitElement {
+export class SimpleGreeting extends HTMLElement {
+  // @ts-expect-error this is not installed
   static styles = css`
     p {
       color: blue;
@@ -10,6 +7,7 @@ export class SimpleGreeting extends LitElement {
   `;
 
   render() {
+    // @ts-expect-error this is not installed
     return html`
       <!-- Unknown component - should trigger validation error -->
       <unknown-component some-attr="value"></unknown-component>

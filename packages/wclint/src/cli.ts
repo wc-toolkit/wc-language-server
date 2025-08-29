@@ -163,7 +163,7 @@ try {
     }
   }
 } catch {
-  // If any resolution fails, fall back to parsing behaviour to preserve CLI when
+  // If any resolution fails, fall back to parsing behavior to preserve CLI when
   // executed directly.
   program.parse(process.argv);
   if (!process.argv.slice(2).length) {

@@ -1,5 +1,4 @@
-// Console-backed CLI logger. Prefixes messages with a short tag.
-const PREFIX = "[wc-cli]";
+const PREFIX = "[wclint]";
 
 export function info(...args: unknown[]) {
   console.info(PREFIX, ...args);
