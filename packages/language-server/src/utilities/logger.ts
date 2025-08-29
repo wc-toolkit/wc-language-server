@@ -1,6 +1,6 @@
 export const DEBUG = Boolean(process.env.WC_DEBUG);
 
-const PREFIX = '[wc-ls]';
+const PREFIX = "[wc-ls]";
 
 export function debug(...args: unknown[]) {
   if (DEBUG) {

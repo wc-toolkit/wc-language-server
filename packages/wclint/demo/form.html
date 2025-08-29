@@ -1,111 +1,111 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Form Demo - Validated Inputs</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    
-    .form-section {
-      margin-bottom: 2rem;
-      padding: 1rem;
-      border: 1px solid #eee;
-      border-radius: 8px;
-    }
-    
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: bold;
-    }
-    
-    .invalid-examples {
-      background-color: #fff3cd;
-      border-color: #ffeaa7;
-    }
-  </style>
-</head>
-<body>
-  <h1>Form Validation Demo</h1>
-  
-  <form class="form-section">
-    <h2>Valid Form Inputs</h2>
-    
-    <label for="name">Name (required, min 2 chars):</label>
-    <validated-input 
-      type="text" 
-      placeholder="Enter your name"
-      required
-      min-length="2"
-      max-length="50"
-    ></validated-input>
-    
-    <label for="email">Email (required, email pattern):</label>
-    <validated-input 
-      type="email" 
-      placeholder="Enter your email"
-      required
-      pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
-    ></validated-input>
-    
-    <label for="phone">Phone (optional, pattern validation):</label>
-    <validated-input 
-      type="tel" 
-      placeholder="(123) 456-7890"
-      pattern="^\(\d{3}\) \d{3}-\d{4}$"
-    ></validated-input>
-  </form>
-  
-  <div class="form-section invalid-examples">
-    <h2>Invalid Component Usage (CLI should catch these)</h2>
-    
-    <!-- Unknown component -->
-    <invalid-component type="text"></invalid-component>
-    
-    <!-- Known component with invalid attributes -->
-    <validated-input 
-      type="invalid-type"
-      invalid-attr="should-error"
-      min-length="not-a-number"
-      required="true"
-    ></validated-input>
-    
-    <!-- Misspelled attributes -->
-    <validated-input 
-      typ="text"
-      requird="true"
-      min_length="5"
-    ></validated-input>
-  </div>
-  
-  <div class="form-section">
-    <h2>Accessibility Issues (CLI should catch these)</h2>
-    
-    <!-- Input without label -->
-    <validated-input type="text" placeholder="No label"></validated-input>
-    
-    <!-- Image without alt text -->
-    <img src="demo-image.jpg">
-    
-    <!-- Button without text or aria-label -->
-    <button></button>
-    
-    <!-- Form without proper structure -->
-    <validated-input type="submit"></validated-input>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Form Demo - Validated Inputs</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
 
-  <script type="module" src="./validated-input.js"></script>
-  <script>
-    // Listen for validation events
-    document.addEventListener('validation-changed', (event) => {
-      console.log('Validation:', event.detail);
-    });
-  </script>
-</body>
+      .form-section {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        border: 1px solid #eee;
+        border-radius: 8px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+      }
+
+      .invalid-examples {
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Form Validation Demo</h1>
+
+    <form class="form-section">
+      <h2>Valid Form Inputs</h2>
+
+      <label for="name">Name (required, min 2 chars):</label>
+      <validated-input
+        type="text"
+        placeholder="Enter your name"
+        required
+        min-length="2"
+        max-length="50"
+      ></validated-input>
+
+      <label for="email">Email (required, email pattern):</label>
+      <validated-input
+        type="email"
+        placeholder="Enter your email"
+        required
+        pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+      ></validated-input>
+
+      <label for="phone">Phone (optional, pattern validation):</label>
+      <validated-input
+        type="tel"
+        placeholder="(123) 456-7890"
+        pattern="^\(\d{3}\) \d{3}-\d{4}$"
+      ></validated-input>
+    </form>
+
+    <div class="form-section invalid-examples">
+      <h2>Invalid Component Usage (CLI should catch these)</h2>
+
+      <!-- Unknown component -->
+      <invalid-component type="text"></invalid-component>
+
+      <!-- Known component with invalid attributes -->
+      <validated-input
+        type="invalid-type"
+        invalid-attr="should-error"
+        min-length="not-a-number"
+        required="true"
+      ></validated-input>
+
+      <!-- Misspelled attributes -->
+      <validated-input
+        typ="text"
+        requird="true"
+        min_length="5"
+      ></validated-input>
+    </div>
+
+    <div class="form-section">
+      <h2>Accessibility Issues (CLI should catch these)</h2>
+
+      <!-- Input without label -->
+      <validated-input type="text" placeholder="No label"></validated-input>
+
+      <!-- Image without alt text -->
+      <img src="demo-image.jpg" />
+
+      <!-- Button without text or aria-label -->
+      <button></button>
+
+      <!-- Form without proper structure -->
+      <validated-input type="submit"></validated-input>
+    </div>
+
+    <script type="module" src="./validated-input.js"></script>
+    <script>
+      // Listen for validation events
+      document.addEventListener("validation-changed", (event) => {
+        console.log("Validation:", event.detail);
+      });
+    </script>
+  </body>
 </html>

@@ -2,7 +2,6 @@
 
 Here is a high level overview of some of the features coming. These will not necessarily be developed in this order.
 
-
 - [x] Autocomplete
 - [x] Hover documentation
 - [x] Diagnostic/API validation

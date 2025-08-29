@@ -8,7 +8,7 @@ import { configurationService } from "../../services/configuration-service.js";
 
 export function getAutoCompleteSuggestions(
   document: html.TextDocument,
-  position: html.Position
+  position: html.Position,
 ) {
   const text = document.getText();
   const offset = document.offsetAt(position);
@@ -19,7 +19,7 @@ export function getAutoCompleteSuggestions(
     document.uri,
     "html",
     0,
-    document.getText()
+    document.getText(),
   );
   const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
 
@@ -27,7 +27,7 @@ export function getAutoCompleteSuggestions(
   const result = htmlLanguageService.doComplete(
     textDocument,
     position,
-    htmlDocument
+    htmlDocument,
   );
 
   // Add snippet completions for custom tags and attributes
@@ -38,7 +38,7 @@ export function getAutoCompleteSuggestions(
 
 function getCompletions(
   beforeText: string,
-  completions: html.CompletionList
+  completions: html.CompletionList,
 ): html.CompletionList | null {
   // Tag completion: <my-elem|
   const tagMatch = beforeText.match(/<([a-zA-Z0-9-]*)$/);
@@ -63,7 +63,7 @@ function getCompletions(
 
   // Attribute value completion: <my-elem attr="|
   const attrValueMatch = beforeText.match(
-    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
+    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/,
   );
   if (attrValueMatch) {
     const tagName = attrValueMatch[1];
@@ -74,7 +74,7 @@ function getCompletions(
 
   // Attribute name completion: <my-elem |
   const attrNameMatch = beforeText.match(
-    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]*)$/
+    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]*)$/,
   );
   if (attrNameMatch) {
     const tagName = attrNameMatch[1];
@@ -86,7 +86,7 @@ function getCompletions(
 
 function getTagCompletions(
   htmlCompletions: html.CompletionList,
-  includeOpeningBrackets: boolean = false
+  includeOpeningBrackets: boolean = false,
 ): html.CompletionList {
   const customElements = customElementsService.getCustomElements();
 
@@ -94,7 +94,7 @@ function getTagCompletions(
     (element) => {
       const formattedTagName = configurationService.getFormattedTagName(
         element.tagName!,
-        element.dependency as string
+        element.dependency as string,
       );
       const tag = includeOpeningBrackets
         ? `<${formattedTagName}>$0</${formattedTagName}>`
@@ -112,7 +112,7 @@ function getTagCompletions(
         sortText: "0" + formattedTagName,
         deprecated: !!element.deprecated,
       };
-    }
+    },
   );
 
   htmlCompletions.items.push(...customCompletions);
@@ -121,7 +121,7 @@ function getTagCompletions(
 
 function getAttributeCompletions(
   htmlCompletions: html.CompletionList,
-  tagName: string
+  tagName: string,
 ): html.CompletionList {
   const element = customElementsService.getCustomElement(tagName);
   if (!element) {
@@ -162,7 +162,7 @@ function getAttributeCompletions(
 function getAttributeValueCompletions(
   htmlCompletions: html.CompletionList,
   tagName: string,
-  attributeName: string
+  attributeName: string,
 ): html.CompletionList {
   const attributes = getAttributeInfo(tagName);
   const attribute = attributes.find((attr) => attr.name === attributeName);
@@ -181,7 +181,7 @@ function getAttributeValueCompletions(
       },
       insertText: value,
       sortText: "0" + value,
-    })
+    }),
   );
 
   htmlCompletions.items.push(...customCompletions);

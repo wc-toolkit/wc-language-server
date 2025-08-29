@@ -1,10 +1,10 @@
-export { 
-  configurationService, 
+export {
+  configurationService,
   ConfigurationService,
   WCConfig,
   DiagnosticSeverity,
   LibraryConfig,
-  DiagnosticSeverityOptions
+  DiagnosticSeverityOptions,
 } from "./configuration-service.js";
 export {
   loadConfig,
@@ -12,6 +12,9 @@ export {
   findConfigFile,
   loadConfigFile,
   DEFAULT_CONFIG,
-  BaseConfigurationManager
+  BaseConfigurationManager,
 } from "./shared-configuration.js";
-export { customElementsService, CustomElementsService } from "./custom-elements-service.js";
+export {
+  customElementsService,
+  CustomElementsService,
+} from "./custom-elements-service.js";

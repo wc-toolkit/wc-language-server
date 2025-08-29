@@ -51,7 +51,7 @@ export interface ValidationResult {
 export async function validateFiles(
   patterns: string[],
   config: WCConfig,
-  configPath?: string
+  configPath?: string,
 ): Promise<ValidationResult[]> {
   // Static services imported from the language-server package.
   const configurationService = servicesConfiguration as unknown as
@@ -66,7 +66,7 @@ export async function validateFiles(
   // clear action for contributors and CI.
   if (!configurationService && !customElementsService) {
     throw new Error(
-      "Missing @wc-toolkit/language-server services. Please build the workspace (e.g. run `pnpm -w run build`) or ensure @wc-toolkit/language-server is installed and built before running the CLI."
+      "Missing @wc-toolkit/language-server services. Please build the workspace (e.g. run `pnpm -w run build`) or ensure @wc-toolkit/language-server is installed and built before running the CLI.",
     );
   }
 
@@ -86,14 +86,14 @@ export async function validateFiles(
     ) {
       resolvedConfig.manifestSrc = path.resolve(
         configDir,
-        resolvedConfig.manifestSrc
+        resolvedConfig.manifestSrc,
       );
     }
   }
 
   debug(
     `[CLI Validator] Configuration:`,
-    JSON.stringify(resolvedConfig, null, 2)
+    JSON.stringify(resolvedConfig, null, 2),
   );
 
   // Initialize services with configuration
@@ -108,7 +108,7 @@ export async function validateFiles(
       configurationService.updateConfig(resolvedConfig as Partial<WCConfig>);
     } else {
       throw new Error(
-        "configurationService.updateConfig is required; please upgrade @wc-toolkit/language-server"
+        "configurationService.updateConfig is required; please upgrade @wc-toolkit/language-server",
       );
     }
   }
@@ -145,7 +145,7 @@ export async function validateFiles(
         `file://${file}`,
         getLanguageId(file),
         1,
-        fileContent
+        fileContent,
       );
 
       const diagnostics = getValidation(document, htmlLanguageService);
@@ -167,7 +167,7 @@ export async function validateFiles(
  */
 async function findFiles(
   patterns: string[],
-  config: WCConfig
+  config: WCConfig,
 ): Promise<string[]> {
   const allFiles = new Set<string>();
 
@@ -227,14 +227,14 @@ function shouldValidateFile(filePath: string, config: WCConfig): boolean {
   // Apply include/exclude filters
   if (config.include && config.include.length > 0) {
     const includeMatch = config.include.some((pattern: string) =>
-      minimatch(filePath, pattern, { matchBase: true })
+      minimatch(filePath, pattern, { matchBase: true }),
     );
     if (!includeMatch) return false;
   }
 
   if (config.exclude && config.exclude.length > 0) {
     const excludeMatch = config.exclude.some((pattern: string) =>
-      minimatch(filePath, pattern, { matchBase: true })
+      minimatch(filePath, pattern, { matchBase: true }),
     );
     if (excludeMatch) return false;
   }

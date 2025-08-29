@@ -3,12 +3,15 @@ import * as html from "vscode-html-languageservice";
 import * as fs from "fs";
 import * as path from "path";
 
-export function getGoToDefinition(document: html.TextDocument, position: html.Position) {
+export function getGoToDefinition(
+  document: html.TextDocument,
+  position: html.Position,
+) {
   const textDocument = html.TextDocument.create(
     document.uri,
     "html",
     0,
-    document.getText()
+    document.getText(),
   );
 
   const htmlLanguageService = html.getLanguageService();
@@ -27,17 +30,17 @@ export function getGoToDefinition(document: html.TextDocument, position: html.Po
   }
 
   // Check if the manifest file actually exists
-    try {
-      if (!fs.existsSync(manifestPath)) {
-        return null;
-      }
-    } catch {
+  try {
+    if (!fs.existsSync(manifestPath)) {
       return null;
     }
+  } catch {
+    return null;
+  }
 
   // Find position in manifest - look for the tag name definition
   const positionInManifest = customElementsService.findPositionInManifest(
-    `"tagName": "${node.tag}"`
+    `"tagName": "${node.tag}"`,
   );
 
   // Create proper file URI - ensure it's an absolute path
@@ -48,7 +51,7 @@ export function getGoToDefinition(document: html.TextDocument, position: html.Po
   // Convert character position to line/character position
   const manifestRange = convertPositionToRange(
     manifestPath,
-    positionInManifest
+    positionInManifest,
   );
 
   return [
@@ -65,7 +68,7 @@ export function getGoToDefinition(document: html.TextDocument, position: html.Po
  */
 function convertPositionToRange(
   manifestPath: string,
-  characterPosition: number
+  characterPosition: number,
 ): html.Range {
   try {
     const manifestContent = fs.readFileSync(manifestPath, "utf8");

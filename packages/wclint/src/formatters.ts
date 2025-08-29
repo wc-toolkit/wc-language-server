@@ -1,9 +1,17 @@
-import chalk from 'chalk';
-import { DiagnosticSeverity } from 'vscode-languageserver-types';
-import type { ValidationResult } from './validator.js';
+import chalk from "chalk";
+import { DiagnosticSeverity } from "vscode-languageserver-types";
+import type { ValidationResult } from "./validator.js";
+
+export type OutputFormats =
+  | "text"
+  | "json"
+  | "junit"
+  | "checkstyle"
+  | "sarif"
+  | "html";
 
 export interface FormatterOptions {
-  format: 'text' | 'json' | 'junit' | 'checkstyle' | 'sarif' | 'html';
+  format?: OutputFormats;
   color?: boolean;
   verbose?: boolean;
 }
@@ -13,21 +21,21 @@ export interface FormatterOptions {
  */
 export function formatResults(
   results: ValidationResult[],
-  options: FormatterOptions
+  options: FormatterOptions,
 ): string {
-  const fmt = (options.format || 'text').toLowerCase();
+  const fmt = (options.format || "text").toLowerCase();
   switch (fmt) {
-    case 'json':
+    case "json":
       return formatJson(results);
-    case 'sarif':
+    case "sarif":
       return formatSarif(results);
-    case 'html':
+    case "html":
       return formatHtml(results);
-    case 'junit':
+    case "junit":
       return formatJUnit(results);
-    case 'checkstyle':
+    case "checkstyle":
       return formatCheckstyle(results);
-    case 'text':
+    case "text":
       return formatText(results, options);
     default:
       return formatCustom(results, fmt);
@@ -46,7 +54,10 @@ function formatCustom(results: ValidationResult[], formatName: string): string {
 /**
  * Formats results as human-readable text
  */
-function formatText(results: ValidationResult[], options: FormatterOptions): string {
+function formatText(
+  results: ValidationResult[],
+  options: FormatterOptions,
+): string {
   const lines: string[] = [];
   let totalErrors = 0;
   let totalWarnings = 0;
@@ -56,7 +67,9 @@ function formatText(results: ValidationResult[], options: FormatterOptions): str
   for (const result of results) {
     if (result.diagnostics.length === 0) {
       if (options.verbose) {
-        lines.push(`${formatFilePath(result.file, options)} - ${chalk.green('✓ No issues')}`);
+        lines.push(
+          `${formatFilePath(result.file, options)} - ${chalk.green("✓ No issues")}`,
+        );
       }
       continue;
     }
@@ -67,15 +80,15 @@ function formatText(results: ValidationResult[], options: FormatterOptions): str
       const severity = getSeverityName(diagnostic.severity);
       const severityIcon = getSeverityIcon(diagnostic.severity);
       const color = getSeverityColor(diagnostic.severity);
-      
+
       const line = diagnostic.range.start.line + 1;
       const character = diagnostic.range.start.character + 1;
       const location = `${line}:${character}`;
-      
-      const message = options.color 
+
+      const message = options.color
         ? `  ${color(`${severityIcon} ${severity}`)} ${location} ${diagnostic.message}`
         : `  ${severityIcon} ${severity} ${location} ${diagnostic.message}`;
-      
+
       lines.push(message);
 
       // Count by severity
@@ -94,24 +107,36 @@ function formatText(results: ValidationResult[], options: FormatterOptions): str
           break;
       }
     }
-    
-    lines.push(''); // Empty line between files
+
+    lines.push(""); // Empty line between files
   }
 
   // Summary
   const summary: string[] = [];
-  if (totalErrors > 0) summary.push(`${totalErrors} error${totalErrors !== 1 ? 's' : ''}`);
-  if (totalWarnings > 0) summary.push(`${totalWarnings} warning${totalWarnings !== 1 ? 's' : ''}`);
-  if (totalInfos > 0) summary.push(`${totalInfos} info${totalInfos !== 1 ? 's' : ''}`);
-  if (totalHints > 0) summary.push(`${totalHints} hint${totalHints !== 1 ? 's' : ''}`);
-
-  if (summary.length > 0) {
-    lines.push(`\nFound ${summary.join(', ')} in ${results.length} file${results.length !== 1 ? 's' : ''}.`);
-  } else {
-    lines.push(`\n${chalk.green('✓ No issues found')} in ${results.length} file${results.length !== 1 ? 's' : ''}.`);
+  if (totalErrors > 0) {
+    summary.push(`${totalErrors} error${totalErrors !== 1 ? "s" : ""}`);
+  }
+  if (totalWarnings > 0) {
+    summary.push(`${totalWarnings} warning${totalWarnings !== 1 ? "s" : ""}`);
+  }
+  if (totalInfos > 0) {
+    summary.push(`${totalInfos} info${totalInfos !== 1 ? "s" : ""}`);
+  }
+  if (totalHints > 0) {
+    summary.push(`${totalHints} hint${totalHints !== 1 ? "s" : ""}`);
   }
 
-  return lines.join('\n');
+  if (summary.length > 0) {
+    lines.push(
+      `\nFound ${summary.join(", ")} in ${results.length} file${results.length !== 1 ? "s" : ""}.`,
+    );
+  } else {
+    lines.push(
+      `\n${chalk.green("✓ No issues found")} in ${results.length} file${results.length !== 1 ? "s" : ""}.`,
+    );
+  }
+
+  return lines.join("\n");
 }
 
 /**
@@ -131,33 +156,40 @@ function formatJUnit(results: ValidationResult[]): string {
   xml += '<testsuite name="wclint"';
 
   const testCases: string[] = [];
-  
+
   for (const result of results) {
     totalTests++;
-    const errors = result.diagnostics.filter(d => d.severity === DiagnosticSeverity.Error);
-    
+    const errors = result.diagnostics.filter(
+      (d) => d.severity === DiagnosticSeverity.Error,
+    );
+
     if (errors.length > 0) {
       totalFailures++;
-      const failures = errors.map(e => 
-        `<failure message="${escapeXml(e.message)}" type="ValidationError">` +
-        `Line ${e.range.start.line + 1}, Column ${e.range.start.character + 1}: ${escapeXml(e.message)}` +
-        `</failure>`
-      ).join('\n    ');
-      
+      const failures = errors
+        .map(
+          (e) =>
+            `<failure message="${escapeXml(e.message)}" type="ValidationError">` +
+            `Line ${e.range.start.line + 1}, Column ${e.range.start.character + 1}: ${escapeXml(e.message)}` +
+            `</failure>`,
+        )
+        .join("\n    ");
+
       testCases.push(
         `  <testcase name="${escapeXml(result.file)}" classname="WebComponentValidation">\n` +
-        `    ${failures}\n` +
-        `  </testcase>`
+          `    ${failures}\n` +
+          `  </testcase>`,
       );
     } else {
-      testCases.push(`  <testcase name="${escapeXml(result.file)}" classname="WebComponentValidation"/>`);
+      testCases.push(
+        `  <testcase name="${escapeXml(result.file)}" classname="WebComponentValidation"/>`,
+      );
     }
   }
 
   xml += ` tests="${totalTests}" failures="${totalFailures}">\n`;
-  xml += testCases.join('\n') + '\n';
-  xml += '</testsuite>';
-  
+  xml += testCases.join("\n") + "\n";
+  xml += "</testsuite>";
+
   return xml;
 }
 
@@ -170,20 +202,21 @@ function formatCheckstyle(results: ValidationResult[]): string {
 
   for (const result of results) {
     xml += `  <file name="${escapeXml(result.file)}">\n`;
-    
+
     for (const diagnostic of result.diagnostics) {
       const severity = getSeverityName(diagnostic.severity).toLowerCase();
       const line = diagnostic.range.start.line + 1;
       const column = diagnostic.range.start.character + 1;
-      
-      xml += `    <error line="${line}" column="${column}" severity="${severity}" ` +
-             `message="${escapeXml(diagnostic.message)}" source="wclint"/>\n`;
+
+      xml +=
+        `    <error line="${line}" column="${column}" severity="${severity}" ` +
+        `message="${escapeXml(diagnostic.message)}" source="wclint"/>\n`;
     }
-    
-    xml += '  </file>\n';
+
+    xml += "  </file>\n";
   }
 
-  xml += '</checkstyle>';
+  xml += "</checkstyle>";
   return xml;
 }
 
@@ -201,19 +234,26 @@ function formatSarif(results: ValidationResult[]): string {
   }
 
   interface SarifRun {
-    tool: { driver: { name: string; informationUri: string; rules: SarifRule[]; properties?: Record<string, unknown> } };
+    tool: {
+      driver: {
+        name: string;
+        informationUri: string;
+        rules: SarifRule[];
+        properties?: Record<string, unknown>;
+      };
+    };
     results: unknown[];
   }
 
   const run: SarifRun = {
     tool: {
       driver: {
-        name: 'wclint',
-        informationUri: 'https://github.com/wc-toolkit/wc-language-server',
+        name: "wclint",
+        informationUri: "https://github.com/wc-toolkit/wc-language-server",
         rules: [],
         properties: {
-          organization: 'wc-toolkit',
-          repository: 'wc-language-server',
+          organization: "wc-toolkit",
+          repository: "wc-language-server",
         },
       },
     },
@@ -224,16 +264,18 @@ function formatSarif(results: ValidationResult[]): string {
 
   for (const result of results) {
     for (const diagnostic of result.diagnostics) {
-      const ruleId = diagnostic.code ? String(diagnostic.code) : diagnostic.message;
+      const ruleId = diagnostic.code
+        ? String(diagnostic.code)
+        : diagnostic.message;
       if (!ruleIndexMap.has(ruleId)) {
         ruleIndexMap.set(ruleId, run.tool.driver.rules.length);
         const rule: SarifRule = {
           id: ruleId,
           shortDescription: { text: diagnostic.message },
           fullDescription: { text: diagnostic.message },
-          helpUri: 'https://github.com/wc-toolkit/wc-language-server',
+          helpUri: "https://github.com/wc-toolkit/wc-language-server",
           properties: {
-            category: 'validation',
+            category: "validation",
             defaultSeverity: sarifLevel(diagnostic.severity),
           },
         };
@@ -266,24 +308,27 @@ function formatSarif(results: ValidationResult[]): string {
   }
 
   const sarif = {
-    $schema: 'https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json',
-    version: '2.1.0',
+    $schema:
+      "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
+    version: "2.1.0",
     runs: [run],
   };
 
   return JSON.stringify(sarif, null, 2);
 }
 
-function sarifLevel(severity: DiagnosticSeverity | undefined): 'error' | 'warning' | 'note' {
+function sarifLevel(
+  severity: DiagnosticSeverity | undefined,
+): "error" | "warning" | "note" {
   switch (severity) {
     case DiagnosticSeverity.Error:
-      return 'error';
+      return "error";
     case DiagnosticSeverity.Warning:
-      return 'warning';
+      return "warning";
     case DiagnosticSeverity.Information:
     case DiagnosticSeverity.Hint:
     default:
-      return 'note';
+      return "note";
   }
 }
 
@@ -292,46 +337,55 @@ function sarifLevel(severity: DiagnosticSeverity | undefined): 'error' | 'warnin
  * and diagnostics. This is intentionally minimal and safe for CI artifact publishing.
  */
 function formatHtml(results: ValidationResult[]): string {
-  const escape = (s: string) => escapeXml(s).replace(/\n/g, '<br/>');
+  const escape = (s: string) => escapeXml(s).replace(/\n/g, "<br/>");
   const severityClass = (sev: string) => {
     switch (sev.toLowerCase()) {
-      case 'error': return 'severity-error';
-      case 'warning': return 'severity-warning';
-      case 'info': return 'severity-info';
-      case 'hint': return 'severity-hint';
-      default: return 'severity-unknown';
+      case "error":
+        return "severity-error";
+      case "warning":
+        return "severity-warning";
+      case "info":
+        return "severity-info";
+      case "hint":
+        return "severity-hint";
+      default:
+        return "severity-unknown";
     }
   };
 
-  const rows = results.map((result) => {
-    const file = escape(result.file);
-    if (result.diagnostics.length === 0) {
-      return `
+  const rows = results
+    .map((result) => {
+      const file = escape(result.file);
+      if (result.diagnostics.length === 0) {
+        return `
 <details class="file" id="file-${file}">
   <summary>${file} <span class="badge ok">No issues</span></summary>
 </details>`;
-    }
+      }
 
-    const items = result.diagnostics.map((d) => {
-      const line = d.range.start.line + 1;
-      const col = d.range.start.character + 1;
-      const sev = getSeverityName(d.severity);
-      const cls = severityClass(sev);
-      return `
+      const items = result.diagnostics
+        .map((d) => {
+          const line = d.range.start.line + 1;
+          const col = d.range.start.character + 1;
+          const sev = getSeverityName(d.severity);
+          const cls = severityClass(sev);
+          return `
   <li class="diag ${cls}">
     <span class="sev">${escape(sev)}</span>
     <span class="loc">${line}:${col}</span>
     <span class="msg">${escape(d.message)}</span>
   </li>`;
-    }).join('\n');
+        })
+        .join("\n");
 
-    return `
+      return `
 <details class="file" open>
-  <summary>${file} <span class="badge issues">${result.diagnostics.length} issue${result.diagnostics.length !== 1 ? 's' : ''}</span></summary>
+  <summary>${file} <span class="badge issues">${result.diagnostics.length} issue${result.diagnostics.length !== 1 ? "s" : ""}</span></summary>
   <ul class="diagnostics">${items}
   </ul>
 </details>`;
-  }).join('\n');
+    })
+    .join("\n");
 
   const html = `<!doctype html>
 <html lang="en">
@@ -388,15 +442,15 @@ function formatHtml(results: ValidationResult[]): string {
 function getSeverityName(severity: DiagnosticSeverity | undefined): string {
   switch (severity) {
     case DiagnosticSeverity.Error:
-      return 'Error';
+      return "Error";
     case DiagnosticSeverity.Warning:
-      return 'Warning';
+      return "Warning";
     case DiagnosticSeverity.Information:
-      return 'Info';
+      return "Info";
     case DiagnosticSeverity.Hint:
-      return 'Hint';
+      return "Hint";
     default:
-      return 'Unknown';
+      return "Unknown";
   }
 }
 
@@ -406,15 +460,15 @@ function getSeverityName(severity: DiagnosticSeverity | undefined): string {
 function getSeverityIcon(severity: DiagnosticSeverity | undefined): string {
   switch (severity) {
     case DiagnosticSeverity.Error:
-      return '✖';
+      return "✖";
     case DiagnosticSeverity.Warning:
-      return '⚠';
+      return "⚠";
     case DiagnosticSeverity.Information:
-      return 'ℹ';
+      return "ℹ";
     case DiagnosticSeverity.Hint:
-      return '💡';
+      return "💡";
     default:
-      return '?';
+      return "?";
   }
 }
 
@@ -448,9 +502,9 @@ function formatFilePath(filePath: string, options: FormatterOptions): string {
  */
 function escapeXml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }

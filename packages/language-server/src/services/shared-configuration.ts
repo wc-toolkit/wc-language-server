@@ -82,7 +82,7 @@ export interface LibraryConfig {
   componentModulePath?: (
     componentName: string,
     tagName: string,
-    modulePath: string
+    modulePath: string,
   ) => string;
 
   /** Path to a global module to include in all files. */
@@ -126,12 +126,12 @@ export const DEFAULT_CONFIG: WCConfig = {
  * JavaScript/TypeScript files are preferred over JSON
  */
 export const CONFIG_FILE_NAMES = [
-  'wc.config.js',
-  'wc.config.ts',
-  'wc.config.mjs',
-  '.wcrc.js',
-  '.wcrc.ts',
-  '.wcrc'
+  "wc.config.js",
+  "wc.config.ts",
+  "wc.config.mjs",
+  ".wcrc.js",
+  ".wcrc.ts",
+  ".wcrc",
 ];
 
 /**
@@ -161,7 +161,9 @@ export class BaseConfigurationManager {
     // Set default values for each library
     if (userConfig.libraries) {
       mergedConfig.libraries = {};
-      for (const [libraryName, libraryConfig] of Object.entries(userConfig.libraries)) {
+      for (const [libraryName, libraryConfig] of Object.entries(
+        userConfig.libraries,
+      )) {
         mergedConfig.libraries[libraryName] = {
           ...DEFAULT_CONFIG,
           ...libraryConfig,
@@ -185,12 +187,12 @@ export class BaseConfigurationManager {
       "warning",
       "info",
       "hint",
-      "off"
+      "off",
     ];
 
     if (config.diagnosticSeverity) {
       const diagnosticKeys = Object.keys(
-        DEFAULT_CONFIG.diagnosticSeverity!
+        DEFAULT_CONFIG.diagnosticSeverity!,
       ) as DiagnosticOptions[];
 
       for (const key of diagnosticKeys) {
@@ -199,7 +201,7 @@ export class BaseConfigurationManager {
           !validSeverities.includes(config.diagnosticSeverity[key]!)
         ) {
           warn(
-            `Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`
+            `Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`,
           );
           config.diagnosticSeverity[key] = "error";
         }
@@ -216,26 +218,28 @@ export class BaseConfigurationManager {
     const errors: string[] = [];
 
     // Validate manifestSrc
-    if (config.manifestSrc && typeof config.manifestSrc !== 'string') {
-      errors.push('manifestSrc must be a string');
+    if (config.manifestSrc && typeof config.manifestSrc !== "string") {
+      errors.push("manifestSrc must be a string");
     }
 
     // Validate include patterns
     if (config.include && !Array.isArray(config.include)) {
-      errors.push('include must be an array of strings');
+      errors.push("include must be an array of strings");
     }
 
     // Validate exclude patterns
     if (config.exclude && !Array.isArray(config.exclude)) {
-      errors.push('exclude must be an array of strings');
+      errors.push("exclude must be an array of strings");
     }
 
     // Validate diagnostic severity
     if (config.diagnosticSeverity) {
-      const validSeverities = ['error', 'warning', 'info', 'hint', 'off'];
+      const validSeverities = ["error", "warning", "info", "hint", "off"];
       for (const [key, value] of Object.entries(config.diagnosticSeverity)) {
-        if (typeof value === 'string' && !validSeverities.includes(value)) {
-          errors.push(`diagnosticSeverity.${key} must be one of: ${validSeverities.join(', ')}`);
+        if (typeof value === "string" && !validSeverities.includes(value)) {
+          errors.push(
+            `diagnosticSeverity.${key} must be one of: ${validSeverities.join(", ")}`,
+          );
         }
       }
     }
@@ -252,7 +256,7 @@ export class BaseConfigurationManager {
     // If include patterns are specified, file must match at least one
     if (this.config.include && this.config.include.length > 0) {
       const includeMatch = this.config.include.some((pattern) =>
-        minimatch(filePath, pattern, { matchBase: true })
+        minimatch(filePath, pattern, { matchBase: true }),
       );
       if (!includeMatch) {
         return false;
@@ -262,7 +266,7 @@ export class BaseConfigurationManager {
     // If exclude patterns are specified, file must not match any
     if (this.config.exclude && this.config.exclude.length > 0) {
       const excludeMatch = this.config.exclude.some((pattern) =>
-        minimatch(filePath, pattern, { matchBase: true })
+        minimatch(filePath, pattern, { matchBase: true }),
       );
       if (excludeMatch) {
         return false;
@@ -301,7 +305,7 @@ export class BaseConfigurationManager {
       try {
         listener();
       } catch (err: unknown) {
-        error('Error in config change listener:', err);
+        error("Error in config change listener:", err);
       }
     }
   }
@@ -320,45 +324,57 @@ export class BaseConfigurationManager {
  * Finds a configuration file in the given directory
  */
 export function findConfigFile(directory: string): string | undefined {
-  debug('Searching for config file in directory:', directory);
-  debug('Config file names to search:', CONFIG_FILE_NAMES);
+  debug("Searching for config file in directory:", directory);
+  debug("Config file names to search:", CONFIG_FILE_NAMES);
   for (const fileName of CONFIG_FILE_NAMES) {
     const filePath = path.join(directory, fileName);
-    debug('Checking config file:', filePath, 'exists:', fs.existsSync(filePath));
+    debug(
+      "Checking config file:",
+      filePath,
+      "exists:",
+      fs.existsSync(filePath),
+    );
     if (fs.existsSync(filePath)) {
-      info('Found config file:', filePath);
+      info("Found config file:", filePath);
       return filePath;
     }
   }
-  debug('No config file found in directory:', directory);
+  debug("No config file found in directory:", directory);
   return undefined;
 }
 
 /**
  * Loads and parses a configuration file (supports JS, TS, and MJS)
  */
-export async function loadConfigFile(filePath: string): Promise<Partial<WCConfig>> {
+export async function loadConfigFile(
+  filePath: string,
+): Promise<Partial<WCConfig>> {
   const ext = path.extname(filePath);
-  
-  if (ext === '.json' || ext === '') {
+
+  if (ext === ".json" || ext === "") {
     // JSON file
-    const content = await fs.promises.readFile(filePath, 'utf-8');
+    const content = await fs.promises.readFile(filePath, "utf-8");
     return JSON.parse(content);
-  } else if (ext === '.js' || ext === '.mjs' || ext === '.ts') {
+  } else if (ext === ".js" || ext === ".mjs" || ext === ".ts") {
     // JavaScript/TypeScript file - use dynamic import for ESM compatibility
     const absolutePath = path.resolve(filePath);
-    
+
     // For TypeScript files, we'll try to import them directly (assuming they're transpiled or using ts-node)
-    const fileUrl = `file://${absolutePath}${ext === '.ts' ? '' : ''}`;
-    
+    const fileUrl = `file://${absolutePath}${ext === ".ts" ? "" : ""}`;
+
     try {
       const module = await import(fileUrl);
       return module.default || module;
     } catch (error) {
       // If direct import fails for .ts files, try without extension (for transpiled JS)
-      if (ext === '.ts') {
-        const jsPath = filePath.replace(/\.ts$/, '.js');
-        if (await fs.promises.access(jsPath).then(() => true).catch(() => false)) {
+      if (ext === ".ts") {
+        const jsPath = filePath.replace(/\.ts$/, ".js");
+        if (
+          await fs.promises
+            .access(jsPath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
           const jsModule = await import(`file://${path.resolve(jsPath)}`);
           return jsModule.default || jsModule;
         }
@@ -366,14 +382,19 @@ export async function loadConfigFile(filePath: string): Promise<Partial<WCConfig
       throw error;
     }
   } else {
-    throw new Error(`Unsupported configuration file format: ${ext}. Supported formats: .js, .mjs, .ts, .json`);
+    throw new Error(
+      `Unsupported configuration file format: ${ext}. Supported formats: .js, .mjs, .ts, .json`,
+    );
   }
 }
 
 /**
  * Loads configuration from a file or returns default configuration
  */
-export async function loadConfig(configPath?: string, workingDirectory = process.cwd()): Promise<WCConfig> {
+export async function loadConfig(
+  configPath?: string,
+  workingDirectory = process.cwd(),
+): Promise<WCConfig> {
   const manager = new BaseConfigurationManager();
   let configFile: string | undefined;
 
@@ -394,22 +415,26 @@ export async function loadConfig(configPath?: string, workingDirectory = process
 
   try {
     const userConfig = await loadConfigFile(configFile);
-    const validatedConfig = manager['validateConfig'](userConfig);
-    return manager['mergeWithDefaults'](validatedConfig);
+    const validatedConfig = manager["validateConfig"](userConfig);
+    return manager["mergeWithDefaults"](validatedConfig);
   } catch (error) {
-    throw new Error(`Failed to load configuration from ${configFile}: ${error}`);
+    throw new Error(
+      `Failed to load configuration from ${configFile}: ${error}`,
+    );
   }
 }
 
 /**
  * Creates a sample configuration file in JavaScript format
  */
-export async function createConfigFile(filePath: string = 'wc.config.js'): Promise<void> {
+export async function createConfigFile(
+  filePath: string = "wc.config.js",
+): Promise<void> {
   const sampleConfig: Partial<WCConfig> = {
-    manifestSrc: 'custom-elements.json',
-    include: ['src/**/*.html', 'src/**/*.js', 'src/**/*.ts'],
-    exclude: ['node_modules/**', 'dist/**', 'build/**'],
-    ...DEFAULT_CONFIG
+    manifestSrc: "custom-elements.json",
+    include: ["src/**/*.html", "src/**/*.js", "src/**/*.ts"],
+    exclude: ["node_modules/**", "dist/**", "build/**"],
+    ...DEFAULT_CONFIG,
   };
 
   // Create JavaScript module format instead of JSON
@@ -417,5 +442,5 @@ export async function createConfigFile(filePath: string = 'wc.config.js'): Promi
 export default ${JSON.stringify(sampleConfig, null, 2)};
 `;
 
-  await fs.promises.writeFile(filePath, content, 'utf-8');
+  await fs.promises.writeFile(filePath, content, "utf-8");
 }

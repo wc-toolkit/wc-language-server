@@ -23,7 +23,7 @@ interface DocumentLike {
  */
 export function getValidation(
   document: DocumentLike,
-  htmlLanguageService: html.LanguageService
+  htmlLanguageService: html.LanguageService,
 ): html.Diagnostic[] {
   // Use the document directly for parsing
   const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
@@ -39,7 +39,7 @@ export function getValidation(
 export function validateNodes(
   nodes: html.Node[],
   document: DocumentLike,
-  diagnostics: html.Diagnostic[]
+  diagnostics: html.Diagnostic[],
 ): void {
   for (const node of nodes) {
     validateSingleNode(node, document, diagnostics);
@@ -55,7 +55,7 @@ export function validateNodes(
 export function validateSingleNode(
   node: html.Node,
   document: DocumentLike,
-  diagnostics: html.Diagnostic[]
+  diagnostics: html.Diagnostic[],
 ): void {
   if (!node.tag) {
     return;
@@ -84,7 +84,7 @@ export function validateSingleNode(
     document,
     diagnostics,
     element.package as string,
-    element
+    element,
   );
 }
 
@@ -94,11 +94,11 @@ export function validateSingleNode(
 function validateUnknownElement(
   node: html.Node,
   document: html.TextDocument,
-  diagnostics: html.Diagnostic[]
+  diagnostics: html.Diagnostic[],
 ): void {
   const elementRange = findElementTagRange(document, node);
   const severity = getSeverityLevel("unknownElement");
-  
+
   if (elementRange && severity) {
     diagnostics.push({
       severity: severity,
@@ -116,11 +116,11 @@ function validateElementDeprecation(
   node: html.Node,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
-  element: Component
+  element: Component,
 ): void {
   const elementDeprecationSeverity = getSeverityLevel(
     "deprecatedElement",
-    element.package as string
+    element.package as string,
   );
 
   if (elementDeprecationSeverity) {
@@ -148,12 +148,19 @@ function validateRawAttributes(
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
   packageName?: string,
-  element?: Component
+  element?: Component,
 ): void {
   const elementText = extractElementOpeningTag(node, document.getText());
   const attributes = parseAttributesFromText(elementText, node);
 
-  validateAttributeList(attributes, document, diagnostics, packageName, element, node);
+  validateAttributeList(
+    attributes,
+    document,
+    diagnostics,
+    packageName,
+    element,
+    node,
+  );
 }
 
 /**
@@ -173,7 +180,7 @@ function extractElementOpeningTag(node: html.Node, text: string): string {
  */
 function parseAttributesFromText(
   elementText: string,
-  node: html.Node
+  node: html.Node,
 ): Array<{
   name: string;
   value: string | null;
@@ -230,7 +237,7 @@ function validateAttributeList(
   diagnostics: html.Diagnostic[],
   packageName?: string,
   element?: Component,
-  node?: html.Node
+  node?: html.Node,
 ): void {
   const seenAttrs = new Set<string>();
 
@@ -243,7 +250,7 @@ function validateAttributeList(
       diagnostics,
       attr.start,
       attr.end,
-      packageName
+      packageName,
     );
 
     seenAttrs.add(attr.name);
@@ -258,7 +265,7 @@ function validateAttributeList(
         attr.value,
         attr.start,
         attr.match,
-        packageName
+        packageName,
       );
 
       // Check attribute deprecation
@@ -269,7 +276,7 @@ function validateAttributeList(
         attr.name,
         attr.start,
         attr.end,
-        packageName
+        packageName,
       );
 
       // Check for unknown attributes on known elements
@@ -281,7 +288,7 @@ function validateAttributeList(
         node.tag!,
         attr.start,
         attr.end,
-        packageName
+        packageName,
       );
     }
   }
@@ -297,7 +304,7 @@ function validateDuplicateAttribute(
   diagnostics: html.Diagnostic[],
   attrStart: number,
   attrNameEnd: number,
-  packageName?: string
+  packageName?: string,
 ): void {
   if (seenAttrs.has(attrName)) {
     const severity = getSeverityLevel("duplicateAttribute", packageName);
@@ -320,11 +327,11 @@ function validateDuplicateAttribute(
  */
 function extractAttributeValue(
   elementText: string,
-  match: RegExpExecArray
+  match: RegExpExecArray,
 ): string | null {
   const afterAttrName = elementText.substring(match.index + match[0].length);
   const valueMatch = afterAttrName.match(
-    /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/
+    /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/,
   );
   return valueMatch
     ? valueMatch[1] !== undefined
@@ -344,18 +351,20 @@ function validateSingleAttributeValue(
   attrValue: string | null,
   attrStart: number,
   match: RegExpExecArray,
-  packageName?: string
+  packageName?: string,
 ): void {
   const validation = validateAttributeValue(
     node.tag || "",
     attrName,
-    attrValue
+    attrValue,
   );
-  
+
   if (validation) {
-    const afterAttrName = document.getText().substring(node.start + match.index + match[0].length);
+    const afterAttrName = document
+      .getText()
+      .substring(node.start + match.index + match[0].length);
     const valueMatch = afterAttrName.match(
-      /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/
+      /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/,
     );
     const fullMatchLength =
       match[0].length + (valueMatch ? valueMatch[0].length : 0);
@@ -385,9 +394,12 @@ function validateAttributeDeprecation(
   attrName: string,
   attrStart: number,
   attrNameEnd: number,
-  packageName?: string
+  packageName?: string,
 ): void {
-  const attributeDeprecationSeverity = getSeverityLevel("deprecatedAttribute", packageName);
+  const attributeDeprecationSeverity = getSeverityLevel(
+    "deprecatedAttribute",
+    packageName,
+  );
   if (attributeDeprecationSeverity) {
     const deprecation = checkAttributeDeprecation(node.tag || "", attrName);
     if (deprecation) {
@@ -418,11 +430,11 @@ function validateUnknownAttribute(
   tagName: string,
   attrStart: number,
   attrNameEnd: number,
-  packageName?: string
+  packageName?: string,
 ): void {
   if (element && element.attributes) {
     const isKnownAttribute = element.attributes.some(
-      (attr: { name: string }) => attr.name === attrName
+      (attr: { name: string }) => attr.name === attrName,
     );
     if (!isKnownAttribute) {
       const severity = getSeverityLevel("unknownAttribute", packageName);
@@ -447,14 +459,14 @@ function validateUnknownAttribute(
 function validateAttributeValue(
   tagName: string,
   attributeName: string,
-  value?: string | null
+  value?: string | null,
 ): {
   error: string;
   type: DiagnosticSeverityOptions;
 } | null {
   const attrOptions = customElementsService.getAttributeValueOptions(
     tagName,
-    attributeName
+    attributeName,
   );
 
   // No validation possible or needed
@@ -510,7 +522,7 @@ function validateAttributeValue(
  */
 function getSeverityLevel(
   type: DiagnosticSeverityOptions,
-  packageName?: string
+  packageName?: string,
 ): DiagnosticSeverity | 0 {
   const libraryConfig = packageName
     ? configurationService?.config?.libraries?.[packageName]
@@ -539,7 +551,7 @@ function getSeverityLevel(
  */
 function findElementTagRange(
   document: html.TextDocument,
-  node: html.Node
+  node: html.Node,
 ): html.Range | null {
   if (!node.tag) return null;
 
@@ -583,13 +595,13 @@ function checkElementDeprecation(tagName: string): { error: string } | null {
  */
 function checkAttributeDeprecation(
   tagName: string,
-  attributeName: string
+  attributeName: string,
 ): { error: string } | null {
   const element = customElementsService.getCustomElement(tagName);
   if (!element?.attributes) return null;
 
   const attribute = element.attributes.find(
-    (attr) => attr.name === attributeName
+    (attr) => attr.name === attributeName,
   );
   if (!attribute?.deprecated) {
     return null;

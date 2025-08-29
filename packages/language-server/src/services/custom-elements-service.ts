@@ -95,7 +95,7 @@ export class CustomElementsService {
       const tagName =
         configurationService?.getFormattedTagName(
           element.tagName!,
-          element.dependency as string
+          element.dependency as string,
         ) || element.tagName!;
       this.customElements.set(tagName, element);
       this.setAttributeOptions(tagName, element, depName);
@@ -105,7 +105,7 @@ export class CustomElementsService {
   private setAttributeOptions(
     tagName: string,
     component: Component,
-    depName?: string
+    depName?: string,
   ) {
     component.attributes?.forEach((attr) => {
       const typeSrc =
@@ -170,7 +170,7 @@ export class CustomElementsService {
 
   public getAttributeValueOptions(
     tagName: string,
-    attributeName: string
+    attributeName: string,
   ): string[] | string | null {
     const options = this.attributeOptions.get(`${tagName}:${attributeName}`);
     return options || null;
@@ -178,7 +178,7 @@ export class CustomElementsService {
 
   public getAttributeInfo(
     tagName: string,
-    attributeName: string
+    attributeName: string,
   ): AttributeInfo | null {
     return this.attributeData.get(`${tagName}:${attributeName}`) || null;
   }
@@ -210,7 +210,7 @@ export class CustomElementsService {
     if (configurationService.config.manifestSrc) {
       this.loadManifestFromFile(
         this.workspaceRoot,
-        configurationService.config.manifestSrc
+        configurationService.config.manifestSrc,
       );
     }
 
@@ -261,7 +261,7 @@ export class CustomElementsService {
         this.loadManifestFromFile(
           depRoot,
           (depPkg as any).customElements,
-          depName
+          depName,
         );
       } catch (err) {
         error(`Error loading CEM for dependency ${depName}:`, err as any);
@@ -272,7 +272,7 @@ export class CustomElementsService {
   private loadManifestFromFile(
     packagePath: string,
     cemPath?: string,
-    depName?: string
+    depName?: string,
   ) {
     let fullPath = path.join(path.dirname(packagePath), cemPath || "");
 
@@ -321,7 +321,7 @@ export class CustomElementsService {
         () => {
           this.loadManifests();
           this.notifyChange();
-        }
+        },
       );
     } catch (err) {
       error("Error watching package.json file:", err as any);

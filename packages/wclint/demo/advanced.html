@@ -1,183 +1,180 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Advanced Demo - Complex Scenarios</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    
-    .test-section {
-      margin-bottom: 2rem;
-      padding: 1rem;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-    }
-    
-    .error-section {
-      background-color: #fff3cd;
-    }
-    
-    .warning-section {
-      background-color: #d1ecf1;
-    }
-    
-    .valid-section {
-      background-color: #d4edda;
-    }
-  </style>
-</head>
-<body>
-  <h1>Advanced Web Components Demo</h1>
-  
-  <div class="test-section valid-section">
-    <h2>✅ Valid Usage Examples</h2>
-    
-    <!-- Properly configured counter -->
-    <counter-component initial-count="0" step="1"></counter-component>
-    
-    <!-- Valid form input with all attributes -->
-    <validated-input 
-      type="email" 
-      required 
-      min-length="5" 
-      max-length="100"
-      placeholder="Enter your email"
-      pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
-    ></validated-input>
-    
-    <!-- Proper nested structure -->
-    <div class="form-group">
-      <label for="user-name">Full Name:</label>
-      <validated-input 
-        type="text" 
-        required 
-        min-length="2"
-        placeholder="Enter your full name"
-      ></validated-input>
-    </div>
-  </div>
-  
-  <div class="test-section error-section">
-    <h2>❌ Error Cases (CLI should report as errors)</h2>
-    
-    <!-- Unknown elements -->
-    <unknown-widget type="fancy"></unknown-widget>
-    <mystery-component data="test"></mystery-component>
-    
-    <!-- Invalid attribute values -->
-    <counter-component 
-      initial-count="not-a-number" 
-      step="also-not-a-number"
-    ></counter-component>
-    
-    <!-- Boolean attributes with invalid values -->
-    <validated-input 
-      required="false"
-      disabled="no"
-    ></validated-input>
-    
-    <!-- Duplicate attributes (if parser catches them) -->
-    <counter-component step="1" step="2"></counter-component>
-  </div>
-  
-  <div class="test-section warning-section">
-    <h2>⚠️ Warning Cases (CLI should report as warnings)</h2>
-    
-    <!-- Unknown attributes on known elements -->
-    <counter-component 
-      initial-count="5"
-      unknown-attr="value"
-      data-custom="allowed"
-      aria-label="counter widget"
-    ></counter-component>
-    
-    <!-- Deprecated or misspelled attributes -->
-    <validated-input 
-      typ="text"
-      requird="true"
-      min_length="5"
-    ></validated-input>
-    
-    <!-- Accessibility warnings -->
-    <img src="demo.jpg">
-    <input type="text">
-    <button></button>
-    
-    <!-- Missing form structure -->
-    <validated-input type="submit"></validated-input>
-  </div>
-  
-  <div class="test-section">
-    <h2>🔍 Edge Cases</h2>
-    
-    <!-- Empty attributes -->
-    <counter-component step="" initial-count=""></counter-component>
-    
-    <!-- Special characters in attributes -->
-    <validated-input 
-      pattern="^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$"
-      placeholder="Email with special chars: @domain.com"
-    ></validated-input>
-    
-    <!-- Nested components -->
-    <div class="container">
-      <counter-component initial-count="1">
-        <validated-input type="number" min-length="1"></validated-input>
-      </counter-component>
-    </div>
-    
-    <!-- Self-closing vs paired tags -->
-    <validated-input type="text" />
-    <counter-component initial-count="0"></counter-component>
-    
-    <!-- Mixed case attributes and elements -->
-    <Counter-Component Initial-Count="5"></Counter-Component>
-    <validated-input Type="TEXT" Required></validated-input>
-  </div>
-  
-  <div class="test-section">
-    <h2>🌐 Internationalization</h2>
-    
-    <!-- Non-English attribute values -->
-    <validated-input 
-      placeholder="Введите ваше имя"
-      pattern="[А-Яа-я\s]+"
-    ></validated-input>
-    
-    <!-- Unicode in attributes -->
-    <counter-component initial-count="０"></counter-component>
-    
-    <!-- Emoji and special characters -->
-    <validated-input placeholder="🔍 Search here..."></validated-input>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Demo - Complex Scenarios</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
 
-  <script type="module" src="./counter-component.js"></script>
-  <script type="module" src="./validated-input.js"></script>
-  
-  <script>
-    // Test programmatic interaction
-    document.addEventListener('DOMContentLoaded', () => {
-      const counters = document.querySelectorAll('counter-component');
-      const inputs = document.querySelectorAll('validated-input');
-      
-      console.log(`Found ${counters.length} counter components`);
-      console.log(`Found ${inputs.length} input components`);
-      
-      // Listen for events
-      document.addEventListener('count-changed', (e) => {
-        console.log('Counter changed:', e.detail);
+      .test-section {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+
+      .error-section {
+        background-color: #fff3cd;
+      }
+
+      .warning-section {
+        background-color: #d1ecf1;
+      }
+
+      .valid-section {
+        background-color: #d4edda;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Advanced Web Components Demo</h1>
+
+    <div class="test-section valid-section">
+      <h2>✅ Valid Usage Examples</h2>
+
+      <!-- Properly configured counter -->
+      <counter-component initial-count="0" step="1"></counter-component>
+
+      <!-- Valid form input with all attributes -->
+      <validated-input
+        type="email"
+        required
+        min-length="5"
+        max-length="100"
+        placeholder="Enter your email"
+        pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+      ></validated-input>
+
+      <!-- Proper nested structure -->
+      <div class="form-group">
+        <label for="user-name">Full Name:</label>
+        <validated-input
+          type="text"
+          required
+          min-length="2"
+          placeholder="Enter your full name"
+        ></validated-input>
+      </div>
+    </div>
+
+    <div class="test-section error-section">
+      <h2>❌ Error Cases (CLI should report as errors)</h2>
+
+      <!-- Unknown elements -->
+      <unknown-widget type="fancy"></unknown-widget>
+      <mystery-component data="test"></mystery-component>
+
+      <!-- Invalid attribute values -->
+      <counter-component
+        initial-count="not-a-number"
+        step="also-not-a-number"
+      ></counter-component>
+
+      <!-- Boolean attributes with invalid values -->
+      <validated-input required="false" disabled="no"></validated-input>
+
+      <!-- Duplicate attributes (if parser catches them) -->
+      <counter-component step="1" step="2"></counter-component>
+    </div>
+
+    <div class="test-section warning-section">
+      <h2>⚠️ Warning Cases (CLI should report as warnings)</h2>
+
+      <!-- Unknown attributes on known elements -->
+      <counter-component
+        initial-count="5"
+        unknown-attr="value"
+        data-custom="allowed"
+        aria-label="counter widget"
+      ></counter-component>
+
+      <!-- Deprecated or misspelled attributes -->
+      <validated-input
+        typ="text"
+        requird="true"
+        min_length="5"
+      ></validated-input>
+
+      <!-- Accessibility warnings -->
+      <img src="demo.jpg" />
+      <input type="text" />
+      <button></button>
+
+      <!-- Missing form structure -->
+      <validated-input type="submit"></validated-input>
+    </div>
+
+    <div class="test-section">
+      <h2>🔍 Edge Cases</h2>
+
+      <!-- Empty attributes -->
+      <counter-component step="" initial-count=""></counter-component>
+
+      <!-- Special characters in attributes -->
+      <validated-input
+        pattern="^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$"
+        placeholder="Email with special chars: @domain.com"
+      ></validated-input>
+
+      <!-- Nested components -->
+      <div class="container">
+        <counter-component initial-count="1">
+          <validated-input type="number" min-length="1"></validated-input>
+        </counter-component>
+      </div>
+
+      <!-- Self-closing vs paired tags -->
+      <validated-input type="text" />
+      <counter-component initial-count="0"></counter-component>
+
+      <!-- Mixed case attributes and elements -->
+      <Counter-Component Initial-Count="5"></Counter-Component>
+      <validated-input Type="TEXT" Required></validated-input>
+    </div>
+
+    <div class="test-section">
+      <h2>🌐 Internationalization</h2>
+
+      <!-- Non-English attribute values -->
+      <validated-input
+        placeholder="Введите ваше имя"
+        pattern="[А-Яа-я\s]+"
+      ></validated-input>
+
+      <!-- Unicode in attributes -->
+      <counter-component initial-count="０"></counter-component>
+
+      <!-- Emoji and special characters -->
+      <validated-input placeholder="🔍 Search here..."></validated-input>
+    </div>
+
+    <script type="module" src="./counter-component.js"></script>
+    <script type="module" src="./validated-input.js"></script>
+
+    <script>
+      // Test programmatic interaction
+      document.addEventListener("DOMContentLoaded", () => {
+        const counters = document.querySelectorAll("counter-component");
+        const inputs = document.querySelectorAll("validated-input");
+
+        console.log(`Found ${counters.length} counter components`);
+        console.log(`Found ${inputs.length} input components`);
+
+        // Listen for events
+        document.addEventListener("count-changed", (e) => {
+          console.log("Counter changed:", e.detail);
+        });
+
+        document.addEventListener("validation-changed", (e) => {
+          console.log("Validation changed:", e.detail);
+        });
       });
-      
-      document.addEventListener('validation-changed', (e) => {
-        console.log('Validation changed:', e.detail);
-      });
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>

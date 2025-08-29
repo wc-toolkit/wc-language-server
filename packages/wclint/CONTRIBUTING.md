@@ -65,8 +65,8 @@ Given `packages/cli/demo/wc.config.js`:
 
 ```js
 export default {
-  manifestSrc: './custom-elements.json'
-}
+  manifestSrc: "./custom-elements.json",
+};
 ```
 
 - Running from the CLI package with `--config demo/wc.config.js` will resolve the manifest path to `packages/cli/demo/custom-elements.json` and set the workspace root to `packages/cli/demo` for manifest loading purposes.
@@ -85,9 +85,11 @@ This ensures the custom elements manifest is found and loaded regardless of whet
 ## Troubleshooting
 
 - `ReferenceError: require is not defined` when loading `wc.config.js`:
+
   - This occurs if a service tries to use CommonJS `require()` in an ESM runtime. The temporary workaround in the CLI is to explicitly set the configuration (and re-apply after workspace root changes). Long-term, prefer ESM-compatible config loaders (dynamic `import()` or parse JS/JSON without `require`).
 
 - Manifest not found (`No manifest file found`):
+
   - Ensure `manifestSrc` in your `wc.config.js` is correct and is resolved relative to the config file location when using `--config`.
   - If you changed config location or file name, run `pnpm --filter @wc-toolkit/wclint build` to rebuild the CLI so debug/logging and code changes are used.
 
@@ -105,7 +107,6 @@ sed -n '1,200p' /tmp/cli-debug.txt
 - Use `node --input-type=module` or ensure Node `--experimental-specifier-resolution=node` settings if you experiment with ESM/CJS mixing.
 
 ## Testing
-
 
 This project uses Node's built-in test runner for package tests.
 
@@ -129,7 +130,6 @@ CI recommendations
 - Run `pnpm run build` before tests to catch TypeScript issues.
 - If your CI requires an alternative test runner, add it and install it explicitly in devDependencies.
 
-
 ## Contact / Reporting issues
 
 Open issues and PRs in this repository. For configuration or manifest issues include:
@@ -139,6 +139,7 @@ Open issues and PRs in this repository. For configuration or manifest issues inc
 - Full CLI output (redirect to a file as shown above)
 
 Thanks for contributing — small reproducible changes and tests are very helpful!
+
 # Contributing to @wc-toolkit/wclint
 
 Thanks for helping improve the CLI demo and validation tooling — this document explains how to get the repo running locally, how to run the demo validations, and a few troubleshooting tips (including the manifest path issue and how it was fixed).
@@ -205,8 +206,8 @@ Given `packages/cli/demo/wc.config.js`:
 
 ```js
 export default {
-  manifestSrc: './custom-elements.json'
-}
+  manifestSrc: "./custom-elements.json",
+};
 ```
 
 - Running from the CLI package with `--config demo/wc.config.js` will resolve the manifest path to `packages/cli/demo/custom-elements.json` and set the workspace root to `packages/cli/demo` for manifest loading purposes.
@@ -225,9 +226,11 @@ This ensures the custom elements manifest is found and loaded regardless of whet
 ## Troubleshooting
 
 - `ReferenceError: require is not defined` when loading `wc.config.js`:
+
   - This occurs if a service tries to use CommonJS `require()` in an ESM runtime. The temporary workaround in the CLI is to explicitly set the configuration (and re-apply after workspace root changes). Long-term, prefer ESM-compatible config loaders (dynamic `import()` or parse JS/JSON without `require`).
 
 - Manifest not found (`No manifest file found`):
+
   - Ensure `manifestSrc` in your `wc.config.js` is correct and is resolved relative to the config file location when using `--config`.
   - If you changed config location or file name, run `pnpm --filter @wc-toolkit/wclint build` to rebuild the CLI so debug/logging and code changes are used.
 

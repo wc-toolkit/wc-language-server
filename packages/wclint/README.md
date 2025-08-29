@@ -25,6 +25,7 @@ npm install --save-dev @wc-toolkit/wclint
 ## Quick Start
 
 1. **Validate your files** - use the default configuration:
+
    ```bash
    wclint validate
    ```
@@ -56,18 +57,20 @@ wclint validate --format checkstyle src/*.html
 ```
 
 **Options:**
+
 - `-f, --format <format>` - Output format: `text`, `json`, `junit`, `checkstyle` (default: `text`)
 - `--no-color` - Disable colored output
 - `-v, --verbose` - Show files with no issues
 
 **Additional Options:**
+
 - `-o, --output <file>` - Write results to a file. When `--format` is omitted, the CLI will try to autodetect the format from the output filename extension (for example: `.sarif`, `.html`, `.json`, `.xml`).
 
 ### Custom Configuration
 
 Create a sample configuration file. This file uses the same format as the Language Server and will be shared by both.
 
-The configuration will give you default values, but all of the settings are required, so feel fre to remove those that you don't need. 
+The configuration will give you default values, but all of the settings are required, so feel fre to remove those that you don't need.
 
 ```bash
 # Create default config
@@ -79,16 +82,20 @@ wclint init
 You can also import types and the programmatic adapter directly from `@wc-toolkit/wclint` when using this package as a dependency:
 
 ```ts
-import type { WCConfig } from '@wc-toolkit/wclint';
-import { runValidate } from '@wc-toolkit/wclint';
+import type { WCConfig } from "@wc-toolkit/wclint";
+import { runValidate } from "@wc-toolkit/wclint";
 
-const config: WCConfig = { manifestSrc: 'custom-elements.json' };
-await runValidate(['src/**/*.html'], { config: './wc.config.js', format: 'html' });
+const config: WCConfig = { manifestSrc: "custom-elements.json" };
+await runValidate(["src/**/*.html"], {
+  config: "./wc.config.js",
+  format: "html",
+});
 ```
 
 This is useful for embedding the validator in build scripts or custom tooling without spawning child processes.
 
 **Options:**
+
 - `-f, --file <filename>` - Configuration file name (default: `wc.config.json`)
 
 ## Configuration
@@ -102,25 +109,25 @@ The CLI will use a default configuration if one isn't specified. You can set cus
 ```javascript
 // wc.config.js
 export default {
-  manifestSrc: 'custom-elements.json',
-  include: ['src/**/*.html', 'src/**/*.js'],
-  exclude: ['node_modules/**'],
+  manifestSrc: "custom-elements.json",
+  include: ["src/**/*.html", "src/**/*.js"],
+  exclude: ["node_modules/**"],
   diagnosticSeverity: {
-    unknownElement: 'hint',
-    unknownAttribute: 'hint'
-  }
+    unknownElement: "hint",
+    unknownAttribute: "hint",
+  },
 };
 ```
 
 ### Configuration Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `manifestSrc` | `string` | `"custom-elements.json"` | Path to Custom Elements Manifest file |
-| `include` | `string[]` | `["**/*.html"]` | File patterns to include |
-| `exclude` | `string[]` | `["node_modules/**", ".git/**", "dist/**", "build/**"]` | File patterns to exclude |
-| `typeSrc` | `"parsedType" \| "type"` | `"parsedType"` | Which type information to use |
-| `diagnosticSeverity` | `object` | See below | Severity levels for different diagnostic types |
+| Option               | Type                     | Default                                                 | Description                                    |
+| -------------------- | ------------------------ | ------------------------------------------------------- | ---------------------------------------------- |
+| `manifestSrc`        | `string`                 | `"custom-elements.json"`                                | Path to Custom Elements Manifest file          |
+| `include`            | `string[]`               | `["**/*.html"]`                                         | File patterns to include                       |
+| `exclude`            | `string[]`               | `["node_modules/**", ".git/**", "dist/**", "build/**"]` | File patterns to exclude                       |
+| `typeSrc`            | `"parsedType" \| "type"` | `"parsedType"`                                          | Which type information to use                  |
+| `diagnosticSeverity` | `object`                 | See below                                               | Severity levels for different diagnostic types |
 
 ### Diagnostic Severity Options
 
@@ -130,7 +137,7 @@ Configure the severity level for different types of validation issues:
 {
   "diagnosticSeverity": {
     "unknownElement": "hint",
-    "unknownAttribute": "hint", 
+    "unknownAttribute": "hint",
     "deprecatedElement": "warning",
     "deprecatedAttribute": "warning",
     "invalidBoolean": "error",
@@ -142,6 +149,7 @@ Configure the severity level for different types of validation issues:
 ```
 
 **Severity Levels:**
+
 - `"error"` - Causes validation to fail (exit code 1)
 - `"warning"` - Shows as warning but doesn't fail
 - `"info"` - Informational message
@@ -254,7 +262,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
       - run: npm ci
       - run: npx wclint validate
 ```

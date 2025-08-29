@@ -55,7 +55,7 @@
       ]
     },
     {
-      "kind": "javascript-module", 
+      "kind": "javascript-module",
       "path": "./validated-input.ts",
       "declarations": [
         {

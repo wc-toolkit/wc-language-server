@@ -5,7 +5,7 @@ import chalk from "chalk";
 import path from "path";
 import fs from "fs";
 import { validateFiles } from "./validator.js";
-import { formatResults } from "./formatters.js";
+import { formatResults, OutputFormats } from "./formatters.js";
 import { loadConfig, createConfigFile, validateConfig } from "./config.js";
 import { debug, info, error } from "./logger.js";
 
@@ -14,7 +14,7 @@ const program = new Command();
 program
   .name("wclint")
   .description(
-    "CLI tool for validating Web Components using Custom Elements Manifest"
+    "CLI tool for validating Web Components using Custom Elements Manifest",
   )
   .version("1.0.0");
 
@@ -23,13 +23,13 @@ program
   .description("Validate Web Component")
   .argument(
     "[patterns...]",
-    "File patterns to validate (defaults to config include patterns)"
+    "File patterns to validate (defaults to config include patterns)",
   )
   .option("-c, --config <path>", "Path to configuration file")
   .option(
     "-f, --format <format>",
     "Output format (text, json, junit, checkstyle, sarif, html)",
-    "text"
+    "text",
   )
   .option("-o, --output <file>", "Write formatted output to a file")
   .option("--no-color", "Disable colored output")
@@ -53,7 +53,7 @@ export async function runValidate(
     color?: boolean;
     verbose?: boolean;
     output?: string;
-  } = {}
+  } = {},
 ): Promise<number> {
   try {
     // Load configuration
@@ -76,14 +76,7 @@ export async function runValidate(
 
     // If output filename is provided and no explicit format was set, try to
     // infer the desired format from the file extension.
-    let chosenFormat = options.format as
-      | "text"
-      | "json"
-      | "junit"
-      | "checkstyle"
-      | "sarif"
-      | "html"
-      | undefined;
+    let chosenFormat = options.format as OutputFormats | undefined;
 
     if (!chosenFormat && options.output) {
       const ext = path.extname(options.output).toLowerCase();
@@ -98,14 +91,7 @@ export async function runValidate(
     }
 
     const output = formatResults(results, {
-      format:
-        (chosenFormat as
-          | "text"
-          | "json"
-          | "junit"
-          | "checkstyle"
-          | "sarif"
-          | "html") || "text",
+      format: chosenFormat || "text",
       color: options.color,
       verbose: options.verbose,
     });
@@ -125,7 +111,7 @@ export async function runValidate(
 
     // Return non-zero on validation errors
     const hasErrors = results.some((result) =>
-      result.diagnostics.some((diagnostic) => diagnostic.severity === 1)
+      result.diagnostics.some((diagnostic) => diagnostic.severity === 1),
     );
 
     return hasErrors ? 1 : 0;
@@ -145,8 +131,8 @@ program
       info(chalk.green(`✓ Created configuration file: ${options.file}`));
       info(
         chalk.blue(
-          "You can now customize the configuration to fit your project needs."
-        )
+          "You can now customize the configuration to fit your project needs.",
+        ),
       );
       process.exit(0);
     } catch (err) {

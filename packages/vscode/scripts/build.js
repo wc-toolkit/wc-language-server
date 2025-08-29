@@ -31,7 +31,7 @@ require("esbuild")
                 .replace("/umd/", "/esm/")
                 .replace("\\umd\\", "\\esm\\");
               return { path: pathEsm };
-            }
+            },
           );
         },
       },
