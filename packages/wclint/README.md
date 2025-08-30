@@ -130,7 +130,15 @@ Below are short notes on common consumers and why a format might be preferred.
 
 ### Text Format (Default)
 
+```bash
+# default lint command uses text output
+wclint
+
+# manual file output
+wclint --format text --output report.txt
 ```
+
+```txt
 src/components/my-element.html:
   💡 Hint 1:15 Unknown element: my-custom-element
   💡 Hint 1:30 Unknown attribute: unknown-attr
@@ -139,6 +147,10 @@ Found 2 hints in 1 file.
 ```
 
 ### JSON Format
+
+```bash
+wclint --format json --output report.json
+```
 
 ```json
 [
@@ -160,6 +172,10 @@ Found 2 hints in 1 file.
 
 ### JUnit XML Format
 
+```bash
+wclint --format junit --output report.xml
+```
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuite name="wclint" tests="1" failures="0">
@@ -168,6 +184,10 @@ Found 2 hints in 1 file.
 ```
 
 ### Checkstyle XML Format
+
+```bash
+wclint --format checkstyle --output report.xml
+```
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -179,6 +199,10 @@ Found 2 hints in 1 file.
 ```
 
 ### SARIF Format
+
+```bash
+wclint --format sarif --output report.json
+```
 
 ```json
 {
@@ -212,6 +236,13 @@ The CLI emits SARIF 2.1.0 with basic tool/driver metadata and rules mapped to di
 ### HTML Report
 
 Generate a single-file HTML report suitable for attaching as CI artifacts or sharing with teammates. The HTML is styled and responsive for quick inspection in a browser.
+
+```bash
+wclint --format html --output report.html
+```
+
+When saving HTML as a CI artifact you can open it in the browser or attach it to pull requests for easy review.
+
 
 ## CI/CD Integration
 
