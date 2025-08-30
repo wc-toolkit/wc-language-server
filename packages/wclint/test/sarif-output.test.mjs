@@ -3,7 +3,7 @@ import assert from "assert";
 import fs from "fs";
 import path from "path";
 
-const { runValidate } = await import("../dist/cli.js");
+const { lintWebComponents } = await import("../dist/cli.js");
 
 test("writes SARIF file when output ends with .sarif", async () => {
   const outDir = path.resolve("test-tmp");
@@ -11,7 +11,7 @@ test("writes SARIF file when output ends with .sarif", async () => {
   const outFile = path.join(outDir, "out.sarif");
 
   try {
-    const code = await runValidate([], { output: outFile, format: undefined });
+    const code = await lintWebComponents([], { output: outFile, format: undefined });
     assert.ok(code === 0 || code === 1, `unexpected exit code: ${code}`);
     const content = fs.readFileSync(outFile, "utf8");
     const parsed = JSON.parse(content);

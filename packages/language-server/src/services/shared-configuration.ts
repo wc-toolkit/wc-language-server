@@ -138,12 +138,8 @@ export const CONFIG_FILE_NAMES = [
  * Base configuration manager that can be used by both CLI and language server
  */
 export class BaseConfigurationManager {
-  public config: WCConfig = {};
+  public config = DEFAULT_CONFIG;
   protected changeListeners: Array<() => void> = [];
-
-  constructor() {
-    this.config = DEFAULT_CONFIG;
-  }
 
   /**
    * Merges user configuration with default configuration
@@ -438,7 +434,7 @@ export async function createConfigFile(
   };
 
   // Create JavaScript module format instead of JSON
-  const content = `/** @type {import('@wc-toolkit/language-server').WCConfig} */
+  const content = `/** @type {import('@wc-toolkit/wclint').WCConfig} */
 export default ${JSON.stringify(sampleConfig, null, 2)};
 `;
 

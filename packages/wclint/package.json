@@ -9,24 +9,15 @@
     "wclint": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "pnpm --filter @wc-toolkit/language-server run build && tsc",
     "dev": "tsx src/cli.ts",
-    "dev:init": "tsx src/cli.ts init",
-    "start": "node dist/cli.js",
-    "demo:html": "npm run build && node dist/cli.js validate --config demo/wc.config.js demo/*.html",
-    "demo:md": "npm run build && node dist/cli.js validate --config demo/wc.config.js demo/*.md",
-    "demo:ts": "npm run build && node dist/cli.js validate --config demo/wc.config.js demo/*.ts",
-    "predemo:validate": "pnpm --filter @wc-toolkit/language-server run build && pnpm --filter @wc-toolkit/wclint run build",
-    "demo:validate-json": "npm run build && node dist/cli.js validate --config demo/wc.config.js --format json demo/*.html",
-    "demo:validate-junit": "npm run build && node dist/cli.js validate --config demo/wc.config.js --format junit demo/*.html",
-    "demo:init": "npm run build && node dist/cli.js init demo/sample-config.js",
-    "demo:all": "pnpm run demo:validate && pnpm run demo:validate-json && pnpm run demo:validate-junit",
-    "demo:test": "node demo/test-runner.mjs",
-    "smoke:validate": "node ./smoke/smoke-validate.mjs",
-    "smoke:config": "node ./smoke/smoke-config-resolution.mjs",
+    "demo": "tsx src/cli.ts --config demo/wc.config.js",
+    "demo:help": "tsx src/cli.ts -h",
+    "demo:json": "tsx src/cli.ts --config demo/wc.config.js --format json",
+    "demo:junit": "tsx src/cli.ts --config demo/wc.config.js --format junit",
+    "demo:init": "tsx src/cli.ts init",
     "test:unit": "node --test ./test/*.test.mjs",
-    "pretest:unit": "pnpm --filter @wc-toolkit/language-server run build && pnpm run build",
-    "test:demo": "cd demo && node ../dist/cli.js validate *.html"
+    "test:demo": "npm run build && cd demo && node ../dist/cli.js validate *.html"
   },
   "keywords": [
     "web-components",

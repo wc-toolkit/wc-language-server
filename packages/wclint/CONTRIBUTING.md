@@ -31,7 +31,7 @@ pnpm --filter @wc-toolkit/wclint run build
 
 ## Demo validation usage
 
-The demo lives in `packages/cli/demo` and includes sample components and a `wc.config.js` file that points to a `custom-elements.json` manifest.
+The demo lives in `packages/wclint/demo` and includes sample components and a `wc.config.js` file that points to a `custom-elements.json` manifest.
 
 - Run the demo validation (recommended):
 
@@ -42,15 +42,15 @@ pnpm --filter @wc-toolkit/wclint demo:validate
 - Or run directly from the CLI package (useful during development):
 
 ```bash
-cd packages/cli
-node dist/cli.js validate --config demo/wc.config.js demo/*.html
+cd packages/wclint
+node dist/cli.js --config demo/wc.config.js demo/*.html
 ```
 
 - Run from the demo directory (uses local config automatically):
 
 ```bash
-cd packages/cli/demo
-node ../dist/cli.js validate *.html
+cd packages/wclint/demo
+node ../dist/cli.js *.html
 ```
 
 ## How config & manifest resolution works
@@ -61,7 +61,7 @@ node ../dist/cli.js validate *.html
 
 ### Example
 
-Given `packages/cli/demo/wc.config.js`:
+Given `packages/wclint/demo/wc.config.js`:
 
 ```js
 export default {
@@ -69,7 +69,7 @@ export default {
 };
 ```
 
-- Running from the CLI package with `--config demo/wc.config.js` will resolve the manifest path to `packages/cli/demo/custom-elements.json` and set the workspace root to `packages/cli/demo` for manifest loading purposes.
+- Running from the CLI package with `--config demo/wc.config.js` will resolve the manifest path to `packages/wclint/demo/custom-elements.json` and set the workspace root to `packages/wclint/demo` for manifest loading purposes.
 
 ## Fix applied for manifest path issue
 
@@ -96,8 +96,8 @@ This ensures the custom elements manifest is found and loaded regardless of whet
 - Still not working: capture the CLI output to a file and inspect it to see the workspace root and resolved manifest path.
 
 ```bash
-cd packages/cli/demo
-node ../dist/cli.js validate index.html > /tmp/cli-debug.txt 2>&1
+cd packages/wclint/demo
+node ../dist/cli.js index.html > /tmp/cli-debug.txt 2>&1
 sed -n '1,200p' /tmp/cli-debug.txt
 ```
 
@@ -121,7 +121,7 @@ pnpm run test
 - Run tests for the CLI package directly with Node's test runner:
 
 ```bash
-node --test packages/cli/test/config-resolution.test.mjs
+node --test packages/wclint/test/config-resolution.test.mjs
 ```
 
 CI recommendations
@@ -172,7 +172,7 @@ pnpm --filter @wc-toolkit/wclint run build
 
 ## Demo validation usage
 
-The demo lives in `packages/cli/demo` and includes sample components and a `wc.config.js` file that points to a `custom-elements.json` manifest.
+The demo lives in `packages/wclint/demo` and includes sample components and a `wc.config.js` file that points to a `custom-elements.json` manifest.
 
 - Run the demo validation (recommended):
 
@@ -183,15 +183,15 @@ pnpm --filter @wc-toolkit/wclint demo:validate
 - Or run directly from the CLI package (useful during development):
 
 ```bash
-cd packages/cli
-node dist/cli.js validate --config demo/wc.config.js demo/*.html
+cd packages/wclint
+node dist/cli.js --config demo/wc.config.js demo/*.html
 ```
 
 - Run from the demo directory (uses local config automatically):
 
 ```bash
-cd packages/cli/demo
-node ../dist/cli.js validate *.html
+cd packages/wclint/demo
+node ../dist/cli.js *.html
 ```
 
 ## How config & manifest resolution works
@@ -202,7 +202,7 @@ node ../dist/cli.js validate *.html
 
 ### Example
 
-Given `packages/cli/demo/wc.config.js`:
+Given `packages/wclint/demo/wc.config.js`:
 
 ```js
 export default {
@@ -210,7 +210,7 @@ export default {
 };
 ```
 
-- Running from the CLI package with `--config demo/wc.config.js` will resolve the manifest path to `packages/cli/demo/custom-elements.json` and set the workspace root to `packages/cli/demo` for manifest loading purposes.
+- Running from the CLI package with `--config demo/wc.config.js` will resolve the manifest path to `packages/wclint/demo/custom-elements.json` and set the workspace root to `packages/wclint/demo` for manifest loading purposes.
 
 ## Fix applied for manifest path issue
 
@@ -237,8 +237,8 @@ This ensures the custom elements manifest is found and loaded regardless of whet
 - Still not working: capture the CLI output to a file and inspect it to see the workspace root and resolved manifest path.
 
 ```bash
-cd packages/cli/demo
-node ../dist/cli.js validate index.html > /tmp/cli-debug.txt 2>&1
+cd packages/wclint/demo
+node ../dist/cli.js index.html > /tmp/cli-debug.txt 2>&1
 sed -n '1,200p' /tmp/cli-debug.txt
 ```
 

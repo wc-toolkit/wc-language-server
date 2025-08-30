@@ -11,49 +11,66 @@ import { debug, info, error } from "./logger.js";
 
 const program = new Command();
 
-program
-  .name("wclint")
-  .description(
-    "CLI tool for validating Web Components using Custom Elements Manifest",
-  )
-  .version("1.0.0");
+/**
+ * Options for running the Web Components linter/validator.
+ */
+export type LintWebComponentsOptions = {
+  /** Output format to use. Known values: `text`, `json`, `junit`, `checkstyle`, `sarif`, `html`. Custom format names are supported. */
+  format?: OutputFormats;
+  /** When true, enable colored terminal output. Use `--no-color` to disable. */
+  color?: boolean;
+  /** When true, include files with no issues in the output. */
+  verbose?: boolean;
+  /** If set, write formatted results to this file instead of printing to stdout. */
+  output?: string;
+};
+
+type ExpandedLintOptions = LintWebComponentsOptions & {
+  /**
+   * Path to the configuration file (e.g. `wc.config.js`).
+   * This is used for testing purposes.
+   * This should not be set in production because not using a config
+   *  at the root of the project with a custom file name will cause
+   *  the linter and language server to not find the config.
+   */
+  config?: string;
+};
 
 program
-  .command("validate")
-  .description("Validate Web Component")
+  .description(
+    "CLI tool for validating Web Components using Custom Elements Manifest"
+  )
   .argument(
     "[patterns...]",
-    "File patterns to validate (defaults to config include patterns)",
+    "File patterns to validate (defaults to config include patterns)"
   )
   .option("-c, --config <path>", "Path to configuration file")
   .option(
     "-f, --format <format>",
     "Output format (text, json, junit, checkstyle, sarif, html)",
-    "text",
+    "text"
   )
   .option("-o, --output <file>", "Write formatted output to a file")
   .option("--no-color", "Disable colored output")
   .option("-v, --verbose", "Show files with no issues")
   .action(async (patterns: string[], options) => {
     // Delegate to programmatic runner; when the CLI is executed directly we
-    // still want the same behavior, so call runValidate and exit with its code.
-    const code = await runValidate(patterns, options);
+    // still want the same behavior, so call lintWebComponents and exit with its code.
+    const code = await lintWebComponents(patterns, options);
     process.exit(code);
   });
 
 /**
  * Programmatic adapter for the `validate` command so tests can call the
  * validation logic without spawning a Node process. Returns an exit code.
+ *
+ * @param {string[]} patterns File patterns to validate (defaults to config include patterns)
+ * @param {LintWebComponentsOptions} options Linting options
+ * @returns {Promise<number>} Exit code - 0 if successful, 1 if errors were found
  */
-export async function runValidate(
+export async function lintWebComponents(
   patterns: string[] = [],
-  options: {
-    config?: string;
-    format?: string;
-    color?: boolean;
-    verbose?: boolean;
-    output?: string;
-  } = {},
+  options: ExpandedLintOptions = {}
 ): Promise<number> {
   try {
     // Load configuration
@@ -73,25 +90,8 @@ export async function runValidate(
     // Validate files
     info(chalk.blue("🔍 Validating Web Components..."));
     const results = await validateFiles(patterns, config, options.config);
-
-    // If output filename is provided and no explicit format was set, try to
-    // infer the desired format from the file extension.
-    let chosenFormat = options.format as OutputFormats | undefined;
-
-    if (!chosenFormat && options.output) {
-      const ext = path.extname(options.output).toLowerCase();
-      if (ext === ".sarif") chosenFormat = "sarif";
-      else if (ext === ".html" || ext === ".htm") chosenFormat = "html";
-      else if (ext === ".json") chosenFormat = "json";
-      else if (ext === ".xml") {
-        // Heuristic: prefer checkstyle if filename contains 'check'
-        const name = path.basename(options.output).toLowerCase();
-        chosenFormat = name.includes("check") ? "checkstyle" : "junit";
-      }
-    }
-
     const output = formatResults(results, {
-      format: chosenFormat || "text",
+      format: (options.format as OutputFormats | undefined) || "text",
       color: options.color,
       verbose: options.verbose,
     });
@@ -111,7 +111,7 @@ export async function runValidate(
 
     // Return non-zero on validation errors
     const hasErrors = results.some((result) =>
-      result.diagnostics.some((diagnostic) => diagnostic.severity === 1),
+      result.diagnostics.some((diagnostic) => diagnostic.severity === 1)
     );
 
     return hasErrors ? 1 : 0;
@@ -131,8 +131,8 @@ program
       info(chalk.green(`✓ Created configuration file: ${options.file}`));
       info(
         chalk.blue(
-          "You can now customize the configuration to fit your project needs.",
-        ),
+          "You can now customize the configuration to fit your project needs."
+        )
       );
       process.exit(0);
     } catch (err) {
