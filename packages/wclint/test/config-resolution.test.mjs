@@ -15,7 +15,9 @@ function expandDemoFiles() {
 test("config resolution - repo root", async () => {
   const { lintWebComponents } = await import("../dist/cli.js");
   const files = expandDemoFiles();
-  const code = await lintWebComponents(["--config", config, ...files], { config });
+  const code = await lintWebComponents(["--config", config, ...files], {
+    config,
+  });
   assert.ok(code === 0 || code === 1, `CLI returned unexpected code: ${code}`);
 });
 
@@ -32,7 +34,9 @@ test("config resolution - package cwd", async () => {
       "..",
     );
     process.chdir(packageDir);
-    const code = await lintWebComponents(["--config", config, ...files], { config });
+    const code = await lintWebComponents(["--config", config, ...files], {
+      config,
+    });
     assert.ok(
       code === 0 || code === 1,
       `CLI returned unexpected code: ${code}`,

@@ -188,7 +188,15 @@ function parseAttributesFromText(
   end: number;
   match: RegExpExecArray;
 }> {
-  const attrNameRegex = /\s([a-zA-Z][a-zA-Z0-9-]*)/g;
+  const firstSpace = elementText.indexOf(" ");
+  if (firstSpace === -1) {
+    return [];
+  }
+
+  const attrText = elementText.slice(firstSpace);
+  const attrRegex =
+    /([a-zA-Z][a-zA-Z0-9-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+)))?/g;
+
   const attributes: Array<{
     name: string;
     value: string | null;
@@ -196,26 +204,40 @@ function parseAttributesFromText(
     end: number;
     match: RegExpExecArray;
   }> = [];
-  let match;
 
-  while ((match = attrNameRegex.exec(elementText)) !== null) {
+  let match: RegExpExecArray | null;
+  while ((match = attrRegex.exec(attrText)) !== null) {
     const attrName = match[1];
 
-    // Skip the tag name itself
-    if (attrName === node.tag) {
-      continue;
-    }
+    // Skip the tag name if present
+    if (attrName === node.tag) continue;
 
-    const attrStart = node.start + match.index + 1; // +1 to skip leading space
+    const matchIndexInElement = firstSpace + match.index;
+    const attrStart = node.start + matchIndexInElement;
     const attrNameEnd = attrStart + attrName.length;
-    const attrValue = extractAttributeValue(elementText, match);
+
+    const value =
+      match[2] !== undefined
+        ? match[2]
+        : match[3] !== undefined
+          ? match[3]
+          : match[4] !== undefined
+            ? match[4]
+            : null;
+
+    // match is already a RegExpExecArray relative to attrText; callers expect
+    // match.index to be relative to the element start, so adjust by firstSpace.
+    const adjustedMatch = match as RegExpExecArray;
+    Object.defineProperty(adjustedMatch, "index", {
+      value: matchIndexInElement,
+    });
 
     attributes.push({
       name: attrName,
-      value: attrValue,
+      value,
       start: attrStart,
       end: attrNameEnd,
-      match: match,
+      match: adjustedMatch,
     });
   }
 
@@ -325,20 +347,6 @@ function validateDuplicateAttribute(
 /**
  * Extracts the value of an attribute from the element text.
  */
-function extractAttributeValue(
-  elementText: string,
-  match: RegExpExecArray,
-): string | null {
-  const afterAttrName = elementText.substring(match.index + match[0].length);
-  const valueMatch = afterAttrName.match(
-    /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/,
-  );
-  return valueMatch
-    ? valueMatch[1] !== undefined
-      ? valueMatch[1]
-      : valueMatch[2]
-    : null;
-}
 
 /**
  * Validates a single attribute's value.

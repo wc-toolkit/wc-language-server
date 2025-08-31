@@ -127,7 +127,6 @@ Below are short notes on common consumers and why a format might be preferred.
 - Automation / integrations: `json`, `junit`, or `checkstyle` depending on the consuming tool.
 - CI reporting & historical metrics: prefer structured formats (`junit`, `json`, or `sarif`) so results can be stored and trended.
 
-
 ### Text Format (Default)
 
 ```bash
@@ -210,7 +209,12 @@ wclint --format sarif --output report.json
   "version": "2.1.0",
   "runs": [
     {
-      "tool": { "driver": { "name": "wclint", "informationUri": "https://wc-toolkit.com" } },
+      "tool": {
+        "driver": {
+          "name": "wclint",
+          "informationUri": "https://wc-toolkit.com"
+        }
+      },
       "results": [
         {
           "ruleId": "WC001",
@@ -242,7 +246,6 @@ wclint --format html --output report.html
 ```
 
 When saving HTML as a CI artifact you can open it in the browser or attach it to pull requests for easy review.
-
 
 ## CI/CD Integration
 

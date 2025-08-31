@@ -34,5 +34,5 @@ export default tseslint.config(
       "yarn-debug.log*",
       "yarn-error.log*",
     ],
-  }
+  },
 );
