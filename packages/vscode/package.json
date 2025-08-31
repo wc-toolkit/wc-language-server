@@ -33,7 +33,8 @@
     "build": "node scripts/build -- --minify",
     "watch": "npm run build -- --watch",
     "pack": "npm run build && vsce package --pre-release",
-    "release": "npm run build && vsce publish"
+    "publish:open-vsx": "npm run pack && ovsx publish ./web-components-language-server-*.vsix --pat $OPENVSX_TOKEN",
+    "release": "npm run build && vsce publish && npm run publish:open-vsx"
   },
   "devDependencies": {
     "@types/vscode": "^1.82.0",
@@ -41,6 +42,7 @@
     "@volar/vscode": "~2.4.0",
     "@wc-toolkit/language-server": "workspace:*",
     "esbuild": "latest",
+    "ovsx": "latest",
     "vsce": "latest"
   },
   "license": "MIT"
