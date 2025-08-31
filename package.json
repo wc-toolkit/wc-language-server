@@ -7,16 +7,16 @@
     "url": "https://github.com/volarjs/starter.git"
   },
   "scripts": {
-    "build": "tsc --noEmit && cd ./packages/vscode && npm run build",
+    "build": "pnpm -r run build",
     "changeset": "changeset add",
     "watch": "cd ./packages/vscode && npm run watch",
     "vscode:pack": "npm run build && cd ./packages/vscode && npm run pack",
     "vscode:release": "npm run build && cd ./packages/vscode && npm run release",
-    "release": "cd ./packages/vscode && npm run release",
+    "release": "pnpm -r run release",
     "clean": "git clean -fdX",
     "format": "prettier . --write",
-    "lint": "eslint 'src/**/*.ts'",
-    "lint:fix": "eslint 'src/**/*.ts' --fix",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix .",
     "test": "node --test",
     "prepare": "husky"
   },
