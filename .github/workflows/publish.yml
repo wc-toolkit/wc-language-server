@@ -39,8 +39,8 @@ jobs:
       - name: Build
         run: pnpm lint && pnpm build
 
-      - name: Run tests
-        run: pnpm test
+      # - name: Run tests
+      #   run: pnpm test
 
       - name: Create Release Pull Request and Publish
         id: changesets

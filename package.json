@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "pnpm -r run build",
+    "build:ls": "pnpm --filter @wc-toolkit/language-server run build",
     "changeset": "changeset add",
     "watch": "cd ./packages/vscode && npm run watch",
     "vscode:pack": "npm run build && cd ./packages/vscode && npm run pack",
