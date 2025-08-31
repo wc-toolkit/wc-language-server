@@ -313,7 +313,6 @@ export class WcLanguageServerVirtualCode implements VirtualCode {
       languageId,
       snapshot: createTextSnapshot(text),
       mappings: [createEmbeddedMapping(element.startTagEnd, text.length)],
-      embeddedCode: [],
     };
   }
 }

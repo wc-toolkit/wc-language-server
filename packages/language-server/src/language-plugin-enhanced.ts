@@ -136,7 +136,6 @@ export class WebComponentsVirtualCode implements VirtualCode {
               },
             },
           ],
-          embeddedCode: [],
         };
 
         embeddedCodes.push(embeddedCode);
@@ -166,7 +165,6 @@ export class WebComponentsVirtualCode implements VirtualCode {
               },
             },
           ],
-          embeddedCode: [],
         };
 
         embeddedCodes.push(embeddedCode);
