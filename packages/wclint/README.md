@@ -1,3 +1,9 @@
+<div align="center">
+  
+![workbench with tools, html, css, javascript, and jsx logos](https://raw.githubusercontent.com/wc-toolkit/wc-language-server/assets/wc-toolkit_wclint.png)
+
+</div>
+
 # Web Component Linting (`WCLint`)
 
 WCLint statically analyzes your code to quickly find problems using information from the [Custom Elements Manifest (CEM)](https://github.com/webcomponents/custom-elements-manifest). Editor support can be found using the [Web Component Language Server](https://wc-toolkit.com/integrations/web-components-language-server/) and you can run WCLint as part of your continuous integration pipeline.
