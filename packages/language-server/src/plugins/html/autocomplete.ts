@@ -57,6 +57,7 @@ function getCompletions(
       lastChar !== "<" &&
       lastChar !== "="
     ) {
+      addLintSnippets(completions);
       return getTagCompletions(completions, true);
     }
   }
@@ -81,7 +82,84 @@ function getCompletions(
     return getAttributeCompletions(completions, tagName);
   }
 
+  // wclint directive completions inside HTML comments, e.g.
+  // <!-- wclint-disable | --> or <!-- wclint-disable unknownAttribute,| -->
+  const wclintCommentMatch = beforeText.match(
+    /<!--\s*wclint-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/,
+  );
+  if (wclintCommentMatch) {
+    return addLintRuleCompletions(completions);
+  }
+
   return null;
+}
+
+function addLintSnippets(completions: html.CompletionList) {
+  // Offer full-comment snippets first so users can quickly insert a disable directive
+  const directives = [
+    {
+      name: "wclint-disable",
+      snippet: "<!-- wclint-disable ${1} -->",
+      detail: "Disable rule(s) for this file",
+    },
+    {
+      name: "wclint-disable-next-line",
+      snippet: "<!-- wclint-disable-next-line ${1} -->",
+      detail: "Disable rule(s) for the next line",
+    },
+  ];
+
+  const directiveCompletions: html.CompletionItem[] = directives.map((d) => ({
+    label: d.name,
+    kind: html.CompletionItemKind.Snippet,
+    detail: d.detail,
+    insertText: d.snippet,
+    insertTextFormat: html.InsertTextFormat.Snippet,
+    sortText: "0" + d.name,
+  }));
+
+  completions.items.push(...directiveCompletions);
+}
+
+function addLintRuleCompletions(completions: html.CompletionList) {
+  const rules = [
+    { name: "unknownElement", description: "Element is not defined in CEM" },
+    { name: "deprecatedElement", description: "Element is deprecated" },
+    {
+      name: "duplicateAttribute",
+      description: "Duplicate attribute on element",
+    },
+    {
+      name: "invalidBoolean",
+      description: "Boolean attribute should not have a value",
+    },
+    {
+      name: "invalidNumber",
+      description: "Attribute value must be a number",
+    },
+    {
+      name: "invalidAttributeValue",
+      description: "Attribute value is not one of the allowed enum values",
+    },
+    { name: "deprecatedAttribute", description: "Attribute is deprecated" },
+    {
+      name: "unknownAttribute",
+      description: "Attribute not defined in CEM for this element",
+    },
+  ];
+
+  const commentCompletions: html.CompletionItem[] = rules.map((r) => ({
+    label: r.name,
+    kind: html.CompletionItemKind.Text,
+    detail: r.description,
+    insertText: r.name,
+  }));
+
+  completions.items.push(...commentCompletions);
+  return {
+    isIncomplete: false,
+    items: commentCompletions,
+  };
 }
 
 function getTagCompletions(

@@ -55,6 +55,26 @@ This extension uses the [Custom Elements Manifest](https://github.com/webcompone
 <my-custom-element my-attribute="value"></my-custom-element>
 ```
 
+### Disabling diagnostics with comments
+
+You can locally disable `wclint` diagnostics using HTML comment directives. These mirror ESLint-style disables and support stacking multiple rule names (comma or space separated).
+
+- Disable rules for the entire file:
+
+```html
+<!-- wclint-disable -->
+<!-- wclint-disable unknownAttribute deprecatedAttribute -->
+```
+
+- Disable diagnostics for the following line:
+
+```html
+<!-- wclint-disable-next-line deprecatedAttribute -->
+<my-element deprecated-attr></my-element>
+```
+
+Rules can be listed separated by spaces or commas, for example `<!-- wclint-disable ruleA ruleB,ruleC -->`.
+
 ### Supported File Types
 
 This plugin currently works with any file type, but additional configurations will be added to customize this experience in the future.

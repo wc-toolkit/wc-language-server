@@ -92,6 +92,33 @@ wclint init
 
 > **NOTE:** The configuration should be at the root of your project with the name `wc.config.js` in order for the linter and language server to detect it.
 
+## Disabling diagnostics in source
+
+WCLint supports in-source directives to suppress diagnostics similar to ESLint. Use HTML comments to disable rules globally or for the next line. Multiple rules may be listed and will stack. Rules can be separated by spaces or commas.
+
+Examples:
+
+- Disable all diagnostics for the file:
+
+```html
+<!-- wclint-disable -->
+````
+
+- Disable specific rules for the file (stacked, comma or space separated):
+
+```html
+<!-- wclint-disable unknownAttribute deprecatedAttribute -->
+```
+
+- Disable a rule for the next line:
+
+```html
+<!-- wclint-disable-next-line deprecatedAttribute -->
+<my-element deprecated-attr></my-element>
+```
+
+These directives are useful to locally silence known, acceptable deviations without changing global configuration.
+
 ## Programmatic API
 
 You can also import types and the programmatic adapter directly from `@wc-toolkit/wclint` when using this package as a dependency:

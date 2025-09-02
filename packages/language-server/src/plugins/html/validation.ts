@@ -100,12 +100,15 @@ function validateUnknownElement(
   const severity = getSeverityLevel("unknownElement");
 
   if (elementRange && severity) {
-    diagnostics.push({
-      severity: severity,
-      range: elementRange,
-      message: `'${node.tag}' is an unknown custom element. Verify that your dependencies have been correctly installed and that the element is defined in the Custom Elements Manifest.`,
-      source: "wc-toolkit",
-    });
+    const ruleName = "unknownElement";
+    if (!isDiagnosticIgnored(document, ruleName, elementRange)) {
+      diagnostics.push({
+        severity: severity,
+        range: elementRange,
+        message: `'${node.tag}' is an unknown custom element. Verify that your dependencies have been correctly installed and that the element is defined in the Custom Elements Manifest.`,
+        source: "wc-toolkit",
+      });
+    }
   }
 }
 
@@ -128,12 +131,15 @@ function validateElementDeprecation(
     if (elementDeprecation) {
       const elementRange = findElementTagRange(document, node);
       if (elementRange) {
-        diagnostics.push({
-          severity: elementDeprecationSeverity,
-          range: elementRange,
-          message: elementDeprecation.error,
-          source: "wc-toolkit",
-        });
+        const ruleName = "deprecatedElement";
+        if (!isDiagnosticIgnored(document, ruleName, elementRange)) {
+          diagnostics.push({
+            severity: elementDeprecationSeverity,
+            range: elementRange,
+            message: elementDeprecation.error,
+            source: "wc-toolkit",
+          });
+        }
       }
     }
   }
@@ -176,9 +182,137 @@ function extractElementOpeningTag(node: html.Node, text: string): string {
 }
 
 /**
+ * Parse wclint ignore directives from HTML comments and decide if a diagnostic
+ * should be ignored. Placed at module scope so all validators can use it.
+ */
+export function isDiagnosticIgnored(
+  document: html.TextDocument,
+  rule: string,
+  range: html.Range,
+): boolean {
+  const text = document.getText();
+
+  const globalDisabled = new Set<string>();
+  let globalDisableAll = false;
+  const lineDirectives = new Map<
+    number,
+    { disableAll: boolean; rules: Set<string> }
+  >();
+
+  // Accept rule lists separated by spaces or commas (e.g. "wclint-disable rule1,rule2 rule3")
+  const directiveRegex =
+    /<!--\s*wclint-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]+))?\s*-->/g;
+  let m: RegExpExecArray | null;
+  while ((m = directiveRegex.exec(text)) !== null) {
+    const kind = m[1];
+    const rulesStr = m[2];
+    const rules = new Set<string>();
+    if (rulesStr) {
+      // Support both comma and whitespace separated lists: "rule1 rule2" or "rule1,rule2"
+      for (const r of rulesStr.split(/[\s,]+/)) {
+        const rr = r.trim();
+        if (rr) rules.add(rr);
+      }
+    }
+
+    const offset = m.index;
+    const pos = document.positionAt(offset);
+    const line = pos.line;
+
+    if (kind === "disable") {
+      if (rules.size === 0) {
+        globalDisableAll = true;
+      } else {
+        for (const r of rules) globalDisabled.add(r);
+      }
+    } else if (kind === "disable-next-line") {
+      // Find the next opening tag after this comment and map the directive to that element's entire range
+      const afterCommentOffset = m.index + m[0].length;
+      const afterCommentText = text.substring(afterCommentOffset);
+      const nextElementMatch = afterCommentText.match(
+        /<[a-zA-Z][a-zA-Z0-9-]*[\s>]/,
+      );
+
+      if (nextElementMatch) {
+        const nextElementStartOffset =
+          afterCommentOffset + nextElementMatch.index!;
+        const nextElementStartPos = document.positionAt(nextElementStartOffset);
+
+        // Find the end of this element's opening tag
+        const elementText = afterCommentText.substring(nextElementMatch.index!);
+        const openingTagEnd = elementText.indexOf(">");
+
+        if (openingTagEnd !== -1) {
+          const nextElementEndOffset = nextElementStartOffset + openingTagEnd;
+          const nextElementEndPos = document.positionAt(nextElementEndOffset);
+
+          // Apply the directive to all lines from start to end of the opening tag
+          for (
+            let targetLine = nextElementStartPos.line;
+            targetLine <= nextElementEndPos.line;
+            targetLine++
+          ) {
+            const existing = lineDirectives.get(targetLine) || {
+              disableAll: false,
+              rules: new Set<string>(),
+            };
+            if (rules.size === 0) {
+              existing.disableAll = true;
+            }
+            for (const r of rules) {
+              existing.rules.add(r);
+            }
+            lineDirectives.set(targetLine, existing);
+          }
+        } else {
+          // No closing > found, just apply to the start line
+          const existing = lineDirectives.get(nextElementStartPos.line) || {
+            disableAll: false,
+            rules: new Set<string>(),
+          };
+          if (rules.size === 0) {
+            existing.disableAll = true;
+          }
+          for (const r of rules) {
+            existing.rules.add(r);
+          }
+          lineDirectives.set(nextElementStartPos.line, existing);
+        }
+      } else {
+        // Fallback to next line if no element found
+        const targetLine = line + 1;
+        const existing = lineDirectives.get(targetLine) || {
+          disableAll: false,
+          rules: new Set<string>(),
+        };
+        if (rules.size === 0) {
+          existing.disableAll = true;
+        }
+        for (const r of rules) {
+          existing.rules.add(r);
+        }
+        lineDirectives.set(targetLine, existing);
+      }
+    }
+  }
+
+  if (globalDisableAll || globalDisabled.has(rule)) {
+    return true;
+  }
+
+  const startLine = range.start.line;
+  const lineDir = lineDirectives.get(startLine);
+  if (lineDir && (lineDir.disableAll || lineDir.rules.has(rule))) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Parses attributes from element text and returns attribute information.
  */
-function parseAttributesFromText(
+export function parseAttributesFromText(
   elementText: string,
   node: html.Node,
 ): Array<{
@@ -188,12 +322,21 @@ function parseAttributesFromText(
   end: number;
   match: RegExpExecArray;
 }> {
-  const firstSpace = elementText.indexOf(" ");
+  // Find the first whitespace after the tag name (space, tab, newline).
+  // This ensures attributes split across multiple lines are included.
+  const firstSpace = elementText.search(/\s/);
   if (firstSpace === -1) {
     return [];
   }
 
-  const attrText = elementText.slice(firstSpace);
+  // Limit attrText to the opening tag (up to the first '>') so attributes
+  // spread across multiple lines are parsed but we don't accidentally include
+  // closing content from later in the element.
+  const closingIndex = elementText.indexOf(">");
+  const attrText = elementText.slice(
+    firstSpace,
+    closingIndex === -1 ? undefined : closingIndex,
+  );
   const attrRegex =
     /([a-zA-Z][a-zA-Z0-9-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+)))?/g;
 
@@ -331,15 +474,19 @@ function validateDuplicateAttribute(
   if (seenAttrs.has(attrName)) {
     const severity = getSeverityLevel("duplicateAttribute", packageName);
     if (severity) {
-      diagnostics.push({
-        severity: severity,
-        range: {
-          start: document.positionAt(attrStart),
-          end: document.positionAt(attrNameEnd),
-        },
-        message: `Duplicate attribute "${attrName}" found.`,
-        source: "wc-toolkit",
-      });
+      const range = {
+        start: document.positionAt(attrStart),
+        end: document.positionAt(attrNameEnd),
+      };
+      const ruleName = "duplicateAttribute";
+      if (!isDiagnosticIgnored(document, ruleName, range)) {
+        diagnostics.push({
+          severity: severity,
+          range,
+          message: `Duplicate attribute "${attrName}" found.`,
+          source: "wc-toolkit",
+        });
+      }
     }
   }
 }
@@ -382,12 +529,15 @@ function validateSingleAttributeValue(
     };
     const severity = getSeverityLevel(validation.type, packageName);
     if (severity) {
-      diagnostics.push({
-        severity,
-        range,
-        message: validation.error,
-        source: "wc-toolkit",
-      });
+      const ruleName = validation.type;
+      if (!isDiagnosticIgnored(document, ruleName, range)) {
+        diagnostics.push({
+          severity,
+          range,
+          message: validation.error,
+          source: "wc-toolkit",
+        });
+      }
     }
   }
 }
@@ -413,15 +563,19 @@ function validateAttributeDeprecation(
     if (deprecation) {
       const severity = getSeverityLevel("deprecatedAttribute", packageName);
       if (severity) {
-        diagnostics.push({
-          severity,
-          range: {
-            start: document.positionAt(attrStart),
-            end: document.positionAt(attrNameEnd),
-          },
-          message: deprecation.error,
-          source: "wc-toolkit",
-        });
+        const range = {
+          start: document.positionAt(attrStart),
+          end: document.positionAt(attrNameEnd),
+        };
+        const ruleName = "deprecatedAttribute";
+        if (!isDiagnosticIgnored(document, ruleName, range)) {
+          diagnostics.push({
+            severity,
+            range,
+            message: deprecation.error,
+            source: "wc-toolkit",
+          });
+        }
       }
     }
   }
@@ -447,15 +601,19 @@ function validateUnknownAttribute(
     if (!isKnownAttribute) {
       const severity = getSeverityLevel("unknownAttribute", packageName);
       if (severity) {
-        diagnostics.push({
-          severity: severity,
-          range: {
-            start: document.positionAt(attrStart),
-            end: document.positionAt(attrNameEnd),
-          },
-          message: `'${attrName}' is not a defined attribute for '${tagName}', so this may not behave as expected.`,
-          source: "wc-toolkit",
-        });
+        const range = {
+          start: document.positionAt(attrStart),
+          end: document.positionAt(attrNameEnd),
+        };
+        const ruleName = "unknownAttribute";
+        if (!isDiagnosticIgnored(document, ruleName, range)) {
+          diagnostics.push({
+            severity: severity,
+            range,
+            message: `'${attrName}' is not a defined attribute for '${tagName}', so this may not behave as expected.`,
+            source: "wc-toolkit",
+          });
+        }
       }
     }
   }
