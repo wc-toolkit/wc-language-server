@@ -3,12 +3,15 @@ import { customElementsService } from "../../services/custom-elements-service.js
 import { getComponentDetailsTemplate } from "@wc-toolkit/cem-utilities";
 import { Hover, NullableProviderResult } from "@volar/language-server";
 
-export function getHoverContent(document: html.TextDocument, position: html.Position): NullableProviderResult<Hover> {
+export function getHoverContent(
+  document: html.TextDocument,
+  position: html.Position,
+): NullableProviderResult<Hover> {
   const textDocument = html.TextDocument.create(
     document.uri,
     "html",
     0,
-    document.getText()
+    document.getText(),
   );
 
   const htmlLanguageService = html.getLanguageService();
@@ -51,7 +54,7 @@ export function getHoverContent(document: html.TextDocument, position: html.Posi
       ) {
         const attribute = customElementsService.getAttributeInfo(
           node.tag,
-          attrName
+          attrName,
         );
 
         if (!attribute) {

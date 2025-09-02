@@ -13,16 +13,18 @@ export class WebComponentsVirtualCode implements VirtualCode {
   mappings: CodeMapping[];
   embeddedCode: VirtualCode[] = [];
   htmlDocument: html.HTMLDocument;
+  snapshot: ts.IScriptSnapshot;
 
-  constructor(public snapshot: ts.IScriptSnapshot) {
-    const text = snapshot.getText(0, snapshot.getLength());
-    this.htmlDocument = html.getLanguageService().parseHTMLDocument(
-      html.TextDocument.create("", "html", 0, text)
-    );
-    
+  constructor(_snapshot: ts.IScriptSnapshot) {
+    this.snapshot = _snapshot;
+    const text = this.snapshot.getText(0, this.snapshot.getLength());
+    this.htmlDocument = html
+      .getLanguageService()
+      .parseHTMLDocument(html.TextDocument.create("", "html", 0, text));
+
     // Create more granular mappings for custom elements
     this.mappings = this.createCustomElementMappings(text);
-    this.embeddedCode = [...this.extractEmbeddedCode(snapshot)];
+    this.embeddedCode = [...this.extractEmbeddedCode(this.snapshot)];
   }
 
   /**
@@ -30,7 +32,7 @@ export class WebComponentsVirtualCode implements VirtualCode {
    */
   private createCustomElementMappings(text: string): CodeMapping[] {
     const mappings: CodeMapping[] = [];
-    
+
     // Default full document mapping
     mappings.push({
       sourceOffsets: [0],
@@ -47,14 +49,14 @@ export class WebComponentsVirtualCode implements VirtualCode {
     });
 
     // Create specific mappings for custom elements to enable better features
-    this.htmlDocument.roots.forEach(node => {
+    this.htmlDocument.roots.forEach((node) => {
       if (node.tag && customElementsService.hasCustomElement(node.tag)) {
         // Map the tag name for go-to-definition
         const tagStart = node.start + 1; // Skip '<'
-        
+
         mappings.push({
           sourceOffsets: [tagStart],
-          generatedOffsets: [tagStart], 
+          generatedOffsets: [tagStart],
           lengths: [node.tag.length],
           data: {
             navigation: true,
@@ -66,20 +68,20 @@ export class WebComponentsVirtualCode implements VirtualCode {
         // Map custom attributes for better IntelliSense
         if (node.attributes) {
           const element = customElementsService.getCustomElement(node.tag);
-          Object.keys(node.attributes).forEach(attrName => {
+          Object.keys(node.attributes).forEach((attrName) => {
             const isCustomAttribute = element?.attributes?.some(
-              (attr: { name: string }) => attr.name === attrName
+              (attr: { name: string }) => attr.name === attrName,
             );
-            
+
             if (isCustomAttribute) {
-              const attrMatch = text.substring(node.start, node.end).match(
-                new RegExp(`\\s(${attrName})(?:=|\\s|>)`)
-              );
-              
+              const attrMatch = text
+                .substring(node.start, node.end)
+                .match(new RegExp(`\\s(${attrName})(?:=|\\s|>)`));
+
               if (attrMatch) {
                 const attrStart = node.start + attrMatch.index! + 1;
                 const attrLength = attrMatch[1].length;
-                
+
                 mappings.push({
                   sourceOffsets: [attrStart],
                   generatedOffsets: [attrStart],
@@ -87,7 +89,7 @@ export class WebComponentsVirtualCode implements VirtualCode {
                   data: {
                     completion: true,
                     verification: true,
-                  }
+                  },
                 });
               }
             }
@@ -103,55 +105,68 @@ export class WebComponentsVirtualCode implements VirtualCode {
     // Enhanced embedded code extraction that preserves Web Components context
     const text = snapshot.getText(0, snapshot.getLength());
     const embeddedCodes: VirtualCode[] = [];
-    
+
     this.htmlDocument.roots.forEach((node, index) => {
       // Extract script tags with better context awareness
-      if (node.tag === "script" && node.startTagEnd !== undefined && node.endTagStart !== undefined) {
-        const scriptContent = text.substring(node.startTagEnd, node.endTagStart);
+      if (
+        node.tag === "script" &&
+        node.startTagEnd !== undefined &&
+        node.endTagStart !== undefined
+      ) {
+        const scriptContent = text.substring(
+          node.startTagEnd,
+          node.endTagStart,
+        );
         const languageId = this.getScriptLanguageId(node);
-        
+
         const embeddedCode: VirtualCode = {
           id: `script_${index}`,
           languageId,
           snapshot: this.createTextSnapshot(scriptContent),
-          mappings: [{
-            sourceOffsets: [node.startTagEnd],
-            generatedOffsets: [0],
-            lengths: [scriptContent.length],
-            data: {
-              completion: true,
-              navigation: true,
-              semantic: true,
-              verification: true,
+          mappings: [
+            {
+              sourceOffsets: [node.startTagEnd],
+              generatedOffsets: [0],
+              lengths: [scriptContent.length],
+              data: {
+                completion: true,
+                navigation: true,
+                semantic: true,
+                verification: true,
+              },
             },
-          }],
-          embeddedCode: [],
+          ],
         };
-        
+
         embeddedCodes.push(embeddedCode);
       }
-      
+
       // Extract style tags with CSS support
-      if (node.tag === "style" && node.startTagEnd !== undefined && node.endTagStart !== undefined) {
+      if (
+        node.tag === "style" &&
+        node.startTagEnd !== undefined &&
+        node.endTagStart !== undefined
+      ) {
         const styleContent = text.substring(node.startTagEnd, node.endTagStart);
-        
+
         const embeddedCode: VirtualCode = {
           id: `style_${index}`,
           languageId: "css",
           snapshot: this.createTextSnapshot(styleContent),
-          mappings: [{
-            sourceOffsets: [node.startTagEnd],
-            generatedOffsets: [0],
-            lengths: [styleContent.length],
-            data: {
-              completion: true,
-              format: true,
-              verification: true,
+          mappings: [
+            {
+              sourceOffsets: [node.startTagEnd],
+              generatedOffsets: [0],
+              lengths: [styleContent.length],
+              data: {
+                completion: true,
+                format: true,
+                verification: true,
+              },
             },
-          }],
-          embeddedCode: [],
+          ],
         };
-        
+
         embeddedCodes.push(embeddedCode);
       }
     });
@@ -162,10 +177,11 @@ export class WebComponentsVirtualCode implements VirtualCode {
   private getScriptLanguageId(script: html.Node): string {
     const lang = script.attributes?.lang;
     const type = script.attributes?.type;
-    
-    if (lang === "ts" || lang === '"ts"' || lang === "'ts'") return "typescript";
+
+    if (lang === "ts" || lang === '"ts"' || lang === "'ts'")
+      return "typescript";
     if (type?.includes("typescript")) return "typescript";
-    
+
     return "javascript";
   }
 

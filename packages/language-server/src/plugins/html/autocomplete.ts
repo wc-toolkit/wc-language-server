@@ -8,7 +8,7 @@ import { configurationService } from "../../services/configuration-service.js";
 
 export function getAutoCompleteSuggestions(
   document: html.TextDocument,
-  position: html.Position
+  position: html.Position,
 ) {
   const text = document.getText();
   const offset = document.offsetAt(position);
@@ -19,7 +19,7 @@ export function getAutoCompleteSuggestions(
     document.uri,
     "html",
     0,
-    document.getText()
+    document.getText(),
   );
   const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
 
@@ -27,7 +27,7 @@ export function getAutoCompleteSuggestions(
   const result = htmlLanguageService.doComplete(
     textDocument,
     position,
-    htmlDocument
+    htmlDocument,
   );
 
   // Add snippet completions for custom tags and attributes
@@ -38,7 +38,7 @@ export function getAutoCompleteSuggestions(
 
 function getCompletions(
   beforeText: string,
-  completions: html.CompletionList
+  completions: html.CompletionList,
 ): html.CompletionList | null {
   // Tag completion: <my-elem|
   const tagMatch = beforeText.match(/<([a-zA-Z0-9-]*)$/);
@@ -57,13 +57,14 @@ function getCompletions(
       lastChar !== "<" &&
       lastChar !== "="
     ) {
+      addLintSnippets(completions);
       return getTagCompletions(completions, true);
     }
   }
 
   // Attribute value completion: <my-elem attr="|
   const attrValueMatch = beforeText.match(
-    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/
+    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/,
   );
   if (attrValueMatch) {
     const tagName = attrValueMatch[1];
@@ -74,19 +75,96 @@ function getCompletions(
 
   // Attribute name completion: <my-elem |
   const attrNameMatch = beforeText.match(
-    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]*)$/
+    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]*)$/,
   );
   if (attrNameMatch) {
     const tagName = attrNameMatch[1];
     return getAttributeCompletions(completions, tagName);
   }
 
+  // wclint directive completions inside HTML comments, e.g.
+  // <!-- wclint-disable | --> or <!-- wclint-disable unknownAttribute,| -->
+  const wclintCommentMatch = beforeText.match(
+    /<!--\s*wclint-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/,
+  );
+  if (wclintCommentMatch) {
+    return addLintRuleCompletions(completions);
+  }
+
   return null;
+}
+
+function addLintSnippets(completions: html.CompletionList) {
+  // Offer full-comment snippets first so users can quickly insert a disable directive
+  const directives = [
+    {
+      name: "wclint-disable",
+      snippet: "<!-- wclint-disable ${1} -->",
+      detail: "Disable rule(s) for this file",
+    },
+    {
+      name: "wclint-disable-next-line",
+      snippet: "<!-- wclint-disable-next-line ${1} -->",
+      detail: "Disable rule(s) for the next line",
+    },
+  ];
+
+  const directiveCompletions: html.CompletionItem[] = directives.map((d) => ({
+    label: d.name,
+    kind: html.CompletionItemKind.Snippet,
+    detail: d.detail,
+    insertText: d.snippet,
+    insertTextFormat: html.InsertTextFormat.Snippet,
+    sortText: "0" + d.name,
+  }));
+
+  completions.items.push(...directiveCompletions);
+}
+
+function addLintRuleCompletions(completions: html.CompletionList) {
+  const rules = [
+    { name: "unknownElement", description: "Element is not defined in CEM" },
+    { name: "deprecatedElement", description: "Element is deprecated" },
+    {
+      name: "duplicateAttribute",
+      description: "Duplicate attribute on element",
+    },
+    {
+      name: "invalidBoolean",
+      description: "Boolean attribute should not have a value",
+    },
+    {
+      name: "invalidNumber",
+      description: "Attribute value must be a number",
+    },
+    {
+      name: "invalidAttributeValue",
+      description: "Attribute value is not one of the allowed enum values",
+    },
+    { name: "deprecatedAttribute", description: "Attribute is deprecated" },
+    {
+      name: "unknownAttribute",
+      description: "Attribute not defined in CEM for this element",
+    },
+  ];
+
+  const commentCompletions: html.CompletionItem[] = rules.map((r) => ({
+    label: r.name,
+    kind: html.CompletionItemKind.Text,
+    detail: r.description,
+    insertText: r.name,
+  }));
+
+  completions.items.push(...commentCompletions);
+  return {
+    isIncomplete: false,
+    items: commentCompletions,
+  };
 }
 
 function getTagCompletions(
   htmlCompletions: html.CompletionList,
-  includeOpeningBrackets: boolean = false
+  includeOpeningBrackets: boolean = false,
 ): html.CompletionList {
   const customElements = customElementsService.getCustomElements();
 
@@ -94,7 +172,7 @@ function getTagCompletions(
     (element) => {
       const formattedTagName = configurationService.getFormattedTagName(
         element.tagName!,
-        element.dependency as string
+        element.dependency as string,
       );
       const tag = includeOpeningBrackets
         ? `<${formattedTagName}>$0</${formattedTagName}>`
@@ -112,7 +190,7 @@ function getTagCompletions(
         sortText: "0" + formattedTagName,
         deprecated: !!element.deprecated,
       };
-    }
+    },
   );
 
   htmlCompletions.items.push(...customCompletions);
@@ -121,7 +199,7 @@ function getTagCompletions(
 
 function getAttributeCompletions(
   htmlCompletions: html.CompletionList,
-  tagName: string
+  tagName: string,
 ): html.CompletionList {
   const element = customElementsService.getCustomElement(tagName);
   if (!element) {
@@ -162,7 +240,7 @@ function getAttributeCompletions(
 function getAttributeValueCompletions(
   htmlCompletions: html.CompletionList,
   tagName: string,
-  attributeName: string
+  attributeName: string,
 ): html.CompletionList {
   const attributes = getAttributeInfo(tagName);
   const attribute = attributes.find((attr) => attr.name === attributeName);
@@ -181,7 +259,7 @@ function getAttributeValueCompletions(
       },
       insertText: value,
       sortText: "0" + value,
-    })
+    }),
   );
 
   htmlCompletions.items.push(...customCompletions);

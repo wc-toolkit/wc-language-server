@@ -3,13 +3,13 @@ export default {
   // exclude: ['**/*.json'],
   // tagFormatter: (tag) => `${tag}-formatted`,
   diagnosticSeverity: {
-    invalidBoolean: 'warning',
-    invalidNumber: 'error',
-    invalidAttributeValue: 'error',
-    deprecatedAttribute: 'warning',
-    deprecatedElement: 'warning',
-    unknownElement: 'hint',
-    unknownAttribute: 'hint'
+    invalidBoolean: "warning",
+    invalidNumber: "error",
+    invalidAttributeValue: "error",
+    deprecatedAttribute: "warning",
+    deprecatedElement: "warning",
+    unknownElement: "hint",
+    unknownAttribute: "hint",
   },
   // tagFormatter: (tag) => `${tag}-global`,
   libraries: {

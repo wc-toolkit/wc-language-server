@@ -3,12 +3,15 @@ import * as html from "vscode-html-languageservice";
 import * as fs from "fs";
 import * as path from "path";
 
-export function getGoToDefinition(document: html.TextDocument, position: html.Position) {
+export function getGoToDefinition(
+  document: html.TextDocument,
+  position: html.Position,
+) {
   const textDocument = html.TextDocument.create(
     document.uri,
     "html",
     0,
-    document.getText()
+    document.getText(),
   );
 
   const htmlLanguageService = html.getLanguageService();
@@ -22,24 +25,22 @@ export function getGoToDefinition(document: html.TextDocument, position: html.Po
 
   const manifestPath = customElementsService.getManifestPath();
   if (!manifestPath) {
-    console.warn("No manifest path found for custom elements");
+    // silent
     return null;
   }
 
   // Check if the manifest file actually exists
   try {
     if (!fs.existsSync(manifestPath)) {
-      console.warn(`Manifest file not found: ${manifestPath}`);
       return null;
     }
-  } catch (error) {
-    console.warn(`Error checking manifest file: ${error}`);
+  } catch {
     return null;
   }
 
   // Find position in manifest - look for the tag name definition
   const positionInManifest = customElementsService.findPositionInManifest(
-    `"tagName": "${node.tag}"`
+    `"tagName": "${node.tag}"`,
   );
 
   // Create proper file URI - ensure it's an absolute path
@@ -50,7 +51,7 @@ export function getGoToDefinition(document: html.TextDocument, position: html.Po
   // Convert character position to line/character position
   const manifestRange = convertPositionToRange(
     manifestPath,
-    positionInManifest
+    positionInManifest,
   );
 
   return [
@@ -67,7 +68,7 @@ export function getGoToDefinition(document: html.TextDocument, position: html.Po
  */
 function convertPositionToRange(
   manifestPath: string,
-  characterPosition: number
+  characterPosition: number,
 ): html.Range {
   try {
     const manifestContent = fs.readFileSync(manifestPath, "utf8");
@@ -93,11 +94,8 @@ function convertPositionToRange(
       start: { line: 0, character: 0 },
       end: { line: 0, character: 10 },
     };
-  } catch (error) {
-    console.warn(
-      `Error reading manifest file for position conversion: ${error}`
-    );
-    // Fallback range
+  } catch {
+    // suppressed
     return {
       start: { line: 0, character: 0 },
       end: { line: 0, character: 10 },

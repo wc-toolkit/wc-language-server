@@ -7,20 +7,26 @@ import {
   DiagnosticSeverityOptions,
 } from "../../services/configuration-service.js";
 
+// Compatible document interface that matches both vscode-languageserver-textdocument and html.TextDocument
+interface DocumentLike {
+  uri: string;
+  languageId: string;
+  version: number;
+  lineCount: number;
+  getText(): string;
+  positionAt(offset: number): { line: number; character: number };
+  offsetAt(position: { line: number; character: number }): number;
+}
+
 /**
  * Main entry point - provides all diagnostics for a document.
  */
 export function getValidation(
-  document: html.TextDocument,
-  htmlLanguageService: html.LanguageService
+  document: DocumentLike,
+  htmlLanguageService: html.LanguageService,
 ): html.Diagnostic[] {
-  const textDocument = html.TextDocument.create(
-    document.uri,
-    "html",
-    0,
-    document.getText()
-  );
-  const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
+  // Use the document directly for parsing
+  const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
   const diagnostics: html.Diagnostic[] = [];
 
   validateNodes(htmlDocument.roots, document, diagnostics);
@@ -32,8 +38,8 @@ export function getValidation(
  */
 export function validateNodes(
   nodes: html.Node[],
-  document: html.TextDocument,
-  diagnostics: html.Diagnostic[]
+  document: DocumentLike,
+  diagnostics: html.Diagnostic[],
 ): void {
   for (const node of nodes) {
     validateSingleNode(node, document, diagnostics);
@@ -48,8 +54,8 @@ export function validateNodes(
  */
 export function validateSingleNode(
   node: html.Node,
-  document: html.TextDocument,
-  diagnostics: html.Diagnostic[]
+  document: DocumentLike,
+  diagnostics: html.Diagnostic[],
 ): void {
   if (!node.tag) {
     return;
@@ -78,7 +84,7 @@ export function validateSingleNode(
     document,
     diagnostics,
     element.package as string,
-    element
+    element,
   );
 }
 
@@ -88,18 +94,21 @@ export function validateSingleNode(
 function validateUnknownElement(
   node: html.Node,
   document: html.TextDocument,
-  diagnostics: html.Diagnostic[]
+  diagnostics: html.Diagnostic[],
 ): void {
   const elementRange = findElementTagRange(document, node);
   const severity = getSeverityLevel("unknownElement");
-  
+
   if (elementRange && severity) {
-    diagnostics.push({
-      severity: severity,
-      range: elementRange,
-      message: `'${node.tag}' is an unknown custom element. Verify that your dependencies have been correctly installed and that the element is defined in the Custom Elements Manifest.`,
-      source: "wc-toolkit",
-    });
+    const ruleName = "unknownElement";
+    if (!isDiagnosticIgnored(document, ruleName, elementRange)) {
+      diagnostics.push({
+        severity: severity,
+        range: elementRange,
+        message: `'${node.tag}' is an unknown custom element. Verify that your dependencies have been correctly installed and that the element is defined in the Custom Elements Manifest.`,
+        source: "wc-toolkit",
+      });
+    }
   }
 }
 
@@ -110,11 +119,11 @@ function validateElementDeprecation(
   node: html.Node,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
-  element: Component
+  element: Component,
 ): void {
   const elementDeprecationSeverity = getSeverityLevel(
     "deprecatedElement",
-    element.package as string
+    element.package as string,
   );
 
   if (elementDeprecationSeverity) {
@@ -122,12 +131,15 @@ function validateElementDeprecation(
     if (elementDeprecation) {
       const elementRange = findElementTagRange(document, node);
       if (elementRange) {
-        diagnostics.push({
-          severity: elementDeprecationSeverity,
-          range: elementRange,
-          message: elementDeprecation.error,
-          source: "wc-toolkit",
-        });
+        const ruleName = "deprecatedElement";
+        if (!isDiagnosticIgnored(document, ruleName, elementRange)) {
+          diagnostics.push({
+            severity: elementDeprecationSeverity,
+            range: elementRange,
+            message: elementDeprecation.error,
+            source: "wc-toolkit",
+          });
+        }
       }
     }
   }
@@ -142,12 +154,19 @@ function validateRawAttributes(
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
   packageName?: string,
-  element?: Component
+  element?: Component,
 ): void {
   const elementText = extractElementOpeningTag(node, document.getText());
   const attributes = parseAttributesFromText(elementText, node);
 
-  validateAttributeList(attributes, document, diagnostics, packageName, element, node);
+  validateAttributeList(
+    attributes,
+    document,
+    diagnostics,
+    packageName,
+    element,
+    node,
+  );
 }
 
 /**
@@ -163,11 +182,139 @@ function extractElementOpeningTag(node: html.Node, text: string): string {
 }
 
 /**
+ * Parse wclint ignore directives from HTML comments and decide if a diagnostic
+ * should be ignored. Placed at module scope so all validators can use it.
+ */
+export function isDiagnosticIgnored(
+  document: html.TextDocument,
+  rule: string,
+  range: html.Range,
+): boolean {
+  const text = document.getText();
+
+  const globalDisabled = new Set<string>();
+  let globalDisableAll = false;
+  const lineDirectives = new Map<
+    number,
+    { disableAll: boolean; rules: Set<string> }
+  >();
+
+  // Accept rule lists separated by spaces or commas (e.g. "wclint-disable rule1,rule2 rule3")
+  const directiveRegex =
+    /<!--\s*wclint-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]+))?\s*-->/g;
+  let m: RegExpExecArray | null;
+  while ((m = directiveRegex.exec(text)) !== null) {
+    const kind = m[1];
+    const rulesStr = m[2];
+    const rules = new Set<string>();
+    if (rulesStr) {
+      // Support both comma and whitespace separated lists: "rule1 rule2" or "rule1,rule2"
+      for (const r of rulesStr.split(/[\s,]+/)) {
+        const rr = r.trim();
+        if (rr) rules.add(rr);
+      }
+    }
+
+    const offset = m.index;
+    const pos = document.positionAt(offset);
+    const line = pos.line;
+
+    if (kind === "disable") {
+      if (rules.size === 0) {
+        globalDisableAll = true;
+      } else {
+        for (const r of rules) globalDisabled.add(r);
+      }
+    } else if (kind === "disable-next-line") {
+      // Find the next opening tag after this comment and map the directive to that element's entire range
+      const afterCommentOffset = m.index + m[0].length;
+      const afterCommentText = text.substring(afterCommentOffset);
+      const nextElementMatch = afterCommentText.match(
+        /<[a-zA-Z][a-zA-Z0-9-]*[\s>]/,
+      );
+
+      if (nextElementMatch) {
+        const nextElementStartOffset =
+          afterCommentOffset + nextElementMatch.index!;
+        const nextElementStartPos = document.positionAt(nextElementStartOffset);
+
+        // Find the end of this element's opening tag
+        const elementText = afterCommentText.substring(nextElementMatch.index!);
+        const openingTagEnd = elementText.indexOf(">");
+
+        if (openingTagEnd !== -1) {
+          const nextElementEndOffset = nextElementStartOffset + openingTagEnd;
+          const nextElementEndPos = document.positionAt(nextElementEndOffset);
+
+          // Apply the directive to all lines from start to end of the opening tag
+          for (
+            let targetLine = nextElementStartPos.line;
+            targetLine <= nextElementEndPos.line;
+            targetLine++
+          ) {
+            const existing = lineDirectives.get(targetLine) || {
+              disableAll: false,
+              rules: new Set<string>(),
+            };
+            if (rules.size === 0) {
+              existing.disableAll = true;
+            }
+            for (const r of rules) {
+              existing.rules.add(r);
+            }
+            lineDirectives.set(targetLine, existing);
+          }
+        } else {
+          // No closing > found, just apply to the start line
+          const existing = lineDirectives.get(nextElementStartPos.line) || {
+            disableAll: false,
+            rules: new Set<string>(),
+          };
+          if (rules.size === 0) {
+            existing.disableAll = true;
+          }
+          for (const r of rules) {
+            existing.rules.add(r);
+          }
+          lineDirectives.set(nextElementStartPos.line, existing);
+        }
+      } else {
+        // Fallback to next line if no element found
+        const targetLine = line + 1;
+        const existing = lineDirectives.get(targetLine) || {
+          disableAll: false,
+          rules: new Set<string>(),
+        };
+        if (rules.size === 0) {
+          existing.disableAll = true;
+        }
+        for (const r of rules) {
+          existing.rules.add(r);
+        }
+        lineDirectives.set(targetLine, existing);
+      }
+    }
+  }
+
+  if (globalDisableAll || globalDisabled.has(rule)) {
+    return true;
+  }
+
+  const startLine = range.start.line;
+  const lineDir = lineDirectives.get(startLine);
+  if (lineDir && (lineDir.disableAll || lineDir.rules.has(rule))) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Parses attributes from element text and returns attribute information.
  */
-function parseAttributesFromText(
+export function parseAttributesFromText(
   elementText: string,
-  node: html.Node
+  node: html.Node,
 ): Array<{
   name: string;
   value: string | null;
@@ -175,7 +322,24 @@ function parseAttributesFromText(
   end: number;
   match: RegExpExecArray;
 }> {
-  const attrNameRegex = /\s([a-zA-Z][a-zA-Z0-9-]*)/g;
+  // Find the first whitespace after the tag name (space, tab, newline).
+  // This ensures attributes split across multiple lines are included.
+  const firstSpace = elementText.search(/\s/);
+  if (firstSpace === -1) {
+    return [];
+  }
+
+  // Limit attrText to the opening tag (up to the first '>') so attributes
+  // spread across multiple lines are parsed but we don't accidentally include
+  // closing content from later in the element.
+  const closingIndex = elementText.indexOf(">");
+  const attrText = elementText.slice(
+    firstSpace,
+    closingIndex === -1 ? undefined : closingIndex,
+  );
+  const attrRegex =
+    /([a-zA-Z][a-zA-Z0-9-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+)))?/g;
+
   const attributes: Array<{
     name: string;
     value: string | null;
@@ -183,26 +347,40 @@ function parseAttributesFromText(
     end: number;
     match: RegExpExecArray;
   }> = [];
-  let match;
 
-  while ((match = attrNameRegex.exec(elementText)) !== null) {
+  let match: RegExpExecArray | null;
+  while ((match = attrRegex.exec(attrText)) !== null) {
     const attrName = match[1];
 
-    // Skip the tag name itself
-    if (attrName === node.tag) {
-      continue;
-    }
+    // Skip the tag name if present
+    if (attrName === node.tag) continue;
 
-    const attrStart = node.start + match.index + 1; // +1 to skip leading space
+    const matchIndexInElement = firstSpace + match.index;
+    const attrStart = node.start + matchIndexInElement;
     const attrNameEnd = attrStart + attrName.length;
-    const attrValue = extractAttributeValue(elementText, match);
+
+    const value =
+      match[2] !== undefined
+        ? match[2]
+        : match[3] !== undefined
+          ? match[3]
+          : match[4] !== undefined
+            ? match[4]
+            : null;
+
+    // match is already a RegExpExecArray relative to attrText; callers expect
+    // match.index to be relative to the element start, so adjust by firstSpace.
+    const adjustedMatch = match as RegExpExecArray;
+    Object.defineProperty(adjustedMatch, "index", {
+      value: matchIndexInElement,
+    });
 
     attributes.push({
       name: attrName,
-      value: attrValue,
+      value,
       start: attrStart,
       end: attrNameEnd,
-      match: match,
+      match: adjustedMatch,
     });
   }
 
@@ -224,7 +402,7 @@ function validateAttributeList(
   diagnostics: html.Diagnostic[],
   packageName?: string,
   element?: Component,
-  node?: html.Node
+  node?: html.Node,
 ): void {
   const seenAttrs = new Set<string>();
 
@@ -237,7 +415,7 @@ function validateAttributeList(
       diagnostics,
       attr.start,
       attr.end,
-      packageName
+      packageName,
     );
 
     seenAttrs.add(attr.name);
@@ -252,7 +430,7 @@ function validateAttributeList(
         attr.value,
         attr.start,
         attr.match,
-        packageName
+        packageName,
       );
 
       // Check attribute deprecation
@@ -263,7 +441,7 @@ function validateAttributeList(
         attr.name,
         attr.start,
         attr.end,
-        packageName
+        packageName,
       );
 
       // Check for unknown attributes on known elements
@@ -275,7 +453,7 @@ function validateAttributeList(
         node.tag!,
         attr.start,
         attr.end,
-        packageName
+        packageName,
       );
     }
   }
@@ -291,20 +469,24 @@ function validateDuplicateAttribute(
   diagnostics: html.Diagnostic[],
   attrStart: number,
   attrNameEnd: number,
-  packageName?: string
+  packageName?: string,
 ): void {
   if (seenAttrs.has(attrName)) {
     const severity = getSeverityLevel("duplicateAttribute", packageName);
     if (severity) {
-      diagnostics.push({
-        severity: severity,
-        range: {
-          start: document.positionAt(attrStart),
-          end: document.positionAt(attrNameEnd),
-        },
-        message: `Duplicate attribute "${attrName}" found.`,
-        source: "wc-toolkit",
-      });
+      const range = {
+        start: document.positionAt(attrStart),
+        end: document.positionAt(attrNameEnd),
+      };
+      const ruleName = "duplicateAttribute";
+      if (!isDiagnosticIgnored(document, ruleName, range)) {
+        diagnostics.push({
+          severity: severity,
+          range,
+          message: `Duplicate attribute "${attrName}" found.`,
+          source: "wc-toolkit",
+        });
+      }
     }
   }
 }
@@ -312,20 +494,6 @@ function validateDuplicateAttribute(
 /**
  * Extracts the value of an attribute from the element text.
  */
-function extractAttributeValue(
-  elementText: string,
-  match: RegExpExecArray
-): string | null {
-  const afterAttrName = elementText.substring(match.index + match[0].length);
-  const valueMatch = afterAttrName.match(
-    /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/
-  );
-  return valueMatch
-    ? valueMatch[1] !== undefined
-      ? valueMatch[1]
-      : valueMatch[2]
-    : null;
-}
 
 /**
  * Validates a single attribute's value.
@@ -338,18 +506,20 @@ function validateSingleAttributeValue(
   attrValue: string | null,
   attrStart: number,
   match: RegExpExecArray,
-  packageName?: string
+  packageName?: string,
 ): void {
   const validation = validateAttributeValue(
     node.tag || "",
     attrName,
-    attrValue
+    attrValue,
   );
-  
+
   if (validation) {
-    const afterAttrName = document.getText().substring(node.start + match.index + match[0].length);
+    const afterAttrName = document
+      .getText()
+      .substring(node.start + match.index + match[0].length);
     const valueMatch = afterAttrName.match(
-      /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/
+      /^\s*=\s*(?:["']([^"']*)["']|([^\s>"'/]+))/,
     );
     const fullMatchLength =
       match[0].length + (valueMatch ? valueMatch[0].length : 0);
@@ -359,12 +529,15 @@ function validateSingleAttributeValue(
     };
     const severity = getSeverityLevel(validation.type, packageName);
     if (severity) {
-      diagnostics.push({
-        severity,
-        range,
-        message: validation.error,
-        source: "wc-toolkit",
-      });
+      const ruleName = validation.type;
+      if (!isDiagnosticIgnored(document, ruleName, range)) {
+        diagnostics.push({
+          severity,
+          range,
+          message: validation.error,
+          source: "wc-toolkit",
+        });
+      }
     }
   }
 }
@@ -379,23 +552,30 @@ function validateAttributeDeprecation(
   attrName: string,
   attrStart: number,
   attrNameEnd: number,
-  packageName?: string
+  packageName?: string,
 ): void {
-  const attributeDeprecationSeverity = getSeverityLevel("deprecatedAttribute", packageName);
+  const attributeDeprecationSeverity = getSeverityLevel(
+    "deprecatedAttribute",
+    packageName,
+  );
   if (attributeDeprecationSeverity) {
     const deprecation = checkAttributeDeprecation(node.tag || "", attrName);
     if (deprecation) {
       const severity = getSeverityLevel("deprecatedAttribute", packageName);
       if (severity) {
-        diagnostics.push({
-          severity,
-          range: {
-            start: document.positionAt(attrStart),
-            end: document.positionAt(attrNameEnd),
-          },
-          message: deprecation.error,
-          source: "wc-toolkit",
-        });
+        const range = {
+          start: document.positionAt(attrStart),
+          end: document.positionAt(attrNameEnd),
+        };
+        const ruleName = "deprecatedAttribute";
+        if (!isDiagnosticIgnored(document, ruleName, range)) {
+          diagnostics.push({
+            severity,
+            range,
+            message: deprecation.error,
+            source: "wc-toolkit",
+          });
+        }
       }
     }
   }
@@ -412,24 +592,28 @@ function validateUnknownAttribute(
   tagName: string,
   attrStart: number,
   attrNameEnd: number,
-  packageName?: string
+  packageName?: string,
 ): void {
   if (element && element.attributes) {
     const isKnownAttribute = element.attributes.some(
-      (attr: { name: string }) => attr.name === attrName
+      (attr: { name: string }) => attr.name === attrName,
     );
     if (!isKnownAttribute) {
       const severity = getSeverityLevel("unknownAttribute", packageName);
       if (severity) {
-        diagnostics.push({
-          severity: severity,
-          range: {
-            start: document.positionAt(attrStart),
-            end: document.positionAt(attrNameEnd),
-          },
-          message: `'${attrName}' is not a defined attribute for '${tagName}', so this may not behave as expected.`,
-          source: "wc-toolkit",
-        });
+        const range = {
+          start: document.positionAt(attrStart),
+          end: document.positionAt(attrNameEnd),
+        };
+        const ruleName = "unknownAttribute";
+        if (!isDiagnosticIgnored(document, ruleName, range)) {
+          diagnostics.push({
+            severity: severity,
+            range,
+            message: `'${attrName}' is not a defined attribute for '${tagName}', so this may not behave as expected.`,
+            source: "wc-toolkit",
+          });
+        }
       }
     }
   }
@@ -441,14 +625,14 @@ function validateUnknownAttribute(
 function validateAttributeValue(
   tagName: string,
   attributeName: string,
-  value?: string | null
+  value?: string | null,
 ): {
   error: string;
   type: DiagnosticSeverityOptions;
 } | null {
   const attrOptions = customElementsService.getAttributeValueOptions(
     tagName,
-    attributeName
+    attributeName,
   );
 
   // No validation possible or needed
@@ -504,7 +688,7 @@ function validateAttributeValue(
  */
 function getSeverityLevel(
   type: DiagnosticSeverityOptions,
-  packageName?: string
+  packageName?: string,
 ): DiagnosticSeverity | 0 {
   const libraryConfig = packageName
     ? configurationService?.config?.libraries?.[packageName]
@@ -533,7 +717,7 @@ function getSeverityLevel(
  */
 function findElementTagRange(
   document: html.TextDocument,
-  node: html.Node
+  node: html.Node,
 ): html.Range | null {
   if (!node.tag) return null;
 
@@ -577,13 +761,13 @@ function checkElementDeprecation(tagName: string): { error: string } | null {
  */
 function checkAttributeDeprecation(
   tagName: string,
-  attributeName: string
+  attributeName: string,
 ): { error: string } | null {
   const element = customElementsService.getCustomElement(tagName);
   if (!element?.attributes) return null;
 
   const attribute = element.attributes.find(
-    (attr) => attr.name === attributeName
+    (attr) => attr.name === attributeName,
   );
   if (!attribute?.deprecated) {
     return null;

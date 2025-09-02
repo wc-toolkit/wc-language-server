@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type * as cem from "custom-elements-manifest/schema" with { "resolution-mode": "require" };
+import type * as cem from "custom-elements-manifest/schema.js";
 import { removeQuotes } from "@wc-toolkit/cem-utilities";
 // import * as fs from 'fs';
 

@@ -11,7 +11,7 @@
         "--folder-uri=${workspaceRoot}/demos/html"
       ],
       "outFiles": ["${workspaceFolder}/packages/vscode/dist/**/*.js"],
-      "preLaunchTask": "npm: build"
+      "preLaunchTask": "npm: build:ls"
     },
     {
       "name": "Launch NPM",
@@ -22,7 +22,7 @@
         "--folder-uri=${workspaceRoot}/demos/npm"
       ],
       "outFiles": ["${workspaceFolder}/packages/vscode/dist/**/*.js"],
-      "preLaunchTask": "npm: build"
+      "preLaunchTask": "npm: build:ls"
     },
     {
       "name": "Attach to Language Server",

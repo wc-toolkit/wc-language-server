@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { LanguageServiceContext, LanguageServicePlugin } from "@volar/language-server";
+import {
+  LanguageServiceContext,
+  LanguageServicePlugin,
+} from "@volar/language-server";
 import { create as createHtmlService } from "volar-service-html";
 import { customElementsService } from "../../services/custom-elements-service.js";
 import { configurationService } from "../../services/configuration-service.js";
@@ -55,9 +58,10 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
 
       // Watch for changes to custom-elements.json and wc.config.js files
       context.env?.onDidChangeWatchedFiles?.((changes) => {
-        const shouldRestart = changes.changes.some((change) =>
-          change.uri.endsWith("custom-elements.json") || 
-          change.uri.endsWith("wc.config.js")
+        const shouldRestart = changes.changes.some(
+          (change) =>
+            change.uri.endsWith("custom-elements.json") ||
+            change.uri.endsWith("wc.config.js"),
         );
 
         if (shouldRestart) {
@@ -74,7 +78,12 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
          */
         provideCompletionItems(document, position, context, token) {
           if (!shouldProvideEnhancedService(document)) {
-            return baseService.provideCompletionItems?.(document, position, context, token);
+            return baseService.provideCompletionItems?.(
+              document,
+              position,
+              context,
+              token,
+            );
           }
           return getAutoCompleteSuggestions(document, position);
         },

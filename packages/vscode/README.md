@@ -27,6 +27,7 @@ This extension uses the [Custom Elements Manifest](https://github.com/webcompone
 ### 🧭 Automatic Manifest Discovery
 
 -**Local project** - automatically finds manifests from `customElements` field or if `custom-elements.json` is at the root of the project
+
 - **Project dependencies** - scans project dependencies for manifests
 
 ## Installation
@@ -53,6 +54,26 @@ This extension uses the [Custom Elements Manifest](https://github.com/webcompone
 <!-- Get intelligent suggestions for custom elements -->
 <my-custom-element my-attribute="value"></my-custom-element>
 ```
+
+### Disabling diagnostics with comments
+
+You can locally disable `wclint` diagnostics using HTML comment directives. These mirror ESLint-style disables and support stacking multiple rule names (comma or space separated).
+
+- Disable rules for the entire file:
+
+```html
+<!-- wclint-disable -->
+<!-- wclint-disable unknownAttribute deprecatedAttribute -->
+```
+
+- Disable diagnostics for the following line:
+
+```html
+<!-- wclint-disable-next-line deprecatedAttribute -->
+<my-element deprecated-attr></my-element>
+```
+
+Rules can be listed separated by spaces or commas, for example `<!-- wclint-disable ruleA ruleB,ruleC -->`.
 
 ### Supported File Types
 
@@ -206,7 +227,7 @@ export default {
   libraries: {
     /** Use the  */
     "@awesome.me/webawesome": {
-      /** 
+      /**
        * Fetch manifest from a URL
        * This isn't needed if you have the NPM package installed
        */

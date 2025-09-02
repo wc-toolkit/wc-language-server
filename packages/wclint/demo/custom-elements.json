@@ -1,0 +1,160 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "./counter-component.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "A simple counter web component for testing",
+          "name": "CounterComponent",
+          "customElement": true,
+          "tagName": "counter-component",
+          "attributes": [
+            {
+              "name": "initial-count",
+              "type": {
+                "text": "number"
+              },
+              "description": "Initial count value",
+              "default": "0"
+            },
+            {
+              "name": "step",
+              "type": {
+                "text": "number"
+              },
+              "description": "Step size for increment/decrement",
+              "default": "1"
+            }
+          ],
+          "events": [
+            {
+              "name": "count-changed",
+              "type": {
+                "text": "CustomEvent<{count: number}>"
+              },
+              "description": "Fired when the count value changes"
+            }
+          ],
+          "slots": [],
+          "cssParts": [],
+          "cssProperties": []
+        }
+      ],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "counter-component",
+          "declaration": {
+            "name": "CounterComponent"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "./validated-input.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "A form input component with validation",
+          "name": "ValidatedInput",
+          "customElement": true,
+          "tagName": "validated-input",
+          "attributes": [
+            {
+              "name": "type",
+              "type": {
+                "text": "string"
+              },
+              "description": "Input type (text, email, tel, etc.)",
+              "default": "text"
+            },
+            {
+              "name": "required",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the input is required"
+            },
+            {
+              "name": "min-length",
+              "type": {
+                "text": "number"
+              },
+              "description": "Minimum input length"
+            },
+            {
+              "name": "max-length",
+              "type": {
+                "text": "number"
+              },
+              "description": "Maximum input length"
+            },
+            {
+              "name": "pattern",
+              "type": {
+                "text": "string"
+              },
+              "description": "Regular expression pattern for validation"
+            },
+            {
+              "name": "placeholder",
+              "type": {
+                "text": "string"
+              },
+              "description": "Placeholder text"
+            },
+            {
+              "name": "disabled",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether the input is disabled"
+            }
+          ],
+          "events": [
+            {
+              "name": "validation-changed",
+              "type": {
+                "text": "CustomEvent<{isValid: boolean, errorMessage: string, value: string}>"
+              },
+              "description": "Fired when validation state changes"
+            }
+          ],
+          "methods": [
+            {
+              "name": "focus",
+              "description": "Focus the input element"
+            },
+            {
+              "name": "reset",
+              "description": "Reset the input value and validation state"
+            }
+          ],
+          "properties": [
+            {
+              "name": "value",
+              "type": {
+                "text": "string"
+              },
+              "description": "Current input value"
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "validated-input",
+          "declaration": {
+            "name": "ValidatedInput"
+          }
+        }
+      ]
+    }
+  ]
+}

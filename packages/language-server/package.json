@@ -2,23 +2,25 @@
   "name": "@wc-toolkit/language-server",
   "version": "0.0.1",
   "type": "module",
-  "main": "out/index.js",
+  "main": "dist/index.js",
   "exports": {
-    ".": "./out/index.js",
-    "./services": "./out/services/index.js",
-    "./plugins/html": "./out/plugins/html/index.js"
+    ".": "./dist/*",
+    "./services": "./dist/services/index.js",
+    "./plugins": "./dist/plugins/index.js"
   },
   "license": "MIT",
   "files": [
-    "out/**/*.js",
-    "out/**/*.d.ts"
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
   ],
   "bin": {
     "wc-language-server": "./bin/wc-language-server.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "watch": "tsc -p tsconfig.json --watch"
+    "watch": "tsc -p tsconfig.json --watch",
+    "test:unit": "node --test ./test/no-package-json.test.mjs",
+    "clean": "rimraf dist && rimraf tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "@volar/language-core": "~2.4.0",

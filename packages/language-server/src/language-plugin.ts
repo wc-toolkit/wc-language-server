@@ -188,18 +188,22 @@ export class WcLanguageServerVirtualCode implements VirtualCode {
   /** Parsed HTML document structure */
   htmlDocument: html.HTMLDocument;
 
+  /** TypeScript script snapshot for the HTML document */
+  snapshot: ts.IScriptSnapshot;
+
   /**
    * Creates a new virtual code instance for an HTML document.
    * @param snapshot - TypeScript script snapshot containing the HTML content
    */
-  constructor(public snapshot: ts.IScriptSnapshot) {
-    const text = snapshot.getText(0, snapshot.getLength());
+  constructor(_snapshot: ts.IScriptSnapshot) {
+    this.snapshot = _snapshot;
+    const text = this.snapshot.getText(0, this.snapshot.getLength());
 
-    this.mappings = [createFullDocumentMapping(snapshot.getLength())];
+    this.mappings = [createFullDocumentMapping(this.snapshot.getLength())];
     this.htmlDocument = htmlLs.parseHTMLDocument(
       html.TextDocument.create("", LANGUAGE_IDS.HTML, 0, text),
     );
-    this.embeddedCode = [...this.extractEmbeddedCode(snapshot)];
+    this.embeddedCode = [...this.extractEmbeddedCode(this.snapshot)];
   }
 
   /**
@@ -309,7 +313,6 @@ export class WcLanguageServerVirtualCode implements VirtualCode {
       languageId,
       snapshot: createTextSnapshot(text),
       mappings: [createEmbeddedMapping(element.startTagEnd, text.length)],
-      embeddedCode: [],
     };
   }
 }
