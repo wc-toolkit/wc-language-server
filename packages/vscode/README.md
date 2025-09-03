@@ -26,7 +26,7 @@ This extension uses the [Custom Elements Manifest](https://github.com/webcompone
 
 ### 🧭 Automatic Manifest Discovery
 
--**Local project** - automatically finds manifests from `customElements` field or if `custom-elements.json` is at the root of the project
+- **Local project** - automatically finds manifests from `customElements` field or if `custom-elements.json` is at the root of the project
 
 - **Project dependencies** - scans project dependencies for manifests
 
