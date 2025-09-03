@@ -9,7 +9,9 @@
     "wclint": "dist/cli.js"
   },
   "scripts": {
-    "build": "pnpm --filter @wc-toolkit/language-server run build && tsc",
+    "build": "tsup",
+    "build:deps": "pnpm --filter @wc-toolkit/language-server run build",
+    "prebuild": "npm run build:deps",
     "dev": "tsx src/cli.ts",
     "demo": "tsx src/cli.ts --config demo/wc.config.js",
     "demo:help": "tsx src/cli.ts -h",
@@ -39,10 +41,14 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
