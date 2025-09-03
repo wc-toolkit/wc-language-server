@@ -1,5 +1,11 @@
 # @wc-toolkit/wclint
 
+## 0.0.2
+
+### Patch Changes
+
+- 930568e: Fixed CLI build
+
 ## 0.0.1
 
 ### Patch Changes
