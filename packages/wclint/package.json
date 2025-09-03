@@ -18,7 +18,7 @@
     "demo:json": "tsx src/cli.ts --config demo/wc.config.js --format json",
     "demo:junit": "tsx src/cli.ts --config demo/wc.config.js --format junit",
     "demo:init": "tsx src/cli.ts init",
-    "release": "pnpm run build && changeset publish --access=public",
+    "release": "pnpm run build && npm publish --access=public",
     "test": "node --test ./test/*.test.mjs",
     "test:demo": "npm run build && cd demo && node ../dist/cli.js validate *.html"
   },
