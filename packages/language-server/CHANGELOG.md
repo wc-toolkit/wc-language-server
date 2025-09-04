@@ -1,5 +1,11 @@
 # @wc-toolkit/language-server
 
+## 0.0.3
+
+### Patch Changes
+
+- ea8110a: Fixed false positives with `unknownAttribute` for common attributes
+
 ## 0.0.2
 
 ### Patch Changes
