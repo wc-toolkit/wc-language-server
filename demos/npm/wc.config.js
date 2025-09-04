@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   // include: ['**/*.html', '**/*.js', '**/*.md'],
   // exclude: ['**/*.json'],
   // tagFormatter: (tag) => `${tag}-formatted`,

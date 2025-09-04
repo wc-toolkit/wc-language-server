@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "lint": "wclint",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,5 +13,8 @@
   "dependencies": {
     "@nordhealth/components": "^4.5.0",
     "@shoelace-style/shoelace": "^2.20.1"
+  },
+  "devDependencies": {
+    "@wc-toolkit/wclint": "workspace:*"
   }
 }
