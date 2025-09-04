@@ -2,8 +2,11 @@
   "name": "npm-demo",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "lint": "wclint",
+    "lint:debug": "wclint --debug",
+    "init:config": "wclint init",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

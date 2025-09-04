@@ -38,17 +38,17 @@ type ExpandedLintOptions = LintWebComponentsOptions & {
 
 program
   .description(
-    "CLI tool for validating Web Components using Custom Elements Manifest",
+    "CLI tool for validating Web Components using Custom Elements Manifest"
   )
   .argument(
     "[patterns...]",
-    "File patterns to validate (defaults to config include patterns)",
+    "File patterns to validate (defaults to config include patterns)"
   )
   .option("-c, --config <path>", "Path to configuration file")
   .option(
     "-f, --format <format>",
     "Output format (text, json, junit, checkstyle, sarif, html)",
-    "text",
+    "text"
   )
   .option("-o, --output <file>", "Write formatted output to a file")
   .option("--no-color", "Disable colored output")
@@ -70,7 +70,7 @@ program
  */
 export async function lintWebComponents(
   patterns: string[] = [],
-  options: ExpandedLintOptions = {},
+  options: ExpandedLintOptions = {}
 ): Promise<number> {
   try {
     // Load configuration
@@ -111,7 +111,7 @@ export async function lintWebComponents(
 
     // Return non-zero on validation errors
     const hasErrors = results.some((result) =>
-      result.diagnostics.some((diagnostic) => diagnostic.severity === 1),
+      result.diagnostics.some((diagnostic) => diagnostic.severity === 1)
     );
 
     return hasErrors ? 1 : 0;
@@ -131,8 +131,8 @@ program
       info(chalk.green(`✓ Created configuration file: ${options.file}`));
       info(
         chalk.blue(
-          "You can now customize the configuration to fit your project needs.",
-        ),
+          "You can now customize the configuration to fit your project needs."
+        )
       );
       process.exit(0);
     } catch (err) {
@@ -154,13 +154,13 @@ try {
   const caller =
     process.argv && process.argv[1] ? path.resolve(process.argv[1]) : null;
   const self = path.resolve(new URL(import.meta.url).pathname);
-  if (caller && caller === self) {
-    program.parse(process.argv);
 
-    // Show help if no command provided
-    if (!process.argv.slice(2).length) {
-      program.outputHelp();
-    }
+  // Resolve symlinks for proper comparison in workspace environments
+  const realCaller = caller ? fs.realpathSync(caller) : null;
+  const realSelf = fs.realpathSync(self);
+
+  if (realCaller && realCaller === realSelf) {
+    program.parse(process.argv);
   }
 } catch {
   // If any resolution fails, fall back to parsing behavior to preserve CLI when

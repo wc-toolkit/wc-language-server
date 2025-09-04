@@ -124,12 +124,22 @@ export class CustomElementsService {
   }
 
   private watchManifest() {
-    if (!this.manifestPath) return;
+    if (!this.manifestPath) {
+      debug("No manifest path set, cannot watch manifest");
+      return;
+    }
+
+    // Check if the manifest file exists before trying to watch it
+    if (!fs.existsSync(this.manifestPath)) {
+      debug(`Manifest file does not exist, cannot watch: ${this.manifestPath}`);
+      return;
+    }
 
     try {
-      this.manifestWatcher = fs.watchFile(this.manifestPath, () => {
+      this.manifestWatcher = fs.watchFile(this.manifestPath, { persistent: false }, () => {
         this.loadGlobalManifest();
       });
+      debug(`Watching manifest file: ${this.manifestPath}`);
     } catch (err) {
       error("Error watching manifest file:", err);
     }
@@ -218,6 +228,7 @@ export class CustomElementsService {
     if (!libraryConfigs) {
       return;
     }
+    
     for (const [name, libConfig] of Object.entries(libraryConfigs)) {
       if (!libConfig.manifestSrc) {
         continue;
@@ -227,7 +238,14 @@ export class CustomElementsService {
       if (isUrl) {
         this.loadManifestFromUrl(libConfig.manifestSrc, name);
       } else if (isFilePath) {
-        this.loadManifestFromFile(libConfig.manifestSrc, undefined, name);
+        // For file paths, pass the workspace root as the base path for relative paths
+        const basePath = path.isAbsolute(libConfig.manifestSrc) 
+          ? path.dirname(libConfig.manifestSrc)
+          : this.workspaceRoot;
+        this.loadManifestFromFile(basePath, libConfig.manifestSrc, name);
+      } else {
+        // If it's not a URL or file path, treat it as a relative path from workspace root
+        this.loadManifestFromFile(this.workspaceRoot, libConfig.manifestSrc, name);
       }
     }
   }
@@ -241,21 +259,39 @@ export class CustomElementsService {
       JSON.parse(readFileSync(this.packageJsonPath, "utf8")) || {};
     const dependencies = packageJson.dependencies || {};
 
+    // Check if node_modules directory exists
+    const nodeModulesPath = path.join(this.workspaceRoot, "node_modules");
+    if (!fs.existsSync(nodeModulesPath)) {
+      error("`node_modules` directory was not found. Please make sure your dependencies are installed.");
+      return;
+    }
+
     for (const depName of Object.keys(dependencies)) {
       try {
-        // Try to resolve the dependency's package root
-        const depPkgPath = path.join("node_modules", depName, "package.json");
-        const depRoot = path.join("node_modules", depName);
+        // Check if dependency directory exists in node_modules
+        const depRoot = path.join(this.workspaceRoot, "node_modules", depName);
+        if (!fs.existsSync(depRoot)) {
+          error(`Dependency directory not found: ${depRoot}`);
+          continue;
+        }
 
-        // Read the dependency's package.json
+        // Try to resolve the dependency's package root
+        const depPkgPath = path.join(depRoot, "package.json");
+
+        // Read the dependency's package.json only if it exists
         let depPkg: Record<string, unknown> = {};
-        try {
-          depPkg = JSON.parse(readFileSync(depPkgPath, "utf8")) as Record<
-            string,
-            unknown
-          >;
-        } catch (err) {
-          warn(`Error reading package.json from ${depPkgPath}:`, err as any);
+        if (fs.existsSync(depPkgPath)) {
+          try {
+            depPkg = JSON.parse(readFileSync(depPkgPath, "utf8")) as Record<
+              string,
+              unknown
+            >;
+          } catch (err) {
+            error(`Error reading package.json from ${depPkgPath}:`, err as any);
+            continue;
+          }
+        } else {
+          error(`Package.json not found for dependency: ${depPkgPath}`);
         }
 
         this.loadManifestFromFile(
@@ -274,21 +310,53 @@ export class CustomElementsService {
     cemPath?: string,
     depName?: string,
   ) {
-    let fullPath = path.join(path.dirname(packagePath), cemPath || "");
-
-    // Check default paths if custom-elements.json is not found
-    if (!cemPath || !fs.existsSync(fullPath)) {
-      fullPath =
-        [
-          path.join(packagePath, "custom-elements.json"),
-          path.join(packagePath, "dist/custom-elements.json"),
-        ].find((p) => fs.existsSync(p)) || "";
+    // Check if the package path exists first
+    if (!fs.existsSync(packagePath)) {
+      debug(`Package path does not exist: ${packagePath}`);
+      return;
     }
-    if (fullPath) {
-      const manifest = JSON.parse(readFileSync(fullPath, "utf8"));
-      if (manifest) {
-        this.parseManifest(manifest, depName);
+
+    let fullPath = "";
+
+    if (cemPath) {
+      // If a custom path is provided, resolve it relative to the package path
+      fullPath = path.isAbsolute(cemPath) 
+        ? cemPath 
+        : path.join(packagePath, cemPath);
+      
+      if (!fs.existsSync(fullPath)) {
+        debug(`Custom manifest path does not exist: ${fullPath}`);
+        fullPath = ""; // Reset to try default paths
       }
+    }
+
+    // Check default paths if custom-elements.json is not found or cemPath wasn't provided
+    if (!fullPath) {
+      const defaultPaths = [
+        path.join(packagePath, "custom-elements.json"),
+        path.join(packagePath, "dist/custom-elements.json"),
+      ];
+      
+      fullPath = defaultPaths.find((p) => fs.existsSync(p)) || "";
+    }
+
+    if (!fullPath) {
+      debug(`No custom elements manifest found for package: ${packagePath}`);
+      return;
+    }
+
+    try {
+      const manifestContent = readFileSync(fullPath, "utf8");
+      const manifest = JSON.parse(manifestContent);
+      
+      if (manifest) {
+        debug(`Loading manifest from: ${fullPath}${depName ? ` for dependency: ${depName}` : ''}`);
+        this.parseManifest(manifest, depName);
+      } else {
+        warn(`Manifest file is empty or invalid: ${fullPath}`);
+      }
+    } catch (err) {
+      error(`Error reading or parsing manifest file ${fullPath}:`, err as any);
     }
   }
 
@@ -311,7 +379,14 @@ export class CustomElementsService {
     if (!this.packageJsonPath) {
       this.packageJsonPath = path.join(this.workspaceRoot, "package.json");
     }
-    if (!fs.existsSync(this.packageJsonPath)) return;
+    
+    // Check if package.json exists before trying to watch it
+    if (!fs.existsSync(this.packageJsonPath)) {
+      debug(`Package.json not found, cannot watch: ${this.packageJsonPath}`);
+      return;
+    }
+    
+    // Don't create multiple watchers
     if (this.packageJsonWatcher) return;
 
     try {
@@ -323,6 +398,7 @@ export class CustomElementsService {
           this.notifyChange();
         },
       );
+      debug(`Watching package.json: ${this.packageJsonPath}`);
     } catch (err) {
       error("Error watching package.json file:", err as any);
     }

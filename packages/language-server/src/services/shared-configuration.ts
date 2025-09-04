@@ -419,24 +419,3 @@ export async function loadConfig(
     );
   }
 }
-
-/**
- * Creates a sample configuration file in JavaScript format
- */
-export async function createConfigFile(
-  filePath: string = "wc.config.js",
-): Promise<void> {
-  const sampleConfig: Partial<WCConfig> = {
-    manifestSrc: "custom-elements.json",
-    include: ["src/**/*.html", "src/**/*.js", "src/**/*.ts"],
-    exclude: ["node_modules/**", "dist/**", "build/**"],
-    ...DEFAULT_CONFIG,
-  };
-
-  // Create JavaScript module format instead of JSON
-  const content = `/** @type {import('@wc-toolkit/wclint').WCConfig} */
-export default ${JSON.stringify(sampleConfig, null, 2)};
-`;
-
-  await fs.promises.writeFile(filePath, content, "utf-8");
-}
