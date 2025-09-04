@@ -10,7 +10,7 @@ import {
   findConfigFile,
   loadConfigFile,
   BaseConfigurationManager,
-} from "@wc-toolkit/language-server/services";
+} from "../../language-server/src/services/index.js";
 
 // Re-export all the shared types and constants
 export type {

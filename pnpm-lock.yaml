@@ -105,9 +105,6 @@ importers:
 
   packages/wclint:
     dependencies:
-      '@wc-toolkit/language-server':
-        specifier: workspace:*
-        version: link:../language-server
       chalk:
         specifier: ^5.3.0
         version: 5.6.0

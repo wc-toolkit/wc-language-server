@@ -5,13 +5,13 @@ import { minimatch } from "minimatch";
 import { getLanguageService } from "vscode-html-languageservice";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Diagnostic } from "vscode-languageserver-types";
-import { getValidation } from "@wc-toolkit/language-server/plugins";
+import { getValidation } from "../../language-server/src/plugins/index.js";
 import { debug, warn } from "./logger.js";
 import {
   configurationService as servicesConfiguration,
   customElementsService as servicesCustomElements,
   WCConfig,
-} from "@wc-toolkit/language-server/services";
+} from "../../language-server/src/services/index.js";
 
 // Minimal interfaces for the language-server services we call.
 interface ConfigurationService {
