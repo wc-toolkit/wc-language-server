@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.10
+
+### Patch Changes
+
+- ea8110a: Fixed false positives with `unknownAttribute` for common attributes
+
 ## 0.0.9
 
 ### Patch Changes
