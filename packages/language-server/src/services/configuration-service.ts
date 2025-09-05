@@ -8,7 +8,7 @@ import {
 } from "./shared-configuration.js";
 import { warn } from "../utilities/logger.js";
 
-export {
+export type {
   WCConfig,
   DiagnosticSeverity,
   LibraryConfig,
@@ -68,7 +68,7 @@ export class ConfigurationService extends BaseConfigurationManager {
     }
 
     if (fs.existsSync(this.configPath)) {
-      this.watcher = fs.watchFile(this.configPath, () => {
+      this.watcher = fs.watchFile(this.configPath, { persistent: false }, () => {
         this.loadConfig();
       });
     }

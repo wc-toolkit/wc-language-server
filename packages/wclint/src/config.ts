@@ -6,11 +6,11 @@ import {
   DiagnosticSeverityOptions,
   DEFAULT_CONFIG,
   loadConfig as sharedLoadConfig,
-  createConfigFile as sharedCreateConfigFile,
   findConfigFile,
   loadConfigFile,
   BaseConfigurationManager,
 } from "../../language-server/src/services/index.js";
+import fs from "fs";
 
 // Re-export all the shared types and constants
 export type {
@@ -26,13 +26,40 @@ export async function loadConfig(configPath?: string): Promise<WCConfig> {
   return sharedLoadConfig(configPath);
 }
 
-export async function createConfigFile(
-  configPath: string = "wc.config.js",
-): Promise<void> {
-  return sharedCreateConfigFile(configPath);
-}
-
 export function validateConfig(config: WCConfig): string[] {
   const manager = new BaseConfigurationManager();
   return manager.getConfigValidationErrors(config);
+}
+
+/**
+ * Creates a sample configuration file in JavaScript format
+ */
+export async function createConfigFile(
+  filePath: string = "wc.config.js"
+): Promise<void> {
+  const sampleConfig: Partial<WCConfig> = {
+    manifestSrc: "custom-elements.json",
+    include: ["src/**/*.html", "src/**/*.js", "src/**/*.ts"],
+    exclude: ["node_modules/**", "dist/**", "build/**"],
+    ...DEFAULT_CONFIG,
+  };
+
+  let type = "commonjs";
+
+  if (fs.existsSync('./package.json')) {
+    const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
+    type = pkg.type === 'module' ? 'module' : 'commonjs';
+  }
+
+  // Create JavaScript module format instead of JSON
+  const content =
+    type === "module"
+      ? `/** @type {import('@wc-toolkit/wclint').WCConfig} */
+export default ${JSON.stringify(sampleConfig, null, 2)};
+`
+      : `/** @type {import('@wc-toolkit/wclint').WCConfig} */
+module.exports = ${JSON.stringify(sampleConfig, null, 2)};
+`;
+
+  await fs.promises.writeFile(filePath, content, "utf-8");
 }

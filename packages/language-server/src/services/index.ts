@@ -1,6 +1,8 @@
 export {
   configurationService,
   ConfigurationService,
+} from "./configuration-service.js";
+export type {
   WCConfig,
   DiagnosticSeverity,
   LibraryConfig,
@@ -8,7 +10,6 @@ export {
 } from "./configuration-service.js";
 export {
   loadConfig,
-  createConfigFile,
   findConfigFile,
   loadConfigFile,
   DEFAULT_CONFIG,

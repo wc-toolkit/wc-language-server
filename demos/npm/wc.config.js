@@ -1,23 +1,25 @@
-module.exports = {
-  // include: ['**/*.html', '**/*.js', '**/*.md'],
-  // exclude: ['**/*.json'],
-  // tagFormatter: (tag) => `${tag}-formatted`,
-  diagnosticSeverity: {
-    invalidBoolean: "warning",
-    invalidNumber: "error",
-    invalidAttributeValue: "error",
-    deprecatedAttribute: "warning",
-    deprecatedElement: "warning",
-    unknownElement: "hint",
-    unknownAttribute: "hint",
-  },
-  // tagFormatter: (tag) => `${tag}-global`,
-  libraries: {
-    // "@nordhealth/components": {
-    //   tagFormatter: (tag) => `${tag}-formatted`,
-    // },
-    // "@shoelace-style/shoelace": {
-    //   tagFormatter: (tag) => `${tag}-test`,
-    // },
-  },
+/** @type {import('@wc-toolkit/wclint').WCConfig} */
+export default {
+  "manifestSrc": "custom-elements.json",
+  "include": [
+    "**/*.html",
+    "src/**/*.js",
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    "build/**"
+  ],
+  "typeSrc": "parsedType",
+  "diagnosticSeverity": {
+    "invalidBoolean": "error",
+    "invalidNumber": "error",
+    "invalidAttributeValue": "error",
+    "deprecatedAttribute": "warning",
+    "deprecatedElement": "warning",
+    "duplicateAttribute": "error",
+    "unknownElement": "hint",
+    "unknownAttribute": "hint"
+  }
 };
