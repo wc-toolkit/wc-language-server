@@ -350,7 +350,7 @@ export class CustomElementsService {
       const manifest = JSON.parse(manifestContent);
       
       if (manifest) {
-        debug(`Loading manifest from: ${fullPath}${depName ? ` for dependency: ${depName}` : ''}`);
+        debug(`Loading manifest from: ${fullPath}${depName ? ` for dependency: ${depName}` : ""}`);
         this.parseManifest(manifest, depName);
       } else {
         warn(`Manifest file is empty or invalid: ${fullPath}`);

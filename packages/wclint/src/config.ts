@@ -10,7 +10,7 @@ import {
   loadConfigFile,
   BaseConfigurationManager,
 } from "../../language-server/src/services/index.js";
-import fs from 'fs';
+import fs from "fs";
 
 // Re-export all the shared types and constants
 export type {
@@ -35,7 +35,7 @@ export function validateConfig(config: WCConfig): string[] {
  * Creates a sample configuration file in JavaScript format
  */
 export async function createConfigFile(
-  filePath: string = "wc.config.js",
+  filePath: string = "wc.config.js"
 ): Promise<void> {
   const sampleConfig: Partial<WCConfig> = {
     manifestSrc: "custom-elements.json",
@@ -44,20 +44,20 @@ export async function createConfigFile(
     ...DEFAULT_CONFIG,
   };
 
-  let type = 'commonjs';
+  let type = "commonjs";
 
-  if(fs.existsSync('./package.json')) {
+  if (fs.existsSync('./package.json')) {
     const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
     type = pkg.type === 'module' ? 'module' : 'commonjs';
   }
-  
 
   // Create JavaScript module format instead of JSON
-  const content = type === 'module' 
-  ? `/** @type {import('@wc-toolkit/wclint').WCConfig} */
+  const content =
+    type === "module"
+      ? `/** @type {import('@wc-toolkit/wclint').WCConfig} */
 export default ${JSON.stringify(sampleConfig, null, 2)};
 `
-  : `/** @type {import('@wc-toolkit/wclint').WCConfig} */
+      : `/** @type {import('@wc-toolkit/wclint').WCConfig} */
 module.exports = ${JSON.stringify(sampleConfig, null, 2)};
 `;
 
