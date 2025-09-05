@@ -1,5 +1,13 @@
 # @wc-toolkit/language-server
 
+## 0.0.4
+
+### Patch Changes
+
+- bdbe4b3: Add better error handling if dependencies aren't installed
+- bdbe4b3: Added check to prevent crashes if `node_modules` haven't been installed
+- bdbe4b3: Fixed type export from language server
+
 ## 0.0.3
 
 ### Patch Changes

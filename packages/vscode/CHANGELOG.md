@@ -1,5 +1,12 @@
 # web-components-language-server
 
+## 0.0.11
+
+### Patch Changes
+
+- bdbe4b3: Add better error handling if dependencies aren't installed
+- bdbe4b3: Added check to prevent crashes if `node_modules` haven't been installed
+
 ## 0.0.10
 
 ### Patch Changes
