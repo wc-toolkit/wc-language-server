@@ -82,12 +82,12 @@ function getCompletions(
     return getAttributeCompletions(completions, tagName);
   }
 
-  // wclint directive completions inside HTML comments, e.g.
-  // <!-- wclint-disable | --> or <!-- wclint-disable unknownAttribute,| -->
-  const wclintCommentMatch = beforeText.match(
-    /<!--\s*wclint-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/,
+  // wctools directive completions inside HTML comments, e.g.
+  // <!-- wctools-disable | --> or <!-- wctools-disable unknownAttribute,| -->
+  const wctoolsCommentMatch = beforeText.match(
+    /<!--\s*wctools-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/,
   );
-  if (wclintCommentMatch) {
+  if (wctoolsCommentMatch) {
     return addLintRuleCompletions(completions);
   }
 
@@ -98,13 +98,13 @@ function addLintSnippets(completions: html.CompletionList) {
   // Offer full-comment snippets first so users can quickly insert a disable directive
   const directives = [
     {
-      name: "wclint-disable",
-      snippet: "<!-- wclint-disable ${1} -->",
+      name: "wctools-disable",
+      snippet: "<!-- wctools-disable ${1} -->",
       detail: "Disable rule(s) for this file",
     },
     {
-      name: "wclint-disable-next-line",
-      snippet: "<!-- wclint-disable-next-line ${1} -->",
+      name: "wctools-disable-next-line",
+      snippet: "<!-- wctools-disable-next-line ${1} -->",
       detail: "Disable rule(s) for the next line",
     },
   ];

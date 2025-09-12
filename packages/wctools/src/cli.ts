@@ -40,6 +40,7 @@ program
   .description(
     "CLI tool for validating Web Components using Custom Elements Manifest"
   )
+  .command("validate")
   .argument(
     "[patterns...]",
     "File patterns to validate (defaults to config include patterns)"

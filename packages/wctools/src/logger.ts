@@ -1,4 +1,4 @@
-const PREFIX = "[wclint]";
+const PREFIX = "[wctools]";
 
 export function info(...args: unknown[]) {
   console.info(PREFIX, ...args);

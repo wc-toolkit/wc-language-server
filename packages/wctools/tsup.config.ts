@@ -5,6 +5,7 @@ export default defineConfig({
   entry: {
     index: "src/index.ts",
     cli: "src/cli.ts",
+    validator: "src/validator.ts",
   },
 
   // Output format - ESM to match your package.json type
