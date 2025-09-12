@@ -1,6 +1,6 @@
 <div align="center">
   
-![workbench with tools, html, css, javascript, and wctools logo](https://github.com/wc-toolkit/wc-language-server/blob/main/assets/wc-toolkit_wctools.png?raw=true)
+![workbench with tools, html, css, javascript, and wctools logo](https://github.com/wc-toolkit/wc-language-server/blob/main/assets/wc-toolkit_wcls.png?raw=true)
 
 </div>
 
