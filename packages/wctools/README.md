@@ -6,6 +6,8 @@
 
 # Web Component Tools (wctools)
 
+> **NOTE:** This is currently in `alpha` and is experimental.
+
 The Web Component Tools project is a suite of tools designed to make the integration and validation of web components/custom elements easier for teams using them in their projects.
 
 The project currently consists of the CLI tool, but more are on their way.
@@ -39,10 +41,10 @@ npm install --save-dev @wc-toolkit/wctools
 1. **Validate your files** - use the default configuration:
 
    ```bash
-   wctools
+   wctools validate
    ```
 
-2. **Initialize a configuration (optional)** - create custom behavior for the linter:
+2. **Initialize a configuration (optional)** - create custom behavior for the toolkit:
    ```bash
    wctools init
    ```
@@ -100,7 +102,7 @@ wctools init
 
 ## Disabling diagnostics in source
 
-wctools supports in-source directives to suppress diagnostics similar to ESLint. Use HTML comments to disable rules globally or for the next line. Multiple rules may be listed and will stack. Rules can be separated by spaces or commas.
+`wctools` supports in-source comments to suppress diagnostics similar to ESLint. Use HTML comments to disable rules globally or for the next line. Multiple rules may be listed and will stack. Rules can be separated by spaces or commas.
 
 Examples:
 
@@ -362,6 +364,62 @@ npm run build && npm run validate:wc
 
 # Validate in watch mode (using nodemon or similar)
 nodemon --watch src --ext html,js,ts --exec "wctools validate 'src/**/*.html'"
+```
+
+
+## Validate only changed files
+
+You can run wctools only on files that have changed by using git to list changed filenames and passing them to the CLI. Below are a few common patterns.
+
+- Changed in working tree (including unstaged/staged):
+```bash
+# find changed files and validate them
+git ls-files --modified --others --exclude-standard -- 'src/**/*.{html,js,ts}' | \
+  xargs -r npx wctools validate
+```
+
+- Staged files only:
+```bash
+git diff --name-only --cached -- 'src/**/*.{html,js,ts}' | \
+  xargs -r npx wctools validate
+```
+
+- Files changed in the last commit:
+```bash
+git diff --name-only HEAD~1..HEAD -- 'src/**/*.{html,js,ts}' | \
+  xargs -r npx wctools validate
+```
+
+- Files changed between branches or PR ranges (useful in CI):
+```bash
+git fetch origin main
+git diff --name-only origin/main...HEAD -- 'src/**/*.{html,js,ts}' | \
+  xargs -r npx wctools validate
+```
+
+Notes:
+- xargs -r (GNU) or xargs --no-run-if-empty avoids running the command when there are no files.
+- Adjust the glob to match the files you want to validate.
+- If you prefer JSON/JUnit output for CI, add `--format json|junit` and redirect output.
+
+Example npm scripts:
+```json
+{
+  "scripts": {
+    "validate:changed": "git diff --name-only origin/main...HEAD -- 'src/**/*.{html,js,ts}' | xargs -r npx wctools validate",
+    "validate:staged": "git diff --name-only --cached -- 'src/**/*.{html,js,ts}' | xargs -r npx wctools validate"
+  }
+}
+```
+
+Example GitHub Actions step (validate changed files in a PR):
+```yaml
+- name: Validate changed files with wctools
+  run: |
+    git fetch origin ${{ github.base_ref }} --depth=1
+    git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'src/**/*.{html,js,ts}' | \
+      xargs -r npx wctools validate --format junit > validation-results.xml || true
+  # upload validation-results.xml as an artifact or use it as a report
 ```
 
 ## Supported File Types
