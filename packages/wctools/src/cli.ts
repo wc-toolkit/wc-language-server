@@ -54,7 +54,7 @@ program
   .option("-o, --output <file>", "Write formatted output to a file")
   .option("--no-color", "Disable colored output")
   .option("-v, --verbose", "Show files with no issues")
-  .action(async (patterns: string[], options) => {
+  .action(async (patterns: string[], options: ExpandedLintOptions) => {
     // Delegate to programmatic runner; when the CLI is executed directly we
     // still want the same behavior, so call lintWebComponents and exit with its code.
     const code = await lintWebComponents(patterns, options);
@@ -74,6 +74,16 @@ export async function lintWebComponents(
   options: ExpandedLintOptions = {}
 ): Promise<number> {
   try {
+    // Normalize patterns: if a single string with newlines was provided, split it.
+    if (patterns.length === 1 && typeof patterns[0] === "string") {
+      const single = patterns[0].trim();
+      patterns = single
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      debug("Normalized newline-separated patterns:", patterns);
+    }
+
     // Load configuration
     debug("Loading config from:", options.config || "current directory");
     debug("Current working directory:", process.cwd());
