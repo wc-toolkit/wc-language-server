@@ -7,7 +7,7 @@ import { globSync } from "glob";
 const config = "demo/wc.config.js";
 
 function expandDemoFiles() {
-  return globSync(path.join("packages", "wclint", "demo", "*.html"), {
+  return globSync(path.join("packages", "wctools", "demo", "*.html"), {
     absolute: true,
   });
 }

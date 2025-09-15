@@ -1,3 +1,9 @@
 {
-  "cSpell.words": ["languageservice", "OPENVSX", "sarif", "wclint"]
+  "cSpell.words": [
+    "languageservice",
+    "OPENVSX",
+    "sarif",
+    "wctools",
+    "wctools"
+  ]
 }

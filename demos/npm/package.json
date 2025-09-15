@@ -4,9 +4,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "lint": "wclint",
-    "lint:debug": "wclint --debug",
-    "init:config": "wclint init",
+    "lint": "wctools validate",
+    "lint:debug": "wctools validate --debug",
+    "init:config": "wctools init",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -18,6 +18,6 @@
     "@shoelace-style/shoelace": "^2.20.1"
   },
   "devDependencies": {
-    "@wc-toolkit/wclint": "workspace:*"
+    "@wc-toolkit/wctools": "workspace:*"
   }
 }

@@ -69,7 +69,7 @@ node --test path/to/test-file.mjs
 - Run tests for a specific package (example for CLI):
 
 ```bash
-node --test packages/wclint/test/*.mjs
+node --test packages/wctools/test/*.mjs
 ```
 
 Notes

@@ -1,4 +1,4 @@
-/** @type {import('@wc-toolkit/wclint').WCConfig} */
+/** @type {import('@wc-toolkit/wctools').WCConfig} */
 export default {
   "manifestSrc": "custom-elements.json",
   "include": [
@@ -19,7 +19,7 @@ export default {
     "deprecatedAttribute": "warning",
     "deprecatedElement": "warning",
     "duplicateAttribute": "error",
-    "unknownElement": "hint",
+    "unknownElement": "warning",
     "unknownAttribute": "hint"
   }
 };

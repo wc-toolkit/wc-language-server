@@ -1,12 +1,12 @@
 {
-  "name": "@wc-toolkit/wclint",
-  "version": "0.0.5",
+  "name": "@wc-toolkit/wctools",
+  "version": "0.0.0",
   "description": "CLI tool for validating Web Components using Custom Elements Manifest",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "wclint": "dist/cli.js"
+    "wctools": "dist/cli.js"
   },
   "scripts": {
     "build": "tsup",

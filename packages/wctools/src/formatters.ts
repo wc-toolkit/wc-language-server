@@ -152,7 +152,7 @@ function formatJUnit(results: ValidationResult[]): string {
   let totalTests = 0;
   let totalFailures = 0;
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  xml += '<testsuite name="wclint"';
+  xml += '<testsuite name="wctools"';
 
   const testCases: string[] = [];
 
@@ -209,7 +209,7 @@ function formatCheckstyle(results: ValidationResult[]): string {
 
       xml +=
         `    <error line="${line}" column="${column}" severity="${severity}" ` +
-        `message="${escapeXml(diagnostic.message)}" source="wclint"/>\n`;
+        `message="${escapeXml(diagnostic.message)}" source="wctools"/>\n`;
     }
 
     xml += "  </file>\n";
@@ -247,7 +247,7 @@ function formatSarif(results: ValidationResult[]): string {
   const run: SarifRun = {
     tool: {
       driver: {
-        name: "wclint",
+        name: "wctools",
         informationUri: "https://github.com/wc-toolkit/wc-language-server",
         rules: [],
         properties: {
@@ -391,7 +391,7 @@ function formatHtml(results: ValidationResult[]): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>wclint report</title>
+  <title>wctools report</title>
   <style>
     :root{--bg:#0f1724;--card:#0b1220;--muted:#94a3b8;--accent:#60a5fa;--ok:#10b981;--err:#ef4444;--warn:#f59e0b}
     /* Light fallback */
@@ -422,7 +422,7 @@ function formatHtml(results: ValidationResult[]): string {
 </head>
 <body>
   <div class="container">
-    <h1>wclint report</h1>
+    <h1>wctools report</h1>
     <div class="summary">
       <div class="stat">Files: <strong>${results.length}</strong></div>
       <div class="stat">Total issues: <strong>${results.reduce((acc, r) => acc + r.diagnostics.length, 0)}</strong></div>
@@ -441,13 +441,13 @@ function formatHtml(results: ValidationResult[]): string {
 function getSeverityName(severity: DiagnosticSeverity | undefined): string {
   switch (severity) {
     case DiagnosticSeverity.Error:
-      return "Error";
+      return "Error  ";
     case DiagnosticSeverity.Warning:
       return "Warning";
     case DiagnosticSeverity.Information:
-      return "Info";
+      return "Info   ";
     case DiagnosticSeverity.Hint:
-      return "Hint";
+      return "Hint   ";
     default:
       return "Unknown";
   }
@@ -459,15 +459,15 @@ function getSeverityName(severity: DiagnosticSeverity | undefined): string {
 function getSeverityIcon(severity: DiagnosticSeverity | undefined): string {
   switch (severity) {
     case DiagnosticSeverity.Error:
-      return "✖";
+      return "❌";
     case DiagnosticSeverity.Warning:
-      return "⚠";
+      return "⚠️ ";
     case DiagnosticSeverity.Information:
-      return "ℹ";
+      return "ℹ️";
     case DiagnosticSeverity.Hint:
       return "💡";
     default:
-      return "?";
+      return "❓";
   }
 }
 

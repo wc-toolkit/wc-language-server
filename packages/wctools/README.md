@@ -1,12 +1,20 @@
 <div align="center">
   
-![workbench with tools, html, css, javascript, and wclint logo](https://github.com/wc-toolkit/wc-language-server/blob/main/assets/wc-toolkit_wclint.png?raw=true)
+![workbench with tools, html, css, javascript, and wctools logo](https://github.com/wc-toolkit/wc-language-server/blob/main/assets/wc-toolkit_wcls.png?raw=true)
 
 </div>
 
-# Web Component Linter (`WCLint`)
+# Web Component Tools (wctools)
 
-WCLint statically analyzes your code to quickly find problems using information from the [Custom Elements Manifest (CEM)](https://github.com/webcomponents/custom-elements-manifest). Editor support can be found using the [Web Component Language Server](https://wc-toolkit.com/integrations/web-components-language-server/) and you can run WCLint as part of your continuous integration pipeline.
+> **NOTE:** This is currently in `alpha` and is experimental.
+
+The Web Component Tools project is a suite of tools designed to make the integration and validation of web components/custom elements easier for teams using them in their projects.
+
+The project currently consists of the CLI tool, but more are on their way.
+
+## Web Component Linter (`validate`)
+
+`wctools validate` CLI command statically analyzes your code to quickly find problems using information from the [Custom Elements Manifest (CEM)](https://github.com/webcomponents/custom-elements-manifest). Editor support can be found using the [Web Component Language Server](https://wc-toolkit.com/integrations/web-components-language-server/) and you can run wctools as part of your continuous integration pipeline.
 
 ## Features
 
@@ -22,10 +30,10 @@ WCLint statically analyzes your code to quickly find problems using information 
 
 ```bash
 # Install globally
-npm install -g @wc-toolkit/wclint
+npm install -g @wc-toolkit/wctools
 
 # Or install locally in your project
-npm install --save-dev @wc-toolkit/wclint
+npm install --save-dev @wc-toolkit/wctools
 ```
 
 ## Quick Start
@@ -33,12 +41,12 @@ npm install --save-dev @wc-toolkit/wclint
 1. **Validate your files** - use the default configuration:
 
    ```bash
-   wclint
+   wctools validate
    ```
 
-2. **Initialize a configuration (optional)** - create custom behavior for the linter:
+2. **Initialize a configuration (optional)** - create custom behavior for the toolkit:
    ```bash
-   wclint init
+   wctools init
    ```
 
 ## Usage
@@ -48,25 +56,25 @@ npm install --save-dev @wc-toolkit/wclint
 The commands follow a similar pattern to ESLint.
 
 ```bash
-wclint [options] [file|dir|glob]*
+wctools [command] [options] [file|dir|glob]*
 ```
 
 Validate Web Component files against Custom Elements Manifest.
 
 ```bash
 # Validate using a custom or default config
-wclint
+wctools validate
 
 # Validate specific files
-wclint src/components/*.html
+wctools validate src/components/*.html
 
 # Validate with glob patterns
-wclint "src/**/*.{html,js,ts}"
+wctools validate "src/**/*.{html,js,ts}"
 
 # Different output formats - default is `text`
-wclint --format json src/*.html
-wclint --format junit src/*.html > results.xml
-wclint --format checkstyle src/*.html
+wctools validate --format json src/*.html
+wctools validate --format junit src/*.html > results.xml
+wctools validate --format checkstyle src/*.html
 ```
 
 **Options:**
@@ -87,33 +95,33 @@ The configuration will give you default values, but all of the settings are requ
 
 ```bash
 # Create default config
-wclint init
+wctools init
 ```
 
 > **NOTE:** The configuration should be at the root of your project with the name `wc.config.js` in order for the linter and language server to detect it.
 
 ## Disabling diagnostics in source
 
-WCLint supports in-source directives to suppress diagnostics similar to ESLint. Use HTML comments to disable rules globally or for the next line. Multiple rules may be listed and will stack. Rules can be separated by spaces or commas.
+`wctools` supports in-source comments to suppress diagnostics similar to ESLint. Use HTML comments to disable rules globally or for the next line. Multiple rules may be listed and will stack. Rules can be separated by spaces or commas.
 
 Examples:
 
 - Disable all diagnostics for the file:
 
 ```html
-<!-- wclint-disable -->
+<!-- wctools-disable -->
 ````
 
 - Disable specific rules for the file (stacked, comma or space separated):
 
 ```html
-<!-- wclint-disable unknownAttribute deprecatedAttribute -->
+<!-- wctools-disable unknownAttribute deprecatedAttribute -->
 ```
 
 - Disable a rule for the next line:
 
 ```html
-<!-- wclint-disable-next-line deprecatedAttribute -->
+<!-- wctools-disable-next-line deprecatedAttribute -->
 <my-element deprecated-attr></my-element>
 ```
 
@@ -121,13 +129,13 @@ These directives are useful to locally silence known, acceptable deviations with
 
 ## Programmatic API
 
-You can also import types and the programmatic adapter directly from `@wc-toolkit/wclint` when using this package as a dependency:
+You can also import types and the programmatic adapter directly from `@wc-toolkit/wctools` when using this package as a dependency:
 
 ```ts
 import {
   lintWebComponents,
   type LintWebComponentsOptions,
-} from "@wc-toolkit/wclint";
+} from "@wc-toolkit/wctools";
 
 const options: LintWebComponentsOptions = {
   format: "html",
@@ -164,10 +172,10 @@ Below are short notes on common consumers and why a format might be preferred.
 
 ```bash
 # default lint command uses text output
-wclint
+wctools validate
 
 # manual file output
-wclint --format text --output report.txt
+wctools validate --format text --output report.txt
 ```
 
 ```txt
@@ -181,7 +189,7 @@ Found 2 hints in 1 file.
 ### JSON Format
 
 ```bash
-wclint --format json --output report.json
+wctools validate --format json --output report.json
 ```
 
 ```json
@@ -205,12 +213,12 @@ wclint --format json --output report.json
 ### JUnit XML Format
 
 ```bash
-wclint --format junit --output report.xml
+wctools validate --format junit --output report.xml
 ```
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="wclint" tests="1" failures="0">
+<testsuite name="wctools" tests="1" failures="0">
   <testcase name="src/components/my-element.html" classname="WebComponentValidation"/>
 </testsuite>
 ```
@@ -218,14 +226,14 @@ wclint --format junit --output report.xml
 ### Checkstyle XML Format
 
 ```bash
-wclint --format checkstyle --output report.xml
+wctools validate --format checkstyle --output report.xml
 ```
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <checkstyle version="1.0">
   <file name="src/components/my-element.html">
-    <error line="1" column="15" severity="hint" message="Unknown element: my-custom-element" source="wclint"/>
+    <error line="1" column="15" severity="hint" message="Unknown element: my-custom-element" source="wctools"/>
   </file>
 </checkstyle>
 ```
@@ -233,7 +241,7 @@ wclint --format checkstyle --output report.xml
 ### SARIF Format
 
 ```bash
-wclint --format sarif --output report.json
+wctools validate --format sarif --output report.json
 ```
 
 ```json
@@ -244,7 +252,7 @@ wclint --format sarif --output report.json
     {
       "tool": {
         "driver": {
-          "name": "wclint",
+          "name": "wctools",
           "informationUri": "https://wc-toolkit.com"
         }
       },
@@ -275,7 +283,7 @@ The CLI emits SARIF 2.1.0 with basic tool/driver metadata and rules mapped to di
 Generate a single-file HTML report suitable for attaching as CI artifacts or sharing with teammates. The HTML is styled and responsive for quick inspection in a browser.
 
 ```bash
-wclint --format html --output report.html
+wctools validate --format html --output report.html
 ```
 
 When saving HTML as a CI artifact you can open it in the browser or attach it to pull requests for easy review.
@@ -297,7 +305,7 @@ jobs:
         with:
           node-version: "18"
       - run: npm ci
-      - run: npx wclint
+      - run: npx wctools
 ```
 
 ### GitLab CI
@@ -307,7 +315,7 @@ validate-web-components:
   stage: test
   script:
     - npm ci
-    - npx wclint --format junit "src/**/*.html" > validation-results.xml
+    - npx wctools validate --format junit "src/**/*.html" > validation-results.xml
   artifacts:
     reports:
       junit: validation-results.xml
@@ -318,8 +326,8 @@ validate-web-components:
 ```json
 {
   "scripts": {
-    "validate:wc": "wclint \"src/**/*.{html,js,ts}\"",
-    "validate:wc:ci": "wclint --format junit \"src/**/*.html\" > validation-results.xml"
+    "validate:wc": "wctools validate \"src/**/*.{html,js,ts}\"",
+    "validate:wc:ci": "wctools validate --format junit \"src/**/*.html\" > validation-results.xml"
   }
 }
 ```
@@ -330,22 +338,22 @@ validate-web-components:
 
 ```bash
 # Validate all HTML files in src directory
-wclint "src/**/*.html"
+wctools validate "src/**/*.html"
 
 # Validate specific files
-wclint src/button.html src/card.html
+wctools validate src/button.html src/card.html
 
 # Validate with verbose output to see all files processed
-wclint --verbose "**/*.html"
+wctools validate --verbose "**/*.html"
 ```
 
 ### Custom Configuration
 
 ```bash
 # Different output formats for CI
-wclint --format junit "src/**/*.html" > results.xml
-wclint --format checkstyle "src/**/*.html" > checkstyle.xml
-wclint --format json "src/**/*.html" > results.json
+wctools validate --format junit "src/**/*.html" > results.xml
+wctools validate --format checkstyle "src/**/*.html" > checkstyle.xml
+wctools validate --format json "src/**/*.html" > results.json
 ```
 
 ### Integration with Build Tools
@@ -355,7 +363,63 @@ wclint --format json "src/**/*.html" > results.json
 npm run build && npm run validate:wc
 
 # Validate in watch mode (using nodemon or similar)
-nodemon --watch src --ext html,js,ts --exec "wclint 'src/**/*.html'"
+nodemon --watch src --ext html,js,ts --exec "wctools validate 'src/**/*.html'"
+```
+
+
+## Validate only changed files
+
+You can run wctools only on files that have changed by using git to list changed filenames and passing them to the CLI. Below are a few common patterns.
+
+- Changed in working tree (including unstaged/staged):
+```bash
+# find changed files and validate them
+git ls-files --modified --others --exclude-standard -- 'src/**/*.{html,js,ts}' | \
+  xargs -r npx wctools validate
+```
+
+- Staged files only:
+```bash
+git diff --name-only --cached -- 'src/**/*.{html,js,ts}' | \
+  xargs -r npx wctools validate
+```
+
+- Files changed in the last commit:
+```bash
+git diff --name-only HEAD~1..HEAD -- 'src/**/*.{html,js,ts}' | \
+  xargs -r npx wctools validate
+```
+
+- Files changed between branches or PR ranges (useful in CI):
+```bash
+git fetch origin main
+git diff --name-only origin/main...HEAD -- 'src/**/*.{html,js,ts}' | \
+  xargs -r npx wctools validate
+```
+
+Notes:
+- xargs -r (GNU) or xargs --no-run-if-empty avoids running the command when there are no files.
+- Adjust the glob to match the files you want to validate.
+- If you prefer JSON/JUnit output for CI, add `--format json|junit` and redirect output.
+
+Example npm scripts:
+```json
+{
+  "scripts": {
+    "validate:changed": "git diff --name-only origin/main...HEAD -- 'src/**/*.{html,js,ts}' | xargs -r npx wctools validate",
+    "validate:staged": "git diff --name-only --cached -- 'src/**/*.{html,js,ts}' | xargs -r npx wctools validate"
+  }
+}
+```
+
+Example GitHub Actions step (validate changed files in a PR):
+```yaml
+- name: Validate changed files with wctools
+  run: |
+    git fetch origin ${{ github.base_ref }} --depth=1
+    git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'src/**/*.{html,js,ts}' | \
+      xargs -r npx wctools validate --format junit > validation-results.xml || true
+  # upload validation-results.xml as an artifact or use it as a report
 ```
 
 ## Supported File Types

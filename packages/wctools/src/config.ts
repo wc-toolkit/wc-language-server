@@ -54,10 +54,10 @@ export async function createConfigFile(
   // Create JavaScript module format instead of JSON
   const content =
     type === "module"
-      ? `/** @type {import('@wc-toolkit/wclint').WCConfig} */
+      ? `/** @type {import('@wc-toolkit/wctools').WCConfig} */
 export default ${JSON.stringify(sampleConfig, null, 2)};
 `
-      : `/** @type {import('@wc-toolkit/wclint').WCConfig} */
+      : `/** @type {import('@wc-toolkit/wctools').WCConfig} */
 module.exports = ${JSON.stringify(sampleConfig, null, 2)};
 `;
 

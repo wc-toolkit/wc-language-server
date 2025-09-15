@@ -56,11 +56,11 @@ test("parseAttributesFromText - single and double quotes and unquoted", () => {
 });
 
 // Tests for isDiagnosticIgnored
-// We'll construct small documents with wclint directives and a fake range
+// We'll construct small documents with wctools directives and a fake range
 
 test("isDiagnosticIgnored - global disable specific rules (comma-separated)", () => {
   const text =
-    "<!-- wclint-disable unknownAttribute,deprecatedAttribute -->\n<my-element foo></my-element>";
+    "<!-- wctools-disable unknownAttribute,deprecatedAttribute -->\n<my-element foo></my-element>";
   const doc = createDoc(text);
   const range = {
     start: { line: 1, character: 0 },
@@ -73,7 +73,7 @@ test("isDiagnosticIgnored - global disable specific rules (comma-separated)", ()
 
 test("isDiagnosticIgnored - disable-next-line", () => {
   const text =
-    "<!-- wclint-disable-next-line deprecatedAttribute -->\n<my-element bar></my-element>";
+    "<!-- wctools-disable-next-line deprecatedAttribute -->\n<my-element bar></my-element>";
   const doc = createDoc(text);
   const r2 = {
     start: { line: 1, character: 0 },

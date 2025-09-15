@@ -45,9 +45,9 @@ importers:
         specifier: ^2.20.1
         version: 2.20.1(@floating-ui/utils@0.2.10)(@types/react@19.1.12)
     devDependencies:
-      '@wc-toolkit/wclint':
+      '@wc-toolkit/wctools':
         specifier: workspace:*
-        version: link:../../packages/wclint
+        version: link:../../packages/wctools
 
   packages/language-server:
     dependencies:
@@ -116,7 +116,7 @@ importers:
         specifier: latest
         version: 2.15.0
 
-  packages/wclint:
+  packages/wctools:
     dependencies:
       chalk:
         specifier: ^5.3.0

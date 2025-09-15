@@ -193,7 +193,7 @@ function extractElementOpeningTag(node: html.Node, text: string): string {
 }
 
 /**
- * Parse wclint ignore directives from HTML comments and decide if a diagnostic
+ * Parse wctools ignore directives from HTML comments and decide if a diagnostic
  * should be ignored. Placed at module scope so all validators can use it.
  */
 export function isDiagnosticIgnored(
@@ -210,9 +210,9 @@ export function isDiagnosticIgnored(
     { disableAll: boolean; rules: Set<string> }
   >();
 
-  // Accept rule lists separated by spaces or commas (e.g. "wclint-disable rule1,rule2 rule3")
+  // Accept rule lists separated by spaces or commas (e.g. "wctools-disable rule1,rule2 rule3")
   const directiveRegex =
-    /<!--\s*wclint-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]+))?\s*-->/g;
+    /<!--\s*wctools-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]+))?\s*-->/g;
   let m: RegExpExecArray | null;
   while ((m = directiveRegex.exec(text)) !== null) {
     const kind = m[1];
