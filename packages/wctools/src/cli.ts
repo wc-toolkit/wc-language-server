@@ -14,7 +14,7 @@ const program = new Command();
 /**
  * Options for running the Web Components linter/validator.
  */
-export type LintWebComponentsOptions = {
+export type ValidateWebComponentsOptions = {
   /** Output format to use. Known values: `text`, `json`, `junit`, `checkstyle`, `sarif`, `html`. Custom format names are supported. */
   format?: OutputFormats;
   /** When true, enable colored terminal output. Use `--no-color` to disable. */
@@ -25,7 +25,7 @@ export type LintWebComponentsOptions = {
   output?: string;
 };
 
-type ExpandedLintOptions = LintWebComponentsOptions & {
+type ExpandedValidationOptions = ValidateWebComponentsOptions & {
   /**
    * Path to the configuration file (e.g. `wc.config.js`).
    * This is used for testing purposes.
@@ -54,10 +54,10 @@ program
   .option("-o, --output <file>", "Write formatted output to a file")
   .option("--no-color", "Disable colored output")
   .option("-v, --verbose", "Show files with no issues")
-  .action(async (patterns: string[], options: ExpandedLintOptions) => {
+  .action(async (patterns: string[], options: ExpandedValidationOptions) => {
     // Delegate to programmatic runner; when the CLI is executed directly we
-    // still want the same behavior, so call lintWebComponents and exit with its code.
-    const code = await lintWebComponents(patterns, options);
+    // still want the same behavior, so call validateWebComponents and exit with its code.
+    const code = await validateWebComponents(patterns, options);
     process.exit(code);
   });
 
@@ -66,12 +66,12 @@ program
  * validation logic without spawning a Node process. Returns an exit code.
  *
  * @param {string[]} patterns File patterns to validate (defaults to config include patterns)
- * @param {LintWebComponentsOptions} options Linting options
+ * @param {ValidateWebComponentsOptions} options Linting options
  * @returns {Promise<number>} Exit code - 0 if successful, 1 if errors were found
  */
-export async function lintWebComponents(
+export async function validateWebComponents(
   patterns: string[] = [],
-  options: ExpandedLintOptions = {}
+  options: ExpandedValidationOptions = {}
 ): Promise<number> {
   try {
     // Normalize patterns: if a single string with newlines was provided, split it.
