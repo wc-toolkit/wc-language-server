@@ -1,5 +1,11 @@
 # @wc-toolkit/language-server
 
+## 0.0.5
+
+### Patch Changes
+
+- 4541eac: Added watchers to restart extension when manifest, package.json, or config changes
+
 ## 0.0.4
 
 ### Patch Changes

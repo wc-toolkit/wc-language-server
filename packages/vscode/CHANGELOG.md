@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.12
+
+### Patch Changes
+
+- 4541eac: Added watchers to restart extension when manifest, package.json, or config changes
+
 ## 0.0.11
 
 ### Patch Changes
