@@ -49,4 +49,13 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Deploy to Open VSX
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          pnpm add -g ovsx
+          cd packages/vscode
+          pnpm vsce package
+          ovsx publish *.vsix -p $OPENVSX_TOKEN
+        env:
           OPENVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}

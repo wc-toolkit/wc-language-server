@@ -1,0 +1,45 @@
+name: Deploy to Open VSX
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Package VS Code extension
+        run: |
+          cd packages/vscode
+          pnpm vsce package
+
+      - name: Install ovsx
+        run: pnpm add -g ovsx
+
+      - name: Publish to Open VSX
+        run: |
+          cd packages/vscode
+          ovsx publish *.vsix -p $OPENVSX_TOKEN
+        env:
+          OPENVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}

@@ -33,8 +33,7 @@
     "build": "node scripts/build -- --minify",
     "watch": "npm run build -- --watch",
     "pack": "npm run build && vsce package --pre-release",
-    "publish:open-vsx": "npm run pack && ovsx publish ./web-components-language-server-*.vsix --pat $OPENVSX_TOKEN",
-    "release": "npm run build && vsce publish && npm run publish:open-vsx"
+    "release": "npm run build && vsce publish"
   },
   "devDependencies": {
     "@types/vscode": "^1.82.0",
