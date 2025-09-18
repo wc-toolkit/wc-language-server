@@ -17,7 +17,6 @@ export type {
 
 export class ConfigurationService extends BaseConfigurationManager {
   private configPath: string;
-  private watcher?: fs.StatWatcher;
   private workspaceRoot: string = "";
 
   constructor() {
@@ -32,8 +31,8 @@ export class ConfigurationService extends BaseConfigurationManager {
     // Consumers should listen to config change events if they require the final config.
     // Fire-and-forget keeps compatibility with earlier synchronous behaviour.
     void this.loadConfig();
-    this.watchConfig();
   }
+
   public async loadConfig(): Promise<void> {
     try {
       // If an explicit config file exists at configPath, load that file directly.
@@ -62,18 +61,6 @@ export class ConfigurationService extends BaseConfigurationManager {
     this.notifyListeners();
   }
 
-  private watchConfig() {
-    if (this.watcher) {
-      fs.unwatchFile(this.configPath);
-    }
-
-    if (fs.existsSync(this.configPath)) {
-      this.watcher = fs.watchFile(this.configPath, { persistent: false }, () => {
-        this.loadConfig();
-      });
-    }
-  }
-
   public setWorkspaceRoot(root: string): void {
     this.workspaceRoot = root;
     this.configPath = path.join(this.workspaceRoot, "wc.config.js");
@@ -81,10 +68,6 @@ export class ConfigurationService extends BaseConfigurationManager {
   }
 
   public dispose(): void {
-    if (this.watcher) {
-      fs.unwatchFile(this.configPath);
-      this.watcher = undefined;
-    }
     this.changeListeners = [];
   }
 }

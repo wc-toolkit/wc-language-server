@@ -26,7 +26,6 @@ export type AttributeTypes = Map<AttributeKey, string[] | string>;
  */
 export class CustomElementsService {
   private customElements = new Map<string, Component>();
-  private manifestWatcher?: fs.StatWatcher;
   private manifestPath: string | null = null;
   private manifestContent = "";
   private attributeOptions: AttributeTypes = new Map();
@@ -34,7 +33,6 @@ export class CustomElementsService {
   private workspaceRoot: string = "";
   private dependencyCustomElements = new Map<string, Component>();
   private packageJsonPath: string = "";
-  private packageJsonWatcher?: fs.FSWatcher;
 
   public attributeData: Map<AttributeKey, AttributeInfo> = new Map();
 
@@ -50,8 +48,6 @@ export class CustomElementsService {
 
   private initialize() {
     this.loadManifests();
-    this.watchManifest();
-    this.watchPackageJson();
 
     // Reload when config changes
     configurationService?.onChange(() => {
@@ -123,28 +119,6 @@ export class CustomElementsService {
     });
   }
 
-  private watchManifest() {
-    if (!this.manifestPath) {
-      debug("No manifest path set, cannot watch manifest");
-      return;
-    }
-
-    // Check if the manifest file exists before trying to watch it
-    if (!fs.existsSync(this.manifestPath)) {
-      debug(`Manifest file does not exist, cannot watch: ${this.manifestPath}`);
-      return;
-    }
-
-    try {
-      this.manifestWatcher = fs.watchFile(this.manifestPath, { persistent: false }, () => {
-        this.loadGlobalManifest();
-      });
-      debug(`Watching manifest file: ${this.manifestPath}`);
-    } catch (err) {
-      error("Error watching manifest file:", err);
-    }
-  }
-
   private notifyChange() {
     this.changeListeners.forEach((callback) => callback());
   }
@@ -199,8 +173,6 @@ export class CustomElementsService {
   }
 
   public dispose() {
-    this.manifestWatcher?.unref();
-    this.packageJsonWatcher?.close();
     this.changeListeners = [];
   }
 
@@ -373,35 +345,6 @@ export class CustomElementsService {
       .catch((err) => {
         error(`Error loading manifest from ${url}:`, err as any);
       });
-  }
-
-  private watchPackageJson() {
-    if (!this.packageJsonPath) {
-      this.packageJsonPath = path.join(this.workspaceRoot, "package.json");
-    }
-    
-    // Check if package.json exists before trying to watch it
-    if (!fs.existsSync(this.packageJsonPath)) {
-      debug(`Package.json not found, cannot watch: ${this.packageJsonPath}`);
-      return;
-    }
-    
-    // Don't create multiple watchers
-    if (this.packageJsonWatcher) return;
-
-    try {
-      this.packageJsonWatcher = fs.watch(
-        this.packageJsonPath,
-        { persistent: false },
-        () => {
-          this.loadManifests();
-          this.notifyChange();
-        },
-      );
-      debug(`Watching package.json: ${this.packageJsonPath}`);
-    } catch (err) {
-      error("Error watching package.json file:", err as any);
-    }
   }
 
   private isPathOrUrl(str?: string): { isUrl: boolean; isFilePath: boolean } {
