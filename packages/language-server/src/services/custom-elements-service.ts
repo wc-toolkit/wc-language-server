@@ -4,7 +4,11 @@ import * as path from "path";
 import { configurationService } from "./configuration-service.js";
 import { debug, warn, error } from "../utilities/logger.js";
 import type * as cem from "custom-elements-manifest/schema.js";
-import { Component, getAllComponents } from "@wc-toolkit/cem-utilities";
+import {
+  Component,
+  getAllComponents,
+  getComponentDetailsTemplate,
+} from "@wc-toolkit/cem-utilities";
 import { parseAttributeValueOptions } from "../utilities/cem-utils.js";
 import { readFileSync } from "fs";
 
@@ -25,11 +29,11 @@ export type AttributeTypes = Map<AttributeKey, string[] | string>;
  * Handles loading, parsing, and providing access to custom element definitions.
  */
 export class CustomElementsService {
+  private customElementsDocs = new Map<string, string>();
   private customElements = new Map<string, Component>();
   private manifestPath: string | null = null;
   private manifestContent = "";
   private attributeOptions: AttributeTypes = new Map();
-  private changeListeners: (() => void)[] = [];
   private workspaceRoot: string = "";
   private dependencyCustomElements = new Map<string, Component>();
   private packageJsonPath: string = "";
@@ -37,29 +41,21 @@ export class CustomElementsService {
   public attributeData: Map<AttributeKey, AttributeInfo> = new Map();
 
   constructor() {
-    this.initialize();
+    this.loadManifests();
   }
 
   public setWorkspaceRoot(root: string): void {
     this.workspaceRoot = root;
     debug("Setting workspace root to:", root);
-    this.reLoadManifests();
+    this.loadManifests();
   }
 
-  private initialize() {
-    this.loadManifests();
-
-    // Reload when config changes
-    configurationService?.onChange(() => {
-      this.reLoadManifests();
-    });
+  public getAllDocs(): Map<string, string> {
+    return this.customElementsDocs;
   }
 
-  private reLoadManifests() {
-    this.customElements.clear();
-    this.attributeOptions.clear();
-
-    this.loadManifests();
+  public getCustomElementDocs(tagName: string): string {
+    return this.customElementsDocs.get(tagName) || "";
   }
 
   private loadGlobalManifest() {
@@ -72,7 +68,6 @@ export class CustomElementsService {
       } else {
         this.loadManifestFromFile(this.workspaceRoot, cemPath);
       }
-      this.notifyChange();
     } catch (err) {
       error("Error loading custom elements manifest:", err);
     }
@@ -91,9 +86,13 @@ export class CustomElementsService {
       const tagName =
         configurationService?.getFormattedTagName(
           element.tagName!,
-          element.dependency as string,
+          element.dependency as string
         ) || element.tagName!;
       this.customElements.set(tagName, element);
+      this.customElementsDocs.set(
+        tagName,
+        `### \`<${tagName}>\`\n\n---\n\n${getComponentDetailsTemplate(element)}`
+      );
       this.setAttributeOptions(tagName, element, depName);
     });
   }
@@ -101,7 +100,7 @@ export class CustomElementsService {
   private setAttributeOptions(
     tagName: string,
     component: Component,
-    depName?: string,
+    depName?: string
   ) {
     component.attributes?.forEach((attr) => {
       const typeSrc =
@@ -117,18 +116,6 @@ export class CustomElementsService {
         options: Array.isArray(options) ? options : undefined,
       });
     });
-  }
-
-  private notifyChange() {
-    this.changeListeners.forEach((callback) => callback());
-  }
-
-  public onManifestChange(callback: () => void): () => void {
-    this.changeListeners.push(callback);
-    return () => {
-      const index = this.changeListeners.indexOf(callback);
-      if (index > -1) this.changeListeners.splice(index, 1);
-    };
   }
 
   public getCustomElements(): Component[] {
@@ -154,7 +141,7 @@ export class CustomElementsService {
 
   public getAttributeValueOptions(
     tagName: string,
-    attributeName: string,
+    attributeName: string
   ): string[] | string | null {
     const options = this.attributeOptions.get(`${tagName}:${attributeName}`);
     return options || null;
@@ -162,7 +149,7 @@ export class CustomElementsService {
 
   public getAttributeInfo(
     tagName: string,
-    attributeName: string,
+    attributeName: string
   ): AttributeInfo | null {
     return this.attributeData.get(`${tagName}:${attributeName}`) || null;
   }
@@ -173,11 +160,11 @@ export class CustomElementsService {
   }
 
   public dispose() {
-    this.changeListeners = [];
+    this.customElements.clear();
+    this.customElementsDocs.clear();
   }
 
   private loadManifests() {
-    this.dependencyCustomElements.clear();
     this.packageJsonPath = path.join(this.workspaceRoot, "package.json");
     try {
       this.loadGlobalManifest();
@@ -192,7 +179,7 @@ export class CustomElementsService {
     if (configurationService.config.manifestSrc) {
       this.loadManifestFromFile(
         this.workspaceRoot,
-        configurationService.config.manifestSrc,
+        configurationService.config.manifestSrc
       );
     }
 
@@ -200,7 +187,7 @@ export class CustomElementsService {
     if (!libraryConfigs) {
       return;
     }
-    
+
     for (const [name, libConfig] of Object.entries(libraryConfigs)) {
       if (!libConfig.manifestSrc) {
         continue;
@@ -211,13 +198,17 @@ export class CustomElementsService {
         this.loadManifestFromUrl(libConfig.manifestSrc, name);
       } else if (isFilePath) {
         // For file paths, pass the workspace root as the base path for relative paths
-        const basePath = path.isAbsolute(libConfig.manifestSrc) 
+        const basePath = path.isAbsolute(libConfig.manifestSrc)
           ? path.dirname(libConfig.manifestSrc)
           : this.workspaceRoot;
         this.loadManifestFromFile(basePath, libConfig.manifestSrc, name);
       } else {
         // If it's not a URL or file path, treat it as a relative path from workspace root
-        this.loadManifestFromFile(this.workspaceRoot, libConfig.manifestSrc, name);
+        this.loadManifestFromFile(
+          this.workspaceRoot,
+          libConfig.manifestSrc,
+          name
+        );
       }
     }
   }
@@ -234,7 +225,9 @@ export class CustomElementsService {
     // Check if node_modules directory exists
     const nodeModulesPath = path.join(this.workspaceRoot, "node_modules");
     if (!fs.existsSync(nodeModulesPath)) {
-      error("`node_modules` directory was not found. Please make sure your dependencies are installed.");
+      error(
+        "`node_modules` directory was not found. Please make sure your dependencies are installed."
+      );
       return;
     }
 
@@ -269,7 +262,7 @@ export class CustomElementsService {
         this.loadManifestFromFile(
           depRoot,
           (depPkg as any).customElements,
-          depName,
+          depName
         );
       } catch (err) {
         error(`Error loading CEM for dependency ${depName}:`, err as any);
@@ -280,10 +273,10 @@ export class CustomElementsService {
   private loadManifestFromFile(
     packagePath: string,
     cemPath?: string,
-    depName?: string,
+    depName?: string
   ) {
     // Check if the package path exists first
-    if (!fs.existsSync(packagePath)) {
+    if (packagePath && !fs.existsSync(packagePath)) {
       debug(`Package path does not exist: ${packagePath}`);
       return;
     }
@@ -292,10 +285,10 @@ export class CustomElementsService {
 
     if (cemPath) {
       // If a custom path is provided, resolve it relative to the package path
-      fullPath = path.isAbsolute(cemPath) 
-        ? cemPath 
+      fullPath = path.isAbsolute(cemPath)
+        ? cemPath
         : path.join(packagePath, cemPath);
-      
+
       if (!fs.existsSync(fullPath)) {
         debug(`Custom manifest path does not exist: ${fullPath}`);
         fullPath = ""; // Reset to try default paths
@@ -308,7 +301,7 @@ export class CustomElementsService {
         path.join(packagePath, "custom-elements.json"),
         path.join(packagePath, "dist/custom-elements.json"),
       ];
-      
+
       fullPath = defaultPaths.find((p) => fs.existsSync(p)) || "";
     }
 
@@ -320,9 +313,11 @@ export class CustomElementsService {
     try {
       const manifestContent = readFileSync(fullPath, "utf8");
       const manifest = JSON.parse(manifestContent);
-      
+
       if (manifest) {
-        debug(`Loading manifest from: ${fullPath}${depName ? ` for dependency: ${depName}` : ""}`);
+        debug(
+          `Loading manifest from: ${fullPath}${depName ? ` for dependency: ${depName}` : ""}`
+        );
         this.parseManifest(manifest, depName);
       } else {
         warn(`Manifest file is empty or invalid: ${fullPath}`);

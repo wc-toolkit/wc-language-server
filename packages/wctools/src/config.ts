@@ -44,11 +44,11 @@ export async function createConfigFile(
     ...DEFAULT_CONFIG,
   };
 
-  let type = "commonjs";
+  let type = "module";
 
   if (fs.existsSync('./package.json')) {
     const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
-    type = pkg.type === 'module' ? 'module' : 'commonjs';
+    type = pkg.type !== 'module' ? 'commonjs' : 'module';
   }
 
   // Create JavaScript module format instead of JSON

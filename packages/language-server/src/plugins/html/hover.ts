@@ -1,6 +1,5 @@
 import * as html from "vscode-html-languageservice";
 import { customElementsService } from "../../services/custom-elements-service.js";
-import { getComponentDetailsTemplate } from "@wc-toolkit/cem-utilities";
 import { Hover, NullableProviderResult } from "@volar/language-server";
 
 export function getHoverContent(
@@ -26,7 +25,7 @@ export function getHoverContent(
     return null;
   }
 
-  let hoverContent = getComponentDetailsTemplate(element);
+  let hoverContent = customElementsService.getCustomElementDocs(node.tag || "");
 
   // Add deprecation warning for element
   if (element.deprecated) {

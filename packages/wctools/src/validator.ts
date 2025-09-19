@@ -156,7 +156,7 @@ async function findFiles(
 
   // Use provided patterns or fallback to config include patterns
   const searchPatterns =
-    patterns.length > 0 ? patterns : config.include || ["**/*.html"];
+    patterns.length > 0 ? patterns : config.include || ["**/*"];
 
   for (const pattern of searchPatterns) {
     try {
@@ -188,25 +188,6 @@ async function findFiles(
  * Determines if a file should be validated based on its extension.
  */
 function shouldValidateFile(filePath: string, config: WCConfig): boolean {
-  const ext = path.extname(filePath).toLowerCase();
-  const supportedExtensions = [
-    ".html",
-    ".htm",
-    ".js",
-    ".ts",
-    ".jsx",
-    ".tsx",
-    ".vue",
-    ".svelte",
-    ".md",
-    ".mdx",
-  ];
-
-  // Check if file extension is supported
-  if (!supportedExtensions.includes(ext)) {
-    return false;
-  }
-
   // Apply include/exclude filters
   if (config.include && config.include.length > 0) {
     const includeMatch = config.include.some((pattern: string) =>
