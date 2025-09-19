@@ -1,5 +1,13 @@
 # web-components-language-server
 
+## 0.0.13
+
+### Patch Changes
+
+- a4e423e: Fixed logic to find manifest at the root of the project
+- a4e423e: Added more common attributes to prevent warnings
+- a4e423e: Cached hover documentation for faster render
+
 ## 0.0.12
 
 ### Patch Changes

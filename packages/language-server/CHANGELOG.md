@@ -1,5 +1,11 @@
 # @wc-toolkit/language-server
 
+## 0.0.6
+
+### Patch Changes
+
+- a4e423e: Removed unused code
+
 ## 0.0.5
 
 ### Patch Changes
