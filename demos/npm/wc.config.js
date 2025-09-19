@@ -1,5 +1,5 @@
 /** @type {import('@wc-toolkit/wctools').WCConfig} */
-export default {
+module.exports = {
   "manifestSrc": "custom-elements.json",
   "include": [
     "**/*.html",
@@ -19,7 +19,7 @@ export default {
     "deprecatedAttribute": "warning",
     "deprecatedElement": "warning",
     "duplicateAttribute": "error",
-    "unknownElement": "warning",
+    "unknownElement": "hint",
     "unknownAttribute": "hint"
   }
 };

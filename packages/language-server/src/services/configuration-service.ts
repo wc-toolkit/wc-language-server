@@ -22,14 +22,6 @@ export class ConfigurationService extends BaseConfigurationManager {
   constructor() {
     super();
     this.configPath = path.join(this.workspaceRoot, "wc.config.js");
-    this.initialize();
-  }
-
-  private initialize() {
-    // Start async load (do not await here to preserve constructor sync behaviour)
-    // The loader is ESM-friendly and will load JS/TS/JSON via dynamic import or JSON parse.
-    // Consumers should listen to config change events if they require the final config.
-    // Fire-and-forget keeps compatibility with earlier synchronous behaviour.
     void this.loadConfig();
   }
 
@@ -39,7 +31,7 @@ export class ConfigurationService extends BaseConfigurationManager {
       if (fs.existsSync(this.configPath)) {
         const userConfig = (await loadConfigFileOrDir(
           this.configPath,
-          this.workspaceRoot,
+          this.workspaceRoot
         )) as Partial<WCConfig> | undefined;
         const validated = this.validateConfig(userConfig || {});
         this.config = this.mergeWithDefaults(validated as WCConfig);
@@ -47,10 +39,10 @@ export class ConfigurationService extends BaseConfigurationManager {
         // Otherwise, allow loader to search for config files within the workspace root
         const userConfig = (await loadConfigFileOrDir(
           undefined,
-          this.workspaceRoot || process.cwd(),
+          this.workspaceRoot || process.cwd()
         )) as Partial<WCConfig> | undefined;
         this.config = this.mergeWithDefaults(
-          this.validateConfig(userConfig || {}),
+          this.validateConfig(userConfig || {})
         );
       }
     } catch (e) {
@@ -58,17 +50,12 @@ export class ConfigurationService extends BaseConfigurationManager {
       warn("Failed to load config, using default:", e);
       this.config = DEFAULT_CONFIG;
     }
-    this.notifyListeners();
   }
 
   public setWorkspaceRoot(root: string): void {
     this.workspaceRoot = root;
     this.configPath = path.join(this.workspaceRoot, "wc.config.js");
-    this.initialize();
-  }
-
-  public dispose(): void {
-    this.changeListeners = [];
+    void this.loadConfig();
   }
 }
 

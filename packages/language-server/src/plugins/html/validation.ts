@@ -27,6 +27,11 @@ const COMMON_ATTRIBUTES = [
   "dir",
   "tabindex",
   "ref",
+  "slot",
+  "part",
+  "hidden",
+  "role",
+  "exportparts",
 ];
 
 /**

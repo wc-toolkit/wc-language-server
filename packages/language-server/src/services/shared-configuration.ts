@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
-import { debug, info, warn, error } from "../utilities/logger.js";
+import { debug, info, warn } from "../utilities/logger.js";
 import { minimatch } from "minimatch";
 
 export type DiagnosticSeverity = "error" | "warning" | "info" | "hint" | "off";
@@ -82,7 +82,7 @@ export interface LibraryConfig {
   componentModulePath?: (
     componentName: string,
     tagName: string,
-    modulePath: string,
+    modulePath: string
   ) => string;
 
   /** Path to a global module to include in all files. */
@@ -129,9 +129,6 @@ export const CONFIG_FILE_NAMES = [
   "wc.config.js",
   "wc.config.ts",
   "wc.config.mjs",
-  ".wcrc.js",
-  ".wcrc.ts",
-  ".wcrc",
 ];
 
 /**
@@ -139,7 +136,6 @@ export const CONFIG_FILE_NAMES = [
  */
 export class BaseConfigurationManager {
   public config = DEFAULT_CONFIG;
-  protected changeListeners: Array<() => void> = [];
 
   /**
    * Merges user configuration with default configuration
@@ -158,7 +154,7 @@ export class BaseConfigurationManager {
     if (userConfig.libraries) {
       mergedConfig.libraries = {};
       for (const [libraryName, libraryConfig] of Object.entries(
-        userConfig.libraries,
+        userConfig.libraries
       )) {
         mergedConfig.libraries[libraryName] = {
           ...DEFAULT_CONFIG,
@@ -188,7 +184,7 @@ export class BaseConfigurationManager {
 
     if (config.diagnosticSeverity) {
       const diagnosticKeys = Object.keys(
-        DEFAULT_CONFIG.diagnosticSeverity!,
+        DEFAULT_CONFIG.diagnosticSeverity!
       ) as DiagnosticOptions[];
 
       for (const key of diagnosticKeys) {
@@ -197,7 +193,7 @@ export class BaseConfigurationManager {
           !validSeverities.includes(config.diagnosticSeverity[key]!)
         ) {
           warn(
-            `Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`,
+            `Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`
           );
           config.diagnosticSeverity[key] = "error";
         }
@@ -234,7 +230,7 @@ export class BaseConfigurationManager {
       for (const [key, value] of Object.entries(config.diagnosticSeverity)) {
         if (typeof value === "string" && !validSeverities.includes(value)) {
           errors.push(
-            `diagnosticSeverity.${key} must be one of: ${validSeverities.join(", ")}`,
+            `diagnosticSeverity.${key} must be one of: ${validSeverities.join(", ")}`
           );
         }
       }
@@ -252,7 +248,7 @@ export class BaseConfigurationManager {
     // If include patterns are specified, file must match at least one
     if (this.config.include && this.config.include.length > 0) {
       const includeMatch = this.config.include.some((pattern) =>
-        minimatch(filePath, pattern, { matchBase: true }),
+        minimatch(filePath, pattern, { matchBase: true })
       );
       if (!includeMatch) {
         return false;
@@ -262,7 +258,7 @@ export class BaseConfigurationManager {
     // If exclude patterns are specified, file must not match any
     if (this.config.exclude && this.config.exclude.length > 0) {
       const excludeMatch = this.config.exclude.some((pattern) =>
-        minimatch(filePath, pattern, { matchBase: true }),
+        minimatch(filePath, pattern, { matchBase: true })
       );
       if (excludeMatch) {
         return false;
@@ -283,36 +279,11 @@ export class BaseConfigurationManager {
   }
 
   /**
-   * Register a change listener
-   */
-  public onChange(listener: () => void): () => void {
-    this.changeListeners.push(listener);
-    return () => {
-      const index = this.changeListeners.indexOf(listener);
-      if (index !== -1) this.changeListeners.splice(index, 1);
-    };
-  }
-
-  /**
-   * Notify all change listeners
-   */
-  protected notifyListeners(): void {
-    for (const listener of this.changeListeners) {
-      try {
-        listener();
-      } catch (err: unknown) {
-        error("Error in config change listener:", err);
-      }
-    }
-  }
-
-  /**
    * Update configuration programmatically
    */
   public updateConfig(newConfig: Partial<WCConfig>): void {
     const validatedConfig = this.validateConfig(newConfig);
     this.config = this.mergeWithDefaults(validatedConfig);
-    this.notifyListeners();
   }
 }
 
@@ -328,7 +299,7 @@ export function findConfigFile(directory: string): string | undefined {
       "Checking config file:",
       filePath,
       "exists:",
-      fs.existsSync(filePath),
+      fs.existsSync(filePath)
     );
     if (fs.existsSync(filePath)) {
       info("Found config file:", filePath);
@@ -343,7 +314,7 @@ export function findConfigFile(directory: string): string | undefined {
  * Loads and parses a configuration file (supports JS, TS, and MJS)
  */
 export async function loadConfigFile(
-  filePath: string,
+  filePath: string
 ): Promise<Partial<WCConfig>> {
   const ext = path.extname(filePath);
 
@@ -379,7 +350,7 @@ export async function loadConfigFile(
     }
   } else {
     throw new Error(
-      `Unsupported configuration file format: ${ext}. Supported formats: .js, .mjs, .ts, .json`,
+      `Unsupported configuration file format: ${ext}. Supported formats: .js, .mjs, .ts, .json`
     );
   }
 }
@@ -389,7 +360,7 @@ export async function loadConfigFile(
  */
 export async function loadConfig(
   configPath?: string,
-  workingDirectory = process.cwd(),
+  workingDirectory = process.cwd()
 ): Promise<WCConfig> {
   const manager = new BaseConfigurationManager();
   let configFile: string | undefined;
@@ -415,7 +386,7 @@ export async function loadConfig(
     return manager["mergeWithDefaults"](validatedConfig);
   } catch (error) {
     throw new Error(
-      `Failed to load configuration from ${configFile}: ${error}`,
+      `Failed to load configuration from ${configFile}: ${error}`
     );
   }
 }
