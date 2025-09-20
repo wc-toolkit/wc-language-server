@@ -81,7 +81,13 @@ export async function activate(context: vscode.ExtensionContext) {
   const configWatcher = createRestartingWatcher("**/wc.config.{js,cjs,mjs,ts,json}", "config");
   const manifestWatcher = createRestartingWatcher("**/custom-elements.json", "manifest");
   const packageJsonWatcher = createRestartingWatcher("**/package.json", "package.json");
-  context.subscriptions.push(configWatcher, manifestWatcher, packageJsonWatcher, getOutputChannel());
+
+  // Watch for node_modules addition/removal
+  const nodeModulesWatcher = vscode.workspace.createFileSystemWatcher("**/node_modules");
+  nodeModulesWatcher.onDidCreate((uri) => { void restartLanguageClient(`node_modules added: ${uri.fsPath}`); });
+  nodeModulesWatcher.onDidDelete((uri) => { void restartLanguageClient(`node_modules removed: ${uri.fsPath}`); });
+
+  context.subscriptions.push(configWatcher, manifestWatcher, packageJsonWatcher, nodeModulesWatcher, getOutputChannel());
 
   // support for auto close tag
   activateAutoInsertion("html", client);
