@@ -1,5 +1,12 @@
 # web-components-language-server
 
+## 0.0.14
+
+### Patch Changes
+
+- 60bff83: Removed plugin that was causing duplicate entries in info bubbles and autocomplete menus
+- 190599f: Added watcher for `node_modules` directory
+
 ## 0.0.13
 
 ### Patch Changes

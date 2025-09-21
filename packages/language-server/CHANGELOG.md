@@ -1,5 +1,11 @@
 # @wc-toolkit/language-server
 
+## 0.0.7
+
+### Patch Changes
+
+- 60bff83: Removed plugin that was causing duplicate entries in info bubbles and autocomplete menus
+
 ## 0.0.6
 
 ### Patch Changes
