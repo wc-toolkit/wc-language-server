@@ -9,7 +9,7 @@ import type { TypeScriptExtraServiceScript } from "@volar/typescript";
 import type * as ts from "typescript";
 import * as html from "vscode-html-languageservice";
 import { URI } from "vscode-uri";
-import { WebComponentsVirtualCode } from "./language-plugin-enhanced.js";
+import { customElementsService } from "./services/custom-elements-service.js";
 
 /** File extensions supported by the language plugin */
 const SUPPORTED_EXTENSIONS = {
@@ -165,188 +165,179 @@ function getScriptConfig(languageId: string, fileName: string, codeId: string) {
   }
 }
 
-/** HTML language service instance for parsing HTML documents */
-const htmlLs = html.getLanguageService();
-
 /**
- * Virtual code implementation for web component HTML files.
- * Handles parsing HTML and extracting embedded CSS and JavaScript/TypeScript code.
+ * Enhanced virtual code implementation for web component HTML files.
+ * Creates better mappings for Web Components and extracts embedded CSS and JavaScript/TypeScript code.
  */
-export class WcLanguageServerVirtualCode implements VirtualCode {
-  /** Unique identifier for this virtual code instance */
-  id = "root";
-
-  /** Language identifier for this virtual code */
-  languageId = LANGUAGE_IDS.HTML;
-
-  /** Code mappings between source and generated positions */
+export class WebComponentsVirtualCode implements VirtualCode {
+  id = "wc-root";
+  languageId = "html";
   mappings: CodeMapping[];
-
-  /** Array of embedded virtual code instances (CSS, JS, TS) */
   embeddedCode: VirtualCode[] = [];
-
-  /** Parsed HTML document structure */
   htmlDocument: html.HTMLDocument;
-
-  /** TypeScript script snapshot for the HTML document */
   snapshot: ts.IScriptSnapshot;
 
-  /**
-   * Creates a new virtual code instance for an HTML document.
-   * @param snapshot - TypeScript script snapshot containing the HTML content
-   */
   constructor(_snapshot: ts.IScriptSnapshot) {
     this.snapshot = _snapshot;
     const text = this.snapshot.getText(0, this.snapshot.getLength());
+    this.htmlDocument = html
+      .getLanguageService()
+      .parseHTMLDocument(html.TextDocument.create("", "html", 0, text));
 
-    this.mappings = [createFullDocumentMapping(this.snapshot.getLength())];
-    this.htmlDocument = htmlLs.parseHTMLDocument(
-      html.TextDocument.create("", LANGUAGE_IDS.HTML, 0, text),
-    );
+    // Create more granular mappings for custom elements
+    this.mappings = this.createCustomElementMappings(text);
     this.embeddedCode = [...this.extractEmbeddedCode(this.snapshot)];
   }
 
   /**
-   * Extracts embedded code (CSS and JavaScript/TypeScript) from the HTML document.
-   * @param snapshot - The text snapshot to extract code from
-   * @returns Generator yielding virtual code instances for embedded content
+   * Creates mappings that enable better navigation and hover for custom elements
    */
-  private *extractEmbeddedCode(
-    snapshot: ts.IScriptSnapshot,
-  ): Generator<VirtualCode> {
-    const { styles, scripts } = this.categorizeElements();
+  private createCustomElementMappings(text: string): CodeMapping[] {
+    const mappings: CodeMapping[] = [];
 
-    yield* this.createStyleCode(snapshot, styles);
-    yield* this.createScriptCode(snapshot, scripts);
+    // Default full document mapping
+    mappings.push({
+      sourceOffsets: [0],
+      generatedOffsets: [0],
+      lengths: [text.length],
+      data: DEFAULT_CAPABILITIES,
+    });
+
+    // Create specific mappings for custom elements to enable better features
+    this.htmlDocument.roots.forEach((node) => {
+      if (node.tag && customElementsService.hasCustomElement(node.tag)) {
+        // Map the tag name for go-to-definition
+        const tagStart = node.start + 1; // Skip '<'
+
+        mappings.push({
+          sourceOffsets: [tagStart],
+          generatedOffsets: [tagStart],
+          lengths: [node.tag.length],
+          data: {
+            navigation: true,
+            completion: true,
+            verification: true,
+          },
+        });
+
+        // Map custom attributes for better IntelliSense
+        if (node.attributes) {
+          const element = customElementsService.getCustomElement(node.tag);
+          Object.keys(node.attributes).forEach((attrName) => {
+            const isCustomAttribute = element?.attributes?.some(
+              (attr: { name: string }) => attr.name === attrName,
+            );
+
+            if (isCustomAttribute) {
+              const attrMatch = text
+                .substring(node.start, node.end)
+                .match(new RegExp(`\\s(${attrName})(?:=|\\s|>)`));
+
+              if (attrMatch) {
+                const attrStart = node.start + attrMatch.index! + 1;
+                const attrLength = attrMatch[1].length;
+
+                mappings.push({
+                  sourceOffsets: [attrStart],
+                  generatedOffsets: [attrStart],
+                  lengths: [attrLength],
+                  data: {
+                    completion: true,
+                    verification: true,
+                  },
+                });
+              }
+            }
+          });
+        }
+      }
+    });
+
+    return mappings;
   }
 
-  /**
-   * Categorizes HTML elements into styles and scripts for processing.
-   * @returns Object containing arrays of style and script elements
-   */
-  private categorizeElements() {
-    return {
-      styles: this.htmlDocument.roots.filter((root) => root.tag === "style"),
-      scripts: this.htmlDocument.roots.filter((root) => root.tag === "script"),
-    };
+  private extractEmbeddedCode(snapshot: ts.IScriptSnapshot): VirtualCode[] {
+    const text = snapshot.getText(0, snapshot.getLength());
+    const embeddedCodes: VirtualCode[] = [];
+
+    this.htmlDocument.roots.forEach((node, index) => {
+      // Extract script tags with better context awareness
+      if (
+        node.tag === "script" &&
+        node.startTagEnd !== undefined &&
+        node.endTagStart !== undefined
+      ) {
+        const scriptContent = text.substring(
+          node.startTagEnd,
+          node.endTagStart,
+        );
+        const languageId = this.getScriptLanguageId(node);
+
+        const embeddedCode: VirtualCode = {
+          id: `script_${index}`,
+          languageId,
+          snapshot: createTextSnapshot(scriptContent),
+          mappings: [
+            {
+              sourceOffsets: [node.startTagEnd],
+              generatedOffsets: [0],
+              lengths: [scriptContent.length],
+              data: {
+                completion: true,
+                navigation: true,
+                semantic: true,
+                verification: true,
+              },
+            },
+          ],
+        };
+
+        embeddedCodes.push(embeddedCode);
+      }
+
+      // Extract style tags with CSS support
+      if (
+        node.tag === "style" &&
+        node.startTagEnd !== undefined &&
+        node.endTagStart !== undefined
+      ) {
+        const styleContent = text.substring(node.startTagEnd, node.endTagStart);
+
+        const embeddedCode: VirtualCode = {
+          id: `style_${index}`,
+          languageId: "css",
+          snapshot: createTextSnapshot(styleContent),
+          mappings: [
+            {
+              sourceOffsets: [node.startTagEnd],
+              generatedOffsets: [0],
+              lengths: [styleContent.length],
+              data: {
+                completion: true,
+                format: true,
+                verification: true,
+              },
+            },
+          ],
+        };
+
+        embeddedCodes.push(embeddedCode);
+      }
+    });
+
+    return embeddedCodes;
   }
 
-  /**
-   * Creates virtual code instances for CSS style elements.
-   * @param snapshot - The text snapshot containing the HTML
-   * @param styles - Array of style elements to process
-   * @returns Generator yielding virtual code for each style element
-   */
-  private *createStyleCode(
-    snapshot: ts.IScriptSnapshot,
-    styles: any[],
-  ): Generator<VirtualCode> {
-    for (const [index, style] of styles.entries()) {
-      const code = this.createEmbeddedCode(
-        snapshot,
-        style,
-        `style_${index}`,
-        LANGUAGE_IDS.CSS,
-      );
-      if (code) yield code;
-    }
-  }
-
-  /**
-   * Creates virtual code instances for JavaScript/TypeScript script elements.
-   * @param snapshot - The text snapshot containing the HTML
-   * @param scripts - Array of script elements to process
-   * @returns Generator yielding virtual code for each script element
-   */
-  private *createScriptCode(
-    snapshot: ts.IScriptSnapshot,
-    scripts: any[],
-  ): Generator<VirtualCode> {
-    for (const [index, script] of scripts.entries()) {
-      const languageId = this.getScriptLanguageId(script);
-      const code = this.createEmbeddedCode(
-        snapshot,
-        script,
-        `script_${index}`,
-        languageId,
-      );
-      if (code) yield code;
-    }
-  }
-
-  /**
-   * Determines the language ID for a script element based on its attributes.
-   * @param script - The script element to analyze
-   * @returns Language ID (typescript or javascript)
-   */
-  private getScriptLanguageId(script: any): string {
+  private getScriptLanguageId(script: html.Node): string {
     const lang = script.attributes?.lang;
-    const isTypeScript = lang === "ts" || lang === '"ts"' || lang === "'ts'";
-    return isTypeScript ? LANGUAGE_IDS.TYPESCRIPT : LANGUAGE_IDS.JAVASCRIPT;
+    const type = script.attributes?.type;
+
+    if (lang === "ts" || lang === '"ts"' || lang === "'ts'")
+      return "typescript";
+    if (type?.includes("typescript")) return "typescript";
+
+    return "javascript";
   }
-
-  /**
-   * Creates a virtual code instance for embedded content within an HTML element.
-   * @param snapshot - The text snapshot containing the HTML
-   * @param element - The HTML element containing the embedded code
-   * @param id - Unique identifier for the embedded code
-   * @param languageId - Language identifier for the embedded code
-   * @returns Virtual code instance or null if element is invalid
-   */
-  private createEmbeddedCode(
-    snapshot: ts.IScriptSnapshot,
-    element: any,
-    id: string,
-    languageId: string,
-  ): VirtualCode | null {
-    if (
-      element.startTagEnd === undefined ||
-      element.endTagStart === undefined
-    ) {
-      return null;
-    }
-
-    const text = snapshot.getText(element.startTagEnd, element.endTagStart);
-
-    return {
-      id,
-      languageId,
-      snapshot: createTextSnapshot(text),
-      mappings: [createEmbeddedMapping(element.startTagEnd, text.length)],
-    };
-  }
-}
-
-/**
- * Creates a code mapping that covers the entire document.
- * @param length - The length of the document
- * @returns CodeMapping covering the full document with default capabilities
- */
-function createFullDocumentMapping(length: number): CodeMapping {
-  return {
-    sourceOffsets: [0],
-    generatedOffsets: [0],
-    lengths: [length],
-    data: DEFAULT_CAPABILITIES,
-  };
-}
-
-/**
- * Creates a code mapping for embedded content at a specific offset.
- * @param sourceOffset - The starting offset in the source document
- * @param length - The length of the embedded content
- * @returns CodeMapping for the embedded content with default capabilities
- */
-function createEmbeddedMapping(
-  sourceOffset: number,
-  length: number,
-): CodeMapping {
-  return {
-    sourceOffsets: [sourceOffset],
-    generatedOffsets: [0],
-    lengths: [length],
-    data: DEFAULT_CAPABILITIES,
-  };
 }
 
 /**
