@@ -7,8 +7,6 @@ import {
 } from "@volar/language-server/node.js";
 import { create as createCssService } from "volar-service-css";
 import { create as createEmmetService } from "volar-service-emmet";
-import { create as createTypeScriptServices } from "volar-service-typescript";
-// import { wcLanguagePlugin } from "./language-plugin.js";
 import { webComponentHtmlPlugin } from "./plugins/html/html-plugin.js";
 
 /** Language Server Protocol connection instance for communication with the client */
@@ -36,17 +34,9 @@ connection.onInitialize((params: InitializeParams) => {
   return server.initialize(
     params,
     createTypeScriptProject(tsdk.typescript, tsdk.diagnosticMessages, () => ({
-      languagePlugins: [
-        // temporarily disabled until services can be consolidated
-        // wcLanguagePlugin
-      ],
+      languagePlugins: [],
     })),
-    [
-      webComponentHtmlPlugin(),
-      createCssService(),
-      createEmmetService(),
-      ...createTypeScriptServices(tsdk.typescript),
-    ],
+    [webComponentHtmlPlugin(), createCssService(), createEmmetService()]
   );
 });
 

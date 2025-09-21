@@ -21,8 +21,8 @@ export function getHoverContent(
 
   // Check for custom elements
   if (!node?.tag || !element) {
-    // Return null for non-custom elements - let other services handle them
-    return null;
+    // Return undefined to prevent other providers from firing
+    return undefined;
   }
 
   let hoverContent = customElementsService.getCustomElementDocs(node.tag || "");
@@ -57,7 +57,7 @@ export function getHoverContent(
         );
 
         if (!attribute) {
-          return null;
+          return undefined;
         }
 
         let attrContent = `${attribute.description}\n\n**Type:** \`${attribute.type}\``;
