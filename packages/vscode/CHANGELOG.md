@@ -1,5 +1,12 @@
 # web-components-language-server
 
+## 0.0.15
+
+### Patch Changes
+
+- 36c8b67: Fixed autocomplete after an attribute with a bound value
+- 36c8b67: Added basic template binding completions and prevent validation on bound attributes
+
 ## 0.0.14
 
 ### Patch Changes

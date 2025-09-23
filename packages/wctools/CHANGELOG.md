@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.3
+
+### Patch Changes
+
+- 36c8b67: Added basic template binding completions and prevent validation on bound attributes
+
 ## 0.0.2
 
 ### Patch Changes
