@@ -6,6 +6,10 @@ import {
   configurationService,
   DiagnosticSeverityOptions,
 } from "../../services/configuration-service.js";
+import {
+  BINDING_CHARACTERS,
+  getBaseAttributeName,
+} from "./utilities.js";
 
 // Compatible document interface that matches both vscode-languageserver-textdocument and html.TextDocument
 interface DocumentLike {
@@ -353,8 +357,12 @@ export function parseAttributesFromText(
     firstSpace,
     closingIndex === -1 ? undefined : closingIndex
   );
+
+  // Support normal attrs (attr="v"), and bracket-binding ([attr]="v").
+  // Also allows values to be captured within the same match, preventing inner quoted text
+  // from being parsed as separate attributes.
   const attrRegex =
-    /([a-zA-Z][a-zA-Z0-9-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+)))?/g;
+    /(?:([.:?[])?([a-zA-Z][a-zA-Z0-9-]*)(\])?)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+)))?/g;
 
   const attributes: Array<{
     name: string;
@@ -366,33 +374,40 @@ export function parseAttributesFromText(
 
   let match: RegExpExecArray | null;
   while ((match = attrRegex.exec(attrText)) !== null) {
-    const attrName = match[1];
+    const prefix = match[1] || "";
+    const coreName = match[2];
 
-    // Skip the tag name if present
-    if (attrName === node.tag) continue;
+    // Skip the tag name if present (only applies if parser ever matches it)
+    if (coreName === node.tag) continue;
+
+    // Compose the raw attribute name including any binding prefix and trailing ']'
+    const rawName = prefix
+      ? prefix === "["
+        ? `[${coreName}]`
+        : `${prefix}${coreName}`
+      : coreName;
 
     const matchIndexInElement = firstSpace + match.index;
     const attrStart = node.start + matchIndexInElement;
-    const attrNameEnd = attrStart + attrName.length;
+    const attrNameEnd = attrStart + rawName.length;
 
     const value =
-      match[2] !== undefined
-        ? match[2]
-        : match[3] !== undefined
-          ? match[3]
-          : match[4] !== undefined
-            ? match[4]
+      match[4] !== undefined
+        ? match[4]
+        : match[5] !== undefined
+          ? match[5]
+          : match[6] !== undefined
+            ? match[6]
             : null;
 
-    // match is already a RegExpExecArray relative to attrText; callers expect
-    // match.index to be relative to the element start, so adjust by firstSpace.
+    // Adjust match.index to be relative to the element start, as callers expect
     const adjustedMatch = match as RegExpExecArray;
     Object.defineProperty(adjustedMatch, "index", {
       value: matchIndexInElement,
     });
 
     attributes.push({
-      name: attrName,
+      name: rawName,
       value,
       start: attrStart,
       end: attrNameEnd,
@@ -436,25 +451,32 @@ function validateAttributeList(
 
     seenAttrs.add(attr.name);
 
-    // Validate attribute value
+    // Validate attribute value (skip bindings and template expressions)
     if (node) {
-      validateSingleAttributeValue(
-        node,
-        document,
-        diagnostics,
-        attr.name,
-        attr.value,
-        attr.start,
-        attr.match,
-        packageName
-      );
+      const baseAttrName = getBaseAttributeName(attr.name);
+      if (
+        !BINDING_CHARACTERS.includes(attr.name.charAt(0)) &&
+        !attr.value?.startsWith("{") &&
+        !attr.value?.startsWith("${")
+      ) {
+        validateSingleAttributeValue(
+          node,
+          document,
+          diagnostics,
+          baseAttrName,
+          attr.value,
+          attr.start,
+          attr.match,
+          packageName
+        );
+      }
 
       // Check attribute deprecation
       validateAttributeDeprecation(
         node,
         document,
         diagnostics,
-        attr.name,
+        baseAttrName,
         attr.start,
         attr.end,
         packageName
@@ -465,7 +487,7 @@ function validateAttributeList(
         element,
         document,
         diagnostics,
-        attr.name,
+        baseAttrName,
         node.tag!,
         attr.start,
         attr.end,

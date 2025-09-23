@@ -1,6 +1,7 @@
 import * as html from "vscode-html-languageservice";
 import { customElementsService } from "../../services/custom-elements-service.js";
 import { Hover, NullableProviderResult } from "@volar/language-server";
+import { trimAttributeSpecials } from "./utilities.js";
 
 export function getHoverContent(
   document: html.TextDocument,
@@ -51,9 +52,10 @@ export function getHoverContent(
         cursorOffset >= tagOffset + attrStart &&
         cursorOffset <= tagOffset + attrEnd
       ) {
+        const normalizedAttrName = trimAttributeSpecials(attrName);
         const attribute = customElementsService.getAttributeInfo(
           node.tag,
-          attrName,
+          normalizedAttrName,
         );
 
         if (!attribute) {

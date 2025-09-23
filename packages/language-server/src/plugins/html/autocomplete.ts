@@ -5,10 +5,17 @@ import {
 } from "../../services/custom-elements-service.js";
 import * as html from "vscode-html-languageservice";
 import { configurationService } from "../../services/configuration-service.js";
+import {
+  ATTR_NAME_REGEX,
+  ATTR_VALUE_REGEX,
+  BindingPrefix,
+  getAttributePrefix,
+  getBaseAttributeName,
+} from "./utilities.js";
 
 export function getAutoCompleteSuggestions(
   document: html.TextDocument,
-  position: html.Position,
+  position: html.Position
 ) {
   const text = document.getText();
   const offset = document.offsetAt(position);
@@ -19,7 +26,7 @@ export function getAutoCompleteSuggestions(
     document.uri,
     "html",
     0,
-    document.getText(),
+    document.getText()
   );
   const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
 
@@ -27,7 +34,7 @@ export function getAutoCompleteSuggestions(
   const result = htmlLanguageService.doComplete(
     textDocument,
     position,
-    htmlDocument,
+    htmlDocument
   );
 
   // Add snippet completions for custom tags and attributes
@@ -38,7 +45,7 @@ export function getAutoCompleteSuggestions(
 
 function getCompletions(
   beforeText: string,
-  completions: html.CompletionList,
+  completions: html.CompletionList
 ): html.CompletionList | null {
   // Tag completion: <my-elem|
   const tagMatch = beforeText.match(/<([a-zA-Z0-9-]*)$/);
@@ -55,17 +62,16 @@ function getCompletions(
       lastChar !== '"' &&
       lastChar !== "'" &&
       lastChar !== "<" &&
-      lastChar !== "="
+      lastChar !== "=" &&
+      lastChar !== "}"
     ) {
       addLintSnippets(completions);
       return getTagCompletions(completions, true);
     }
   }
 
-  // Attribute value completion: <my-elem attr="|
-  const attrValueMatch = beforeText.match(
-    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/,
-  );
+  // Attribute value completion: <my-elem attr="| and with template-binding prefixes: .attr, :attr, [attr], ?attr
+  const attrValueMatch = beforeText.match(ATTR_VALUE_REGEX);
   if (attrValueMatch) {
     const tagName = attrValueMatch[1];
     const attributeName = attrValueMatch[2];
@@ -73,19 +79,20 @@ function getCompletions(
     return getAttributeValueCompletions(completions, tagName, attributeName);
   }
 
-  // Attribute name completion: <my-elem |
-  const attrNameMatch = beforeText.match(
-    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]*)$/,
-  );
+  // Attribute name completion: <my-elem | and with template-binding prefixes: .| :| [| ?|
+  const attrNameMatch = beforeText.match(ATTR_NAME_REGEX);
   if (attrNameMatch) {
     const tagName = attrNameMatch[1];
-    return getAttributeCompletions(completions, tagName);
+    const rawAttr = attrNameMatch[2] || "";
+    const attrPrefix = getAttributePrefix(rawAttr);
+
+    return getAttributeCompletions(completions, tagName, attrPrefix);
   }
 
   // wctools directive completions inside HTML comments, e.g.
   // <!-- wctools-disable | --> or <!-- wctools-disable unknownAttribute,| -->
   const wctoolsCommentMatch = beforeText.match(
-    /<!--\s*wctools-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/,
+    /<!--\s*wctools-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/
   );
   if (wctoolsCommentMatch) {
     return addLintRuleCompletions(completions);
@@ -164,7 +171,7 @@ function addLintRuleCompletions(completions: html.CompletionList) {
 
 function getTagCompletions(
   htmlCompletions: html.CompletionList,
-  includeOpeningBrackets: boolean = false,
+  includeOpeningBrackets: boolean = false
 ): html.CompletionList {
   const customElements = customElementsService.getCustomElements();
 
@@ -172,7 +179,7 @@ function getTagCompletions(
     (element) => {
       const formattedTagName = configurationService.getFormattedTagName(
         element.tagName!,
-        element.dependency as string,
+        element.dependency as string
       );
       const tag = includeOpeningBrackets
         ? `<${formattedTagName}>$0</${formattedTagName}>`
@@ -190,7 +197,7 @@ function getTagCompletions(
         sortText: "0" + formattedTagName,
         deprecated: !!element.deprecated,
       };
-    },
+    }
   );
 
   htmlCompletions.items.push(...customCompletions);
@@ -200,33 +207,51 @@ function getTagCompletions(
 function getAttributeCompletions(
   htmlCompletions: html.CompletionList,
   tagName: string,
+  attrPrefix?: BindingPrefix
 ): html.CompletionList {
   const element = customElementsService.getCustomElement(tagName);
   if (!element) {
     return htmlCompletions;
   }
 
-  const attributes = getAttributeInfo(tagName);
+  let attributes = getAttributeInfo(tagName);
+  // If using '?' binding, only suggest boolean attributes
+  if (attrPrefix === "?") {
+    attributes = attributes.filter((a) => a.type === "boolean");
+  }
+
   const customCompletions: html.CompletionItem[] = attributes.map((attr) => {
     const hasValues = attr.options && attr.options.length > 0;
     const isBoolean = attr.type === "boolean";
+    const nameWithPrefix =
+      attrPrefix === "["
+        ? `[${attr.name}]`
+        : attrPrefix
+          ? `${attrPrefix}${attr.name}`
+          : attr.name;
+    const filterWithPrefix = attrPrefix
+      ? `${attrPrefix}${attr.name}`
+      : attr.name;
+    const insertBaseName = attrPrefix === "[" ? `${attr.name}]` : attr.name;
 
     return {
-      label: attr.name,
+      label: nameWithPrefix,
       kind: html.CompletionItemKind.Property,
       documentation: {
         kind: "markdown",
         value: `${attr.description}\n\n**Type:** \`${attr.type}\``,
       },
-      insertText: hasValues
-        ? `${attr.name}="$1"$0`
-        : isBoolean
-          ? attr.name
-          : `${attr.name}="$0"`,
+      insertText:
+        hasValues || attrPrefix
+          ? `${insertBaseName}="$1"$0`
+          : isBoolean
+            ? insertBaseName
+            : `${insertBaseName}="$0"`,
       insertTextFormat: html.InsertTextFormat.Snippet,
       sortText: "0" + attr.name,
+      filterText: filterWithPrefix,
       command:
-        hasValues && !isBoolean
+        hasValues || !isBoolean || !!attrPrefix
           ? { command: "editor.action.triggerSuggest", title: "Suggest" }
           : undefined,
       deprecated: !!attr.deprecated,
@@ -240,10 +265,11 @@ function getAttributeCompletions(
 function getAttributeValueCompletions(
   htmlCompletions: html.CompletionList,
   tagName: string,
-  attributeName: string,
+  attributeName: string
 ): html.CompletionList {
   const attributes = getAttributeInfo(tagName);
-  const attribute = attributes.find((attr) => attr.name === attributeName);
+  const baseName = getBaseAttributeName(attributeName);
+  const attribute = attributes.find((attr) => attr.name === baseName);
 
   if (!attribute?.options?.length) {
     return htmlCompletions;
@@ -255,11 +281,11 @@ function getAttributeValueCompletions(
       kind: html.CompletionItemKind.Value,
       documentation: {
         kind: "markdown",
-        value: `Value for ${attribute.name} attribute`,
+        value: `Value for ${baseName} attribute`,
       },
       insertText: value,
       sortText: "0" + value,
-    }),
+    })
   );
 
   htmlCompletions.items.push(...customCompletions);
