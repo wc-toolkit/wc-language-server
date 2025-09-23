@@ -11,6 +11,7 @@ export default {
     "dist/**",
     "build/**"
   ],
+  "frameworks": ['lit'],
   "typeSrc": "parsedType",
   "diagnosticSeverity": {
     "invalidBoolean": "error",

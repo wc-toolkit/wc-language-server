@@ -12,7 +12,12 @@ export class SimpleGreeting extends LitElement {
   render() {
     return html`
       <h1>Lit Test</h1>
-      <sl-alert dep-attr></sl-alert>
+      <!-- wctools-disable-next-line invalidBoolean -->
+      <sl-alert dep-attr @sl-hide=${this.handleHide}></sl-alert>
     `;
+  }
+
+  private handleHide() {
+    console.log("Alert hidden");
   }
 }

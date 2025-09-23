@@ -28,6 +28,9 @@ export interface LibraryConfig {
    */
   typeSrc?: string;
 
+  /** List of frameworks/libraries to provide specific support for */
+  frameworks?: Array<'angular' | 'vue' | 'lit' | 'fast' | 'svelte' | 'ember' | 'alpine'>;
+
   /** Diagnostic severity levels for various validation checks. */
   diagnosticSeverity?: {
     /**

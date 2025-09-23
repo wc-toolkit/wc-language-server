@@ -37,6 +37,8 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
           "'",
           ">",
           "-",
+          ".",
+          "@",
           ..."abcdefghijklmnopqrstuvwxyz".split(""),
         ],
       },

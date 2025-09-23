@@ -8,6 +8,8 @@ import {
   Component,
   getAllComponents,
   getComponentDetailsTemplate,
+  getComponentEventsWithType,
+  getPropertyOnlyFields,
 } from "@wc-toolkit/cem-utilities";
 import { parseAttributeValueOptions } from "../utilities/cem-utils.js";
 import { readFileSync } from "fs";
@@ -19,6 +21,8 @@ export type AttributeInfo = {
   type?: string;
   options?: string[];
   sourcePosition?: number;
+  sortText?: string;
+  priority?: number;
 };
 
 export type AttributeKey = `${string}:${string}`;
@@ -37,6 +41,7 @@ export class CustomElementsService {
   private workspaceRoot: string = "";
   private dependencyCustomElements = new Map<string, Component>();
   private packageJsonPath: string = "";
+  // private dependencies: string[] = [];
 
   public attributeData: Map<AttributeKey, AttributeInfo> = new Map();
 
@@ -114,7 +119,71 @@ export class CustomElementsService {
         deprecated: attr.deprecated,
         type: Array.isArray(options) ? options.join(" | ") : options,
         options: Array.isArray(options) ? options : undefined,
+        sortText: `00${attr.name}`, // Standard attributes first
+        priority: 1,
       });
+    });
+
+    this.addLibraryBindings(component, tagName);
+    console.debug(this.attributeData);
+  }
+
+  private addLibraryBindings(
+    component: Component,
+    tagName: string,
+    depName?: string
+  ) {
+    // const frameworks = configurationService.config.frameworks;
+    // console.debug("Adding library bindings for:", JSON.stringify(frameworks));
+    // if (frameworks?.includes("lit") || this.dependencies.includes("lit")) {
+    const props = getPropertyOnlyFields(component);
+    for (const prop of props) {
+      const typeSrc =
+        configurationService.config.libraries?.[`${depName}`]?.typeSrc ||
+        configurationService.config.typeSrc;
+
+      this.attributeData.set(`${tagName}:.${prop.name}`, {
+        name: `.${prop.name}`,
+        description: prop.description,
+        deprecated: prop.deprecated,
+        type: (prop as any)?.[typeSrc || "type"]?.text,
+        sortText: `01.${prop.name}`, // Properties second
+        priority: 2,
+      });
+    }
+
+    const events = getComponentEventsWithType(component);
+    for (const event of events) {
+      this.attributeData.set(`${tagName}:@${event.name}`, {
+        name: `@${event.name}`,
+        description: event.description,
+        deprecated: event.deprecated,
+        type: event.type?.text || "Event",
+        sortText: `02@${event.name}`, // Events third
+        priority: 3,
+      });
+    }
+    // }
+  }
+
+  /**
+   * Get sorted attributes for a custom element
+   */
+  public getSortedAttributes(tagName: string): AttributeInfo[] {
+    const attributes: AttributeInfo[] = [];
+
+    for (const [key, attr] of this.attributeData.entries()) {
+      if (key.startsWith(`${tagName}:`)) {
+        attributes.push(attr);
+      }
+    }
+
+    // Sort by priority first, then by sortText
+    return attributes.sort((a, b) => {
+      if (a.priority !== b.priority) {
+        return (a.priority || 99) - (b.priority || 99);
+      }
+      return (a.sortText || a.name).localeCompare(b.sortText || b.name);
     });
   }
 
@@ -221,6 +290,10 @@ export class CustomElementsService {
     const packageJson =
       JSON.parse(readFileSync(this.packageJsonPath, "utf8")) || {};
     const dependencies = packageJson.dependencies || {};
+    // this.dependencies = [
+    //   ...Object.keys(dependencies),
+    //   ...Object.keys(packageJson.devDependencies || {}),
+    // ];
 
     // Check if node_modules directory exists
     const nodeModulesPath = path.join(this.workspaceRoot, "node_modules");

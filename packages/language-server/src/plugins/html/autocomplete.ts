@@ -55,7 +55,8 @@ function getCompletions(
       lastChar !== '"' &&
       lastChar !== "'" &&
       lastChar !== "<" &&
-      lastChar !== "="
+      lastChar !== "=" &&
+      lastChar !== "}"
     ) {
       addLintSnippets(completions);
       return getTagCompletions(completions, true);
@@ -64,7 +65,7 @@ function getCompletions(
 
   // Attribute value completion: <my-elem attr="|
   const attrValueMatch = beforeText.match(
-    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]+)=["']?([^"']*)$/,
+    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([.@]?[a-zA-Z0-9-]+)=["'{]?([^"'}]*)$/,
   );
   if (attrValueMatch) {
     const tagName = attrValueMatch[1];
@@ -73,9 +74,9 @@ function getCompletions(
     return getAttributeValueCompletions(completions, tagName, attributeName);
   }
 
-  // Attribute name completion: <my-elem |
+  // Attribute name completion: <my-elem | or <my-elem .| or <my-elem @|
   const attrNameMatch = beforeText.match(
-    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([a-zA-Z0-9-]*)$/,
+    /<([a-zA-Z0-9-]+)(?:\s+[^>]*?)?\s+([.@]?[a-zA-Z0-9-]*)$/,
   );
   if (attrNameMatch) {
     const tagName = attrNameMatch[1];
@@ -224,7 +225,8 @@ function getAttributeCompletions(
           ? attr.name
           : `${attr.name}="$0"`,
       insertTextFormat: html.InsertTextFormat.Snippet,
-      sortText: "0" + attr.name,
+      sortText: attr.sortText || "0" + attr.name,
+      filterText: attr.name,
       command:
         hasValues && !isBoolean
           ? { command: "editor.action.triggerSuggest", title: "Suggest" }
@@ -234,6 +236,7 @@ function getAttributeCompletions(
   });
 
   htmlCompletions.items.push(...customCompletions);
+  htmlCompletions.isIncomplete = true;
   return htmlCompletions;
 }
 
