@@ -92,7 +92,7 @@ function getCompletions(
   // wctools directive completions inside HTML comments, e.g.
   // <!-- wctools-ignore | --> or <!-- wctools-ignore unknownAttribute,| -->
   const wctoolsCommentMatch = beforeText.match(
-    /<!--\s*wctools-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/
+    /<!--\s*wctools-(ignore|ignore-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/
   );
   if (wctoolsCommentMatch) {
     return addLintRuleCompletions(completions);
@@ -102,17 +102,17 @@ function getCompletions(
 }
 
 function addLintSnippets(completions: html.CompletionList) {
-  // Offer full-comment snippets first so users can quickly insert a disable directive
+  // Offer full-comment snippets first so users can quickly insert an ignore directive
   const directives = [
     {
       name: "wctools-ignore",
       snippet: "<!-- wctools-ignore ${1} -->",
-      detail: "Disable rule(s) for this file",
+      detail: "Ignore rule(s) for this file",
     },
     {
       name: "wctools-ignore-next-line",
       snippet: "<!-- wctools-ignore-next-line ${1} -->",
-      detail: "Disable rule(s) for the next line",
+      detail: "Ignore rule(s) for the next line",
     },
   ];
 
