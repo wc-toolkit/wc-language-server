@@ -219,7 +219,7 @@ export function isDiagnosticIgnored(
     { disableAll: boolean; rules: Set<string> }
   >();
 
-  // Accept rule lists separated by spaces or commas (e.g. "wctools-disable rule1,rule2 rule3")
+  // Accept rule lists separated by spaces or commas (e.g. "wctools-ignore rule1,rule2 rule3")
   const directiveRegex =
     /<!--\s*wctools-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]+))?\s*-->/g;
   let m: RegExpExecArray | null;

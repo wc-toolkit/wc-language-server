@@ -32,7 +32,8 @@
   "scripts": {
     "build": "node scripts/build -- --minify",
     "watch": "npm run build -- --watch",
-    "prepare": "npm run build && vsce package --pre-release"
+    "prepare": "npm run build && vsce package --pre-release",
+    "manual-deploy": "npm run build && vsce publish"
   },
   "devDependencies": {
     "@types/vscode": "^1.82.0",

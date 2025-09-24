@@ -109,19 +109,19 @@ Examples:
 - Disable all diagnostics for the file:
 
 ```html
-<!-- wctools-disable -->
+<!-- wctools-ignore -->
 ````
 
 - Disable specific rules for the file (stacked, comma or space separated):
 
 ```html
-<!-- wctools-disable unknownAttribute deprecatedAttribute -->
+<!-- wctools-ignore unknownAttribute deprecatedAttribute -->
 ```
 
 - Disable a rule for the next line:
 
 ```html
-<!-- wctools-disable-next-line deprecatedAttribute -->
+<!-- wctools-ignore-next-line deprecatedAttribute -->
 <my-element deprecated-attr></my-element>
 ```
 

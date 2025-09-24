@@ -62,18 +62,18 @@ You can locally disable `wctools` diagnostics using HTML comment directives. The
 - Disable rules for the entire file:
 
 ```html
-<!-- wctools-disable -->
-<!-- wctools-disable unknownAttribute deprecatedAttribute -->
+<!-- wctools-ignore -->
+<!-- wctools-ignore unknownAttribute deprecatedAttribute -->
 ```
 
 - Disable diagnostics for the following line:
 
 ```html
-<!-- wctools-disable-next-line deprecatedAttribute -->
+<!-- wctools-ignore-next-line deprecatedAttribute -->
 <my-element deprecated-attr></my-element>
 ```
 
-Rules can be listed separated by spaces or commas, for example `<!-- wctools-disable ruleA ruleB,ruleC -->`.
+Rules can be listed separated by spaces or commas, for example `<!-- wctools-ignore ruleA ruleB,ruleC -->`.
 
 ### Supported File Types
 
