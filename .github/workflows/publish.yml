@@ -22,27 +22,28 @@ jobs:
         node-version: [22]
     steps:
       - uses: actions/checkout@v4
+      # Configure git so changesets can commit (version PR) without identity issues
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
-
+          registry-url: "https://registry.npmjs.org"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Build
         run: pnpm lint && pnpm build
-
-      - name: Build wctools
-        run: cd packages/wctools && npm install && npm run build
-
+      # Replace separate npm install with workspace-aware pnpm filtered build
+      - name: Build wctools package
+        run: pnpm --filter wctools build
       # - name: Run tests
       #   run: pnpm test
-
       - name: Create Release Pull Request and Publish
         id: changesets
         uses: changesets/action@v1
@@ -52,14 +53,14 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Publish to Open VSX Registry
+        if: steps.changesets.outputs.published == 'true'
         uses: HaaLeo/publish-vscode-extension@v2
         id: publishToOpenVSX
         with:
           pat: ${{ secrets.OPENVSX_TOKEN }}
-          
       - name: Publish to Visual Studio Marketplace
+        if: steps.changesets.outputs.published == 'true'
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ secrets.VSCODE_MARKETPLACE }}
