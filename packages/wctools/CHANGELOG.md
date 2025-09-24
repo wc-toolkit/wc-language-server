@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.4
+
+### Patch Changes
+
+- e8c1382: Renamed `wctools-disable` comments to `wctools-ignore`
+
 ## 0.0.3
 
 ### Patch Changes

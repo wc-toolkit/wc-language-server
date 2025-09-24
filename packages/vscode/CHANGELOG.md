@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.16
+
+### Patch Changes
+
+- e8c1382: Renamed `wctools-disable` comments to `wctools-ignore`
+
 ## 0.0.15
 
 ### Patch Changes
