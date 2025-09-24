@@ -54,13 +54,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish to Open VSX Registry
-        if: steps.changesets.outputs.published == 'true'
         uses: HaaLeo/publish-vscode-extension@v2
         id: publishToOpenVSX
         with:
           pat: ${{ secrets.OPENVSX_TOKEN }}
       - name: Publish to Visual Studio Marketplace
-        if: steps.changesets.outputs.published == 'true'
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ secrets.VSCODE_MARKETPLACE }}
