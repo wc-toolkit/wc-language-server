@@ -28,7 +28,7 @@ function createMockDocument(text) {
 }
 
 test("disable-next-line should ignore variant attribute in user's example", () => {
-  const htmlContent = `    <!-- wctools-disable-next-line invalidAttributeValue -->
+  const htmlContent = `    <!-- wctools-ignore-next-line invalidAttributeValue -->
     <sl-alert 
       variant="primaryee" 
       closable="true" 

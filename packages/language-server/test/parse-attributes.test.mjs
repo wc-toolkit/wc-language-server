@@ -60,7 +60,7 @@ test("parseAttributesFromText - single and double quotes and unquoted", () => {
 
 test("isDiagnosticIgnored - global disable specific rules (comma-separated)", () => {
   const text =
-    "<!-- wctools-disable unknownAttribute,deprecatedAttribute -->\n<my-element foo></my-element>";
+    "<!-- wctools-ignore unknownAttribute,deprecatedAttribute -->\n<my-element foo></my-element>";
   const doc = createDoc(text);
   const range = {
     start: { line: 1, character: 0 },
@@ -73,7 +73,7 @@ test("isDiagnosticIgnored - global disable specific rules (comma-separated)", ()
 
 test("isDiagnosticIgnored - disable-next-line", () => {
   const text =
-    "<!-- wctools-disable-next-line deprecatedAttribute -->\n<my-element bar></my-element>";
+    "<!-- wctools-ignore-next-line deprecatedAttribute -->\n<my-element bar></my-element>";
   const doc = createDoc(text);
   const r2 = {
     start: { line: 1, character: 0 },

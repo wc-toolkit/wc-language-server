@@ -28,7 +28,7 @@ function createMockDocument(text) {
 
 test("disable-next-line should work with multi-line elements", () => {
   const htmlContent = `
-    <!-- wctools-disable-next-line invalidAttributeValue -->
+    <!-- wctools-ignore-next-line invalidAttributeValue -->
     <sl-alert 
       variant="primaryee" 
       closable="true" 
@@ -60,7 +60,7 @@ test("disable-next-line should work with multi-line elements", () => {
 
 test("disable-next-line should work with attributes on different lines", () => {
   const htmlContent = `
-    <!-- wctools-disable-next-line invalidAttributeValue -->
+    <!-- wctools-ignore-next-line invalidAttributeValue -->
     <sl-alert 
       variant="primaryee" 
       closable="true"

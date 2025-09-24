@@ -212,16 +212,16 @@ export function isDiagnosticIgnored(
 ): boolean {
   const text = document.getText();
 
-  const globalDisabled = new Set<string>();
-  let globalDisableAll = false;
+  const globalIgnored = new Set<string>();
+  let globalIgnoreAll = false;
   const lineDirectives = new Map<
     number,
-    { disableAll: boolean; rules: Set<string> }
+    { ignoreAll: boolean; rules: Set<string> }
   >();
 
-  // Accept rule lists separated by spaces or commas (e.g. "wctools-disable rule1,rule2 rule3")
+  // Accept rule lists separated by spaces or commas (e.g. "wctools-ignore rule1,rule2 rule3")
   const directiveRegex =
-    /<!--\s*wctools-(disable|disable-next-line)(?:\s+([a-zA-Z0-9_,\-\s]+))?\s*-->/g;
+    /<!--\s*wctools-(ignore|ignore-next-line)(?:\s+([a-zA-Z0-9_,\-\s]+))?\s*-->/g;
   let m: RegExpExecArray | null;
   while ((m = directiveRegex.exec(text)) !== null) {
     const kind = m[1];
@@ -239,13 +239,13 @@ export function isDiagnosticIgnored(
     const pos = document.positionAt(offset);
     const line = pos.line;
 
-    if (kind === "disable") {
+    if (kind === "ignore") {
       if (rules.size === 0) {
-        globalDisableAll = true;
+        globalIgnoreAll = true;
       } else {
-        for (const r of rules) globalDisabled.add(r);
+        for (const r of rules) globalIgnored.add(r);
       }
-    } else if (kind === "disable-next-line") {
+    } else if (kind === "ignore-next-line") {
       // Find the next opening tag after this comment and map the directive to that element's entire range
       const afterCommentOffset = m.index + m[0].length;
       const afterCommentText = text.substring(afterCommentOffset);
@@ -273,11 +273,11 @@ export function isDiagnosticIgnored(
             targetLine++
           ) {
             const existing = lineDirectives.get(targetLine) || {
-              disableAll: false,
+              ignoreAll: false,
               rules: new Set<string>(),
             };
             if (rules.size === 0) {
-              existing.disableAll = true;
+              existing.ignoreAll = true;
             }
             for (const r of rules) {
               existing.rules.add(r);
@@ -287,11 +287,11 @@ export function isDiagnosticIgnored(
         } else {
           // No closing > found, just apply to the start line
           const existing = lineDirectives.get(nextElementStartPos.line) || {
-            disableAll: false,
+            ignoreAll: false,
             rules: new Set<string>(),
           };
           if (rules.size === 0) {
-            existing.disableAll = true;
+            existing.ignoreAll = true;
           }
           for (const r of rules) {
             existing.rules.add(r);
@@ -302,11 +302,11 @@ export function isDiagnosticIgnored(
         // Fallback to next line if no element found
         const targetLine = line + 1;
         const existing = lineDirectives.get(targetLine) || {
-          disableAll: false,
+          ignoreAll: false,
           rules: new Set<string>(),
         };
         if (rules.size === 0) {
-          existing.disableAll = true;
+          existing.ignoreAll = true;
         }
         for (const r of rules) {
           existing.rules.add(r);
@@ -316,13 +316,13 @@ export function isDiagnosticIgnored(
     }
   }
 
-  if (globalDisableAll || globalDisabled.has(rule)) {
+  if (globalIgnoreAll || globalIgnored.has(rule)) {
     return true;
   }
 
   const startLine = range.start.line;
   const lineDir = lineDirectives.get(startLine);
-  if (lineDir && (lineDir.disableAll || lineDir.rules.has(rule))) {
+  if (lineDir && (lineDir.ignoreAll || lineDir.rules.has(rule))) {
     return true;
   }
 

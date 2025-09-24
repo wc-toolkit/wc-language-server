@@ -31,7 +31,7 @@ function createDoc(text) {
 // Simple test
 test("isDiagnosticIgnored - basic", () => {
   const text =
-    "<!-- wctools-disable unknownAttribute -->\n<my-element foo></my-element>";
+    "<!-- wctools-ignore unknownAttribute -->\n<my-element foo></my-element>";
   const doc = createDoc(text);
   const range = {
     start: { line: 1, character: 0 },
