@@ -245,20 +245,42 @@ export class BaseConfigurationManager {
    * @returns true if the file should be processed, false otherwise
    */
   public shouldIncludeFile(filePath: string): boolean {
-    // If include patterns are specified, file must match at least one
-    if (this.config.include && this.config.include.length > 0) {
-      const includeMatch = this.config.include.some((pattern) =>
-        minimatch(filePath, pattern, { matchBase: true })
-      );
-      if (!includeMatch) {
-        return false;
-      }
+    const absNorm = filePath.split(path.sep).join("/");
+    const relPath = path.relative(process.cwd(), filePath);
+    const relNorm = relPath.split(path.sep).join("/");
+
+    // Build suffix candidates of the relative path so patterns like "src/**/*.ts"
+    // match even when the project root has extra leading folders (e.g. packages/pkg-name/src/...).
+    const segments = relNorm.split("/");
+    const suffixes: string[] = [];
+    for (let i = 0; i < segments.length; i++) {
+      suffixes.push(segments.slice(i).join("/"));
     }
 
-    // If exclude patterns are specified, file must not match any
+    const candidates = [absNorm, relNorm, ...suffixes];
+
+    // If no include patterns, default to included (tsc style)
+    if (!this.config.include || this.config.include.length === 0) {
+      // Still honor excludes
+      if (this.config.exclude?.length) {
+        const excluded = this.config.exclude.some((pattern) =>
+          candidates.some((p) => minimatch(p, pattern, { dot: true }))
+        );
+        return !excluded;
+      }
+      return true;
+    }
+
+    const includeMatch = this.config.include.some((pattern) =>
+      candidates.some((p) => minimatch(p, pattern, { dot: true }))
+    );
+    if (!includeMatch) {
+      return false;
+    }
+
     if (this.config.exclude && this.config.exclude.length > 0) {
       const excludeMatch = this.config.exclude.some((pattern) =>
-        minimatch(filePath, pattern, { matchBase: true })
+        candidates.some((p) => minimatch(p, pattern, { dot: true }))
       );
       if (excludeMatch) {
         return false;
