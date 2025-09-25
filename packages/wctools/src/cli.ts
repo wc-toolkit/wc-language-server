@@ -7,7 +7,11 @@ import fs from "fs";
 import { validateFiles } from "./validator.js";
 import { formatResults, OutputFormats } from "./formatters.js";
 import { loadConfig, createConfigFile, validateConfig } from "./config.js";
-import { debug, info, error } from "./logger.js";
+import {
+  info,
+  error,
+  debug,
+} from "../../language-server/src/utilities/logger.js";
 
 const program = new Command();
 
@@ -73,6 +77,7 @@ export async function validateWebComponents(
   patterns: string[] = [],
   options: ExpandedValidationOptions = {}
 ): Promise<number> {
+  const start = Date.now();
   try {
     // Normalize patterns: if a single string with newlines was provided, split it.
     if (patterns.length === 1 && typeof patterns[0] === "string") {
@@ -81,14 +86,16 @@ export async function validateWebComponents(
         .split(/\r?\n/)
         .map((s) => s.trim())
         .filter(Boolean);
-      debug("Normalized newline-separated patterns:", patterns);
     }
+    debug("Normalized patterns:", patterns);
 
     // Load configuration
-    debug("Loading config from:", options.config || "current directory");
-    debug("Current working directory:", process.cwd());
     const config = await loadConfig(options.config);
-    debug("Loaded config:", JSON.stringify(config, null, 2));
+    debug("Loaded config:", {
+      source: options.config || "auto-detected",
+      config: config,
+      manifestSrc: config.manifestSrc,
+    });
 
     // Validate configuration
     const configErrors = validateConfig(config);
@@ -98,6 +105,10 @@ export async function validateWebComponents(
       return 1;
     }
 
+    debug(
+      "Invoking validateFiles with patterns:",
+      patterns.length ? patterns : "(using config include patterns)"
+    );
     // Validate files
     info(chalk.blue("🔍 Validating Web Components..."));
     const results = await validateFiles(patterns, config, options.config);
@@ -108,6 +119,7 @@ export async function validateWebComponents(
     });
 
     // If an output path was provided, write the formatted output to that file.
+    debug("Generating output:", options.output || "stdout");
     if (options.output) {
       try {
         await fs.promises.writeFile(options.output, output, "utf8");
@@ -125,6 +137,28 @@ export async function validateWebComponents(
       result.diagnostics.some((diagnostic) => diagnostic.severity === 1)
     );
 
+    if (config.debug) {
+      const duration = `${Date.now() - start}ms`;
+
+      const totalDiagnostics = results.reduce(
+        (sum, r) => sum + r.diagnostics.length,
+        0
+      );
+      const errorCount = results.reduce(
+        (sum, r) => sum + r.diagnostics.filter((d) => d.severity === 1).length,
+        0
+      );
+      const warningCount = totalDiagnostics - errorCount;
+
+      debug("Validation summary:", {
+        filesValidated: results.length,
+        totalDiagnostics,
+        errors: errorCount,
+        warnings: warningCount,
+        durationMs: duration,
+      });
+    }
+
     return hasErrors ? 1 : 0;
   } catch (err) {
     error(chalk.red("Error:"), err);
@@ -138,6 +172,7 @@ program
   .option("-f, --file <filename>", "Configuration file name", "wc.config.js")
   .action(async (options) => {
     try {
+      debug("Creating config file:", options);
       await createConfigFile(options.file);
       info(chalk.green(`✓ Created configuration file: ${options.file}`));
       info(

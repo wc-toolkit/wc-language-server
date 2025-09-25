@@ -6,22 +6,12 @@ import { getLanguageService } from "vscode-html-languageservice";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Diagnostic } from "vscode-languageserver-types";
 import { getValidation } from "../../language-server/src/plugins/index.js";
-import { debug, warn } from "./logger.js";
+import { debug, warn } from "../../language-server/src/utilities/logger.js";
 import {
-  configurationService as servicesConfiguration,
-  customElementsService as servicesCustomElements,
+  configurationService,
+  customElementsService,
   WCConfig,
 } from "../../language-server/src/services/index.js";
-
-// Minimal interfaces for the language-server services we call.
-interface ConfigurationService {
-  setWorkspaceRoot?: (root: string) => void;
-  updateConfig?: (cfg: Partial<WCConfig>) => void;
-}
-
-interface CustomElementsService {
-  setWorkspaceRoot?: (root: string) => void;
-}
 
 export interface ValidationResult {
   file: string;
@@ -36,14 +26,6 @@ export async function validateFiles(
   config: WCConfig,
   configPath?: string,
 ): Promise<ValidationResult[]> {
-  // Static services imported from the language-server package.
-  const configurationService = servicesConfiguration as unknown as
-    | ConfigurationService
-    | undefined;
-  const customElementsService = servicesCustomElements as unknown as
-    | CustomElementsService
-    | undefined;
-
   // Friendly runtime check: if both services are missing it's likely the
   // language-server package hasn't been built or isn't installed. Provide a
   // clear action for contributors and CI.
@@ -53,14 +35,11 @@ export async function validateFiles(
     );
   }
 
-  // Set workspace root to current working directory or config file directory
-  let workspaceRoot = process.cwd();
-  const resolvedConfig = { ...config };
+  const resolvedConfig: WCConfig = { ...config };
 
   // If a config file path was provided, resolve manifest paths relative to the config file
   if (configPath && resolvedConfig.manifestSrc) {
     const configDir = path.dirname(path.resolve(configPath));
-    workspaceRoot = configDir;
 
     // If manifestSrc is relative, resolve it relative to the config file directory
     if (
@@ -75,37 +54,16 @@ export async function validateFiles(
   }
 
   debug(
-    `[CLI Validator] Configuration:`,
+    `Configuration:`,
     JSON.stringify(resolvedConfig, null, 2),
   );
 
+  configurationService.updateConfig(resolvedConfig);
   // Initialize services with configuration
-  if (configurationService) {
-    // Set workspace root first so the service resolves config relative to it
-    if (typeof configurationService.setWorkspaceRoot === "function") {
-      configurationService.setWorkspaceRoot(workspaceRoot);
-    }
-
-    // Use the service API to update configuration rather than mutating the object directly
-    if (typeof configurationService.updateConfig === "function") {
-      configurationService.updateConfig(resolvedConfig as Partial<WCConfig>);
-    } else {
-      throw new Error(
-        "configurationService.updateConfig is required; please upgrade @wc-toolkit/language-server",
-      );
-    }
-  }
-
-  // Try to configure custom elements service with workspace root
-  if (
-    customElementsService &&
-    typeof customElementsService.setWorkspaceRoot === "function"
-  ) {
-    customElementsService.setWorkspaceRoot(workspaceRoot);
-  }
 
   // Find files to validate
   const files = await findFiles(patterns, resolvedConfig);
+  debug(`${files.length} file(s) found to validate.`)
 
   // Validate each file
   const results: ValidationResult[] = [];
@@ -113,6 +71,7 @@ export async function validateFiles(
 
   for (const file of files) {
     try {
+      debug(`Validating file: ${file}`);
       const content = await fs.promises.readFile(file, "utf-8");
       let fileContent = content;
       const ext = path.extname(file).toLowerCase();
@@ -188,17 +147,22 @@ async function findFiles(
  * Determines if a file should be validated based on its extension.
  */
 function shouldValidateFile(filePath: string, config: WCConfig): boolean {
-  // Apply include/exclude filters
+  // Compare include/exclude patterns against a relative, normalized path so
+  // patterns like "src/**/*.html" match (they won't match an absolute path).
+  const rel = path.relative(process.cwd(), filePath);
+  const candidate = rel.startsWith("..") ? filePath : rel;
+  const normalized = candidate.split(path.sep).join("/");
+
   if (config.include && config.include.length > 0) {
     const includeMatch = config.include.some((pattern: string) =>
-      minimatch(filePath, pattern, { matchBase: true }),
+      minimatch(normalized, pattern),
     );
     if (!includeMatch) return false;
   }
 
   if (config.exclude && config.exclude.length > 0) {
     const excludeMatch = config.exclude.some((pattern: string) =>
-      minimatch(filePath, pattern, { matchBase: true }),
+      minimatch(normalized, pattern),
     );
     if (excludeMatch) return false;
   }

@@ -71,17 +71,6 @@ export default {
 
 - Running from the CLI package with `--config demo/wc.config.js` will resolve the manifest path to `packages/wctools/demo/custom-elements.json` and set the workspace root to `packages/wctools/demo` for manifest loading purposes.
 
-## Fix applied for manifest path issue
-
-Symptom: Running `pnpm --filter @wc-toolkit/wctools demo:validate` used to fail to find the manifest because the CLI package's working directory differed from the demo config location. The CLI loaded the configuration but the services initially tried to load the manifest before the CLI had set/configured the workspace and config context.
-
-What was changed:
-
-- The CLI validator now accepts the optional `configPath` and resolves the `manifestSrc` relative to the config file directory when `--config` is provided.
-- The CLI sets the `configurationService.config` explicitly and ensures `configurationService.setWorkspaceRoot()` and `customElementsService.setWorkspaceRoot()` are called with the resolved directory, then re-applies the config to avoid being overwritten by service initialization.
-
-This ensures the custom elements manifest is found and loaded regardless of whether the CLI is invoked from the package root or the demo directory.
-
 ## Troubleshooting
 
 - `ReferenceError: require is not defined` when loading `wc.config.js`:
@@ -211,17 +200,6 @@ export default {
 ```
 
 - Running from the CLI package with `--config demo/wc.config.js` will resolve the manifest path to `packages/wctools/demo/custom-elements.json` and set the workspace root to `packages/wctools/demo` for manifest loading purposes.
-
-## Fix applied for manifest path issue
-
-Symptom: Running `pnpm --filter @wc-toolkit/wctools demo:validate` used to fail to find the manifest because the CLI package's working directory differed from the demo config location. The CLI loaded the configuration but the services initially tried to load the manifest before the CLI had set/configured the workspace and config context.
-
-What was changed:
-
-- The CLI validator now accepts the optional `configPath` and resolves the `manifestSrc` relative to the config file directory when `--config` is provided.
-- The CLI sets the `configurationService.config` explicitly and ensures `configurationService.setWorkspaceRoot()` and `customElementsService.setWorkspaceRoot()` are called with the resolved directory, then re-applies the config to avoid being overwritten by service initialization.
-
-This ensures the custom elements manifest is found and loaded regardless of whether the CLI is invoked from the package root or the demo directory.
 
 ## Troubleshooting
 
