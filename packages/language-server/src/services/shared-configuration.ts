@@ -11,7 +11,7 @@ export type DiagnosticSeverityOptions = keyof NonNullable<
 
 type DiagnosticOptions = keyof NonNullable<WCConfig["diagnosticSeverity"]>;
 
-/**  */
+/** Options for configuring the Language Server for a library */
 export interface LibraryConfig {
   /**
    * Specify a custom path to the CustomElements Manifest
@@ -27,9 +27,6 @@ export interface LibraryConfig {
    * @default "parsedType"
    */
   typeSrc?: string;
-
-  /** Used to enable debugging output. */
-  debug?: boolean;
 
   /** Diagnostic severity levels for various validation checks. */
   diagnosticSeverity?: {
@@ -102,6 +99,9 @@ export interface WCConfig extends LibraryConfig {
 
   /** Specifies a list of files to be excluded from compilation. The 'exclude' property only affects the files included via the 'include'. */
   exclude?: string[];
+
+  /** Used to enable debugging output. */
+  debug?: boolean;
 
   /** Library specific configuration. */
   libraries?: {
