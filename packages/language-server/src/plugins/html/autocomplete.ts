@@ -12,11 +12,17 @@ import {
   getAttributePrefix,
   getBaseAttributeName,
 } from "./utilities.js";
+import { debug } from "../../utilities/logger.js";
 
 export function getAutoCompleteSuggestions(
   document: html.TextDocument,
   position: html.Position
 ) {
+  debug("autocomplete:getSuggestions:start", {
+    uri: document.uri,
+    line: position.line,
+    character: position.character,
+  });
   const text = document.getText();
   const offset = document.offsetAt(position);
   const beforeText = text.substring(0, offset);
@@ -50,6 +56,7 @@ function getCompletions(
   // Tag completion: <my-elem|
   const tagMatch = beforeText.match(/<([a-zA-Z0-9-]*)$/);
   if (tagMatch) {
+    debug("autocomplete:trigger:tag", { partial: tagMatch[1] });
     return getTagCompletions(completions);
   }
 
@@ -65,6 +72,7 @@ function getCompletions(
       lastChar !== "=" &&
       lastChar !== "}"
     ) {
+      debug("autocomplete:trigger:bareTag", { partial: bareTagMatch[1] });
       addLintSnippets(completions);
       return getTagCompletions(completions, true);
     }
@@ -75,7 +83,7 @@ function getCompletions(
   if (attrValueMatch) {
     const tagName = attrValueMatch[1];
     const attributeName = attrValueMatch[2];
-
+    debug("autocomplete:trigger:attrValue", { tagName, attributeName });
     return getAttributeValueCompletions(completions, tagName, attributeName);
   }
 
@@ -85,7 +93,11 @@ function getCompletions(
     const tagName = attrNameMatch[1];
     const rawAttr = attrNameMatch[2] || "";
     const attrPrefix = getAttributePrefix(rawAttr);
-
+    debug("autocomplete:trigger:attrName", {
+      tagName,
+      raw: rawAttr,
+      prefix: attrPrefix,
+    });
     return getAttributeCompletions(completions, tagName, attrPrefix);
   }
 
@@ -95,6 +107,9 @@ function getCompletions(
     /<!--\s*wctools-(ignore|ignore-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/
   );
   if (wctoolsCommentMatch) {
+    debug("autocomplete:trigger:directiveComment", {
+      directive: wctoolsCommentMatch[1],
+    });
     return addLintRuleCompletions(completions);
   }
 
@@ -174,6 +189,7 @@ function getTagCompletions(
   includeOpeningBrackets: boolean = false
 ): html.CompletionList {
   const customElements = customElementsService.getCustomElements();
+  debug("autocomplete:build:tagCompletions", customElements.length);
 
   const customCompletions: html.CompletionItem[] = customElements.map(
     (element) => {
@@ -211,54 +227,75 @@ function getAttributeCompletions(
 ): html.CompletionList {
   const element = customElementsService.getCustomElement(tagName);
   if (!element) {
+    debug("autocomplete:attr:noElement", { tagName });
     return htmlCompletions;
   }
 
   let attributes = getAttributeInfo(tagName);
-  // If using '?' binding, only suggest boolean attributes
+  const originalCount = attributes.length;
   if (attrPrefix === "?") {
     attributes = attributes.filter((a) => a.type === "boolean");
+    debug("autocomplete:attr:booleanFilter", {
+      tagName,
+      before: originalCount,
+      after: attributes.length,
+    });
+  } else {
+    debug("autocomplete:attr:list", {
+      tagName,
+      count: attributes.length,
+      prefix: attrPrefix,
+    });
   }
 
-  const customCompletions: html.CompletionItem[] = attributes.map((attr) => {
-    const hasValues = attr.options && attr.options.length > 0;
-    const isBoolean = attr.type === "boolean";
-    const nameWithPrefix =
-      attrPrefix === "["
-        ? `[${attr.name}]`
-        : attrPrefix
-          ? `${attrPrefix}${attr.name}`
-          : attr.name;
-    const filterWithPrefix = attrPrefix
-      ? `${attrPrefix}${attr.name}`
-      : attr.name;
-    const insertBaseName = attrPrefix === "[" ? `${attr.name}]` : attr.name;
+  const customCompletions: Array<html.CompletionItem | undefined> = attributes
+    .map((attr) => {
+      if (!attr.name) {
+        return undefined;
+      }
+      const hasValues = attr.options && attr.options.length > 0;
+      const isBoolean = attr.type === "boolean";
+      const nameWithPrefix = !attrPrefix
+        ? attr.name
+        : attrPrefix === "["
+          ? `[${attr.name}]`
+          : `${attrPrefix}${attr.name}`;
+      const filterWithPrefix = attrPrefix
+        ? `${attrPrefix}${attr.name}`
+        : attr.name;
+      const insertBaseName = attrPrefix === "[" ? `${attr.name}]` : attr.name;
 
-    return {
-      label: nameWithPrefix,
-      kind: html.CompletionItemKind.Property,
-      documentation: {
-        kind: "markdown",
-        value: `${attr.description}\n\n**Type:** \`${attr.type}\``,
-      },
-      insertText:
-        hasValues || attrPrefix
-          ? `${insertBaseName}="$1"$0`
-          : isBoolean
-            ? insertBaseName
-            : `${insertBaseName}="$0"`,
-      insertTextFormat: html.InsertTextFormat.Snippet,
-      sortText: "0" + attr.name,
-      filterText: filterWithPrefix,
-      command:
-        hasValues || !isBoolean || !!attrPrefix
-          ? { command: "editor.action.triggerSuggest", title: "Suggest" }
-          : undefined,
-      deprecated: !!attr.deprecated,
-    };
+      return {
+        label: nameWithPrefix,
+        kind: html.CompletionItemKind.Property,
+        documentation: {
+          kind: html.MarkupKind.Markdown,
+          value: `${attr.description}\n\n**Type:** \`${attr.type}\``,
+        },
+        insertText:
+          hasValues || attrPrefix
+            ? `${insertBaseName}="$1"$0`
+            : isBoolean
+              ? insertBaseName
+              : `${insertBaseName}="$0"`,
+        insertTextFormat: html.InsertTextFormat.Snippet,
+        sortText: "0" + attr.name,
+        filterText: filterWithPrefix,
+        command:
+          hasValues || !isBoolean || attrPrefix !== "?"
+            ? { command: "editor.action.triggerSuggest", title: "Suggest" }
+            : undefined,
+        deprecated: !!attr.deprecated,
+      };
+    })
+    .filter(Boolean);
+
+  console.log(customCompletions);
+  htmlCompletions.items.push(...customCompletions as html.CompletionItem[]);
+  debug("autocomplete:attr:added", {
+    tagName,
+    added: customCompletions.length,
   });
-
-  htmlCompletions.items.push(...customCompletions);
   return htmlCompletions;
 }
 
@@ -272,8 +309,14 @@ function getAttributeValueCompletions(
   const attribute = attributes.find((attr) => attr.name === baseName);
 
   if (!attribute?.options?.length) {
+    debug("autocomplete:attrValue:none", { tagName, attribute: baseName });
     return htmlCompletions;
   }
+  debug("autocomplete:attrValue:options", {
+    tagName,
+    attribute: baseName,
+    values: attribute.options,
+  });
 
   const customCompletions: html.CompletionItem[] = attribute?.options.map(
     (value) => ({

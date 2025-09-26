@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
-import { debug, info, warn } from "../utilities/logger.js";
+import { debug, info, setEnableDebugging, warn } from "../utilities/logger.js";
 import { minimatch } from "minimatch";
 
 export type DiagnosticSeverity = "error" | "warning" | "info" | "hint" | "off";
@@ -27,6 +27,9 @@ export interface LibraryConfig {
    * @default "parsedType"
    */
   typeSrc?: string;
+
+  /** Used to enable debugging output. */
+  debug?: boolean;
 
   /** Diagnostic severity levels for various validation checks. */
   diagnosticSeverity?: {
@@ -167,6 +170,17 @@ export class BaseConfigurationManager {
       }
     }
 
+    // Debug summary (omit potentially large objects)
+    debug("config:mergeWithDefaults", {
+      hasUserConfig: Object.keys(userConfig).length > 0,
+      include: mergedConfig.include,
+      exclude: mergedConfig.exclude,
+      libraries: mergedConfig.libraries
+        ? Object.keys(mergedConfig.libraries).length
+        : 0,
+      debug: mergedConfig.debug,
+    });
+
     return mergedConfig;
   }
 
@@ -174,6 +188,7 @@ export class BaseConfigurationManager {
    * Validates configuration values
    */
   protected validateConfig(config: Partial<WCConfig>): Partial<WCConfig> {
+    debug("config:validate:start");
     const validSeverities: DiagnosticSeverity[] = [
       "error",
       "warning",
@@ -195,6 +210,10 @@ export class BaseConfigurationManager {
           warn(
             `Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`
           );
+          debug("config:validate:severityCorrected", {
+            key,
+            invalid: config.diagnosticSeverity[key],
+          });
           config.diagnosticSeverity[key] = "error";
         }
       }
@@ -230,7 +249,9 @@ export class BaseConfigurationManager {
       for (const [key, value] of Object.entries(config.diagnosticSeverity)) {
         if (typeof value === "string" && !validSeverities.includes(value)) {
           errors.push(
-            `diagnosticSeverity.${key} must be one of: ${validSeverities.join(", ")}`
+            `diagnosticSeverity.${key} must be one of: ${validSeverities.join(
+              ", "
+            )}`
           );
         }
       }
@@ -245,26 +266,72 @@ export class BaseConfigurationManager {
    * @returns true if the file should be processed, false otherwise
    */
   public shouldIncludeFile(filePath: string): boolean {
-    // If include patterns are specified, file must match at least one
-    if (this.config.include && this.config.include.length > 0) {
-      const includeMatch = this.config.include.some((pattern) =>
-        minimatch(filePath, pattern, { matchBase: true })
-      );
-      if (!includeMatch) {
-        return false;
-      }
+    const absNorm = filePath.split(path.sep).join("/");
+    const relPath = path.relative(process.cwd(), filePath);
+    const relNorm = relPath.split(path.sep).join("/");
+
+    // Build suffix candidates of the relative path so patterns like "src/**/*.ts"
+    // match even when the project root has extra leading folders (e.g. packages/pkg-name/src/...).
+    const segments = relNorm.split("/");
+    const suffixes: string[] = [];
+    for (let i = 0; i < segments.length; i++) {
+      suffixes.push(segments.slice(i).join("/"));
     }
 
-    // If exclude patterns are specified, file must not match any
+    const candidates = [absNorm, relNorm, ...suffixes];
+
+    // If no include patterns, default to included (tsc style)
+    if (!this.config.include || this.config.include.length === 0) {
+      // Still honor excludes
+      if (this.config.exclude?.length) {
+        const excluded = this.config.exclude?.length
+          ? this.config.exclude.some((pattern) =>
+              candidates.some((p) => minimatch(p, pattern, { dot: true }))
+            )
+          : false;
+        const decision = !excluded;
+        debug("config:file:includeDecision", {
+          file: relNorm,
+          reason: "no-include-list",
+          excluded,
+          decision,
+        });
+        return decision;
+      }
+      return true;
+    }
+
+    const includeMatch = this.config.include.some((pattern) =>
+      candidates.some((p) => minimatch(p, pattern, { dot: true }))
+    );
+    if (!includeMatch) {
+      debug("config:file:includeDecision", {
+        file: relNorm,
+        reason: "no-include-match",
+        decision: false,
+      });
+      return false;
+    }
+
     if (this.config.exclude && this.config.exclude.length > 0) {
       const excludeMatch = this.config.exclude.some((pattern) =>
-        minimatch(filePath, pattern, { matchBase: true })
+        candidates.some((p) => minimatch(p, pattern, { dot: true }))
       );
       if (excludeMatch) {
+        debug("config:file:includeDecision", {
+          file: relNorm,
+          reason: "exclude-match",
+          decision: false,
+        });
         return false;
       }
     }
 
+    debug("config:file:includeDecision", {
+      file: relNorm,
+      reason: "included",
+      decision: true,
+    });
     return true;
   }
 
@@ -282,8 +349,22 @@ export class BaseConfigurationManager {
    * Update configuration programmatically
    */
   public updateConfig(newConfig: Partial<WCConfig>): void {
+    debug("config:update:start", {
+      include: newConfig.include,
+      exclude: newConfig.exclude,
+      libraries: newConfig.libraries
+        ? Object.keys(newConfig.libraries).length
+        : 0,
+      debug: newConfig.debug,
+    });
     const validatedConfig = this.validateConfig(newConfig);
     this.config = this.mergeWithDefaults(validatedConfig);
+    setEnableDebugging(!!this.config.debug);
+    debug("config:update:applied", {
+      include: this.config.include,
+      exclude: this.config.exclude,
+      debug: this.config.debug,
+    });
   }
 }
 
@@ -316,6 +397,7 @@ export function findConfigFile(directory: string): string | undefined {
 export async function loadConfigFile(
   filePath: string
 ): Promise<Partial<WCConfig>> {
+  debug("config:file:load", { filePath });
   const ext = path.extname(filePath);
 
   if (ext === ".json" || ext === "") {
@@ -362,6 +444,7 @@ export async function loadConfig(
   configPath?: string,
   workingDirectory = process.cwd()
 ): Promise<WCConfig> {
+  debug("config:load:entry", { explicit: configPath, cwd: workingDirectory });
   const manager = new BaseConfigurationManager();
   let configFile: string | undefined;
 
@@ -377,13 +460,22 @@ export async function loadConfig(
   }
 
   if (!configFile) {
+    debug("config:load:usingDefault");
     return manager.config;
   }
 
   try {
     const userConfig = await loadConfigFile(configFile);
     const validatedConfig = manager["validateConfig"](userConfig);
-    return manager["mergeWithDefaults"](validatedConfig);
+    const merged = manager["mergeWithDefaults"](validatedConfig);
+    debug("config:load:success", {
+      file: configFile,
+      include: merged.include,
+      exclude: merged.exclude,
+      libraries: merged.libraries ? Object.keys(merged.libraries).length : 0,
+      debug: merged.debug,
+    });
+    return merged;
   } catch (error) {
     throw new Error(
       `Failed to load configuration from ${configFile}: ${error}`

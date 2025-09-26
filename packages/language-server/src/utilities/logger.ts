@@ -1,11 +1,16 @@
 export const DEBUG = Boolean(process.env.WC_DEBUG);
+let isDebuggingEnabled = false;
+
+export function setEnableDebugging(enableDebugging: boolean) {
+  isDebuggingEnabled = enableDebugging;
+}
 
 const PREFIX = "[wctools]";
 
 export function debug(...args: unknown[]) {
-  if (DEBUG) {
+  if (isDebuggingEnabled) {
     // Use console.debug where available
-    console.debug(PREFIX, ...args);
+    console.debug('[debug]', ...args);
   }
 }
 
