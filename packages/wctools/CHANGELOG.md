@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.6
+
+### Patch Changes
+
+- 9ecf276: Updated documentation
+
 ## 0.0.5
 
 ### Patch Changes
