@@ -248,44 +248,50 @@ function getAttributeCompletions(
     });
   }
 
-  const customCompletions: html.CompletionItem[] = attributes.map((attr) => {
-    const hasValues = attr.options && attr.options.length > 0;
-    const isBoolean = attr.type === "boolean";
-    const nameWithPrefix = !attrPrefix
-      ? attr.name
-      : attrPrefix === "["
-        ? `[${attr.name}]`
-        : `${attrPrefix}${attr.name}`;
-    const filterWithPrefix = attrPrefix
-      ? `${attrPrefix}${attr.name}`
-      : attr.name;
-    const insertBaseName = attrPrefix === "[" ? `${attr.name}]` : attr.name;
+  const customCompletions: Array<html.CompletionItem | undefined> = attributes
+    .map((attr) => {
+      if (!attr.name) {
+        return undefined;
+      }
+      const hasValues = attr.options && attr.options.length > 0;
+      const isBoolean = attr.type === "boolean";
+      const nameWithPrefix = !attrPrefix
+        ? attr.name
+        : attrPrefix === "["
+          ? `[${attr.name}]`
+          : `${attrPrefix}${attr.name}`;
+      const filterWithPrefix = attrPrefix
+        ? `${attrPrefix}${attr.name}`
+        : attr.name;
+      const insertBaseName = attrPrefix === "[" ? `${attr.name}]` : attr.name;
 
-    return {
-      label: nameWithPrefix,
-      kind: html.CompletionItemKind.Property,
-      documentation: {
-        kind: "markdown",
-        value: `${attr.description}\n\n**Type:** \`${attr.type}\``,
-      },
-      insertText:
-        hasValues || attrPrefix
-          ? `${insertBaseName}="$1"$0`
-          : isBoolean
-            ? insertBaseName
-            : `${insertBaseName}="$0"`,
-      insertTextFormat: html.InsertTextFormat.Snippet,
-      sortText: "0" + attr.name,
-      filterText: filterWithPrefix,
-      command:
-        hasValues || !isBoolean || attrPrefix !== "?"
-          ? { command: "editor.action.triggerSuggest", title: "Suggest" }
-          : undefined,
-      deprecated: !!attr.deprecated,
-    };
-  });
+      return {
+        label: nameWithPrefix,
+        kind: html.CompletionItemKind.Property,
+        documentation: {
+          kind: html.MarkupKind.Markdown,
+          value: `${attr.description}\n\n**Type:** \`${attr.type}\``,
+        },
+        insertText:
+          hasValues || attrPrefix
+            ? `${insertBaseName}="$1"$0`
+            : isBoolean
+              ? insertBaseName
+              : `${insertBaseName}="$0"`,
+        insertTextFormat: html.InsertTextFormat.Snippet,
+        sortText: "0" + attr.name,
+        filterText: filterWithPrefix,
+        command:
+          hasValues || !isBoolean || attrPrefix !== "?"
+            ? { command: "editor.action.triggerSuggest", title: "Suggest" }
+            : undefined,
+        deprecated: !!attr.deprecated,
+      };
+    })
+    .filter(Boolean);
 
-  htmlCompletions.items.push(...customCompletions);
+  console.log(customCompletions);
+  htmlCompletions.items.push(...customCompletions as html.CompletionItem[]);
   debug("autocomplete:attr:added", {
     tagName,
     added: customCompletions.length,
