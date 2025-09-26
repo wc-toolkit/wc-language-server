@@ -1,11 +1,10 @@
 /** @type {import('@wc-toolkit/wctools').WCConfig} */
 export default {
-  // "manifestSrc": "custom-elements.json",
-  // "include": [
-  //   "src/**/*.html",
-  //   "src/**/*.js",
-  //   "src/**/*.ts"
-  // ],
+  "include": [
+    "src/**/*.html",
+    "src/**/*.js",
+    "src/**/*.ts"
+  ],
   "exclude": [
     "node_modules/**",
     "dist/**",
@@ -22,5 +21,5 @@ export default {
     "unknownElement": "hint",
     "unknownAttribute": "hint"
   },
-  "debug": true
+  debug: true
 };
