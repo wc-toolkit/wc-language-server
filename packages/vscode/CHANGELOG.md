@@ -1,5 +1,12 @@
 # web-components-language-server
 
+## 0.0.18
+
+### Patch Changes
+
+- 7366741: Added restart scheduler to batch restarts and prevent multiple restarts when the project is changed
+- 9ecf276: Updated documentation
+
 ## 0.0.17
 
 ### Patch Changes
