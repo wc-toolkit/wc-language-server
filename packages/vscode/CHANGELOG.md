@@ -1,5 +1,14 @@
 # web-components-language-server
 
+## 0.0.17
+
+### Patch Changes
+
+- 9ff3d68: Fixed autocomplete issue with attributes that start with "?"
+- 9ff3d68: Fixed issue that cause the language server to crash when no attribute "name" is defined
+- 9cba346: Fixed globby path resolver
+- 87cec34: Added `debug` config setting
+
 ## 0.0.16
 
 ### Patch Changes
