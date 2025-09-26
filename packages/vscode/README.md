@@ -73,7 +73,8 @@ You can locally disable `wctools` diagnostics using HTML comment directives. The
 <my-element deprecated-attr></my-element>
 ```
 
-Rules can be listed separated by spaces or commas, for example `<!-- wctools-ignore ruleA ruleB,ruleC -->`.
+Rules can be listed separated by spaces or commas (whitespace around commas is ignored), e.g.:
+`<!-- wctools-ignore ruleA ruleB,ruleC -->`.
 
 ### Supported File Types
 
@@ -94,24 +95,42 @@ export default {
 
 ```ts
 /** Configuration options for the Web Components Language Server. */
-interface WCConfig {
+interface WCConfig extends LibraryConfig {
+  /**
+   * Specifies a list of glob patterns that match files to be included in compilation.
+   * If no 'files' or 'include' property is present in a tsconfig.json, the compiler defaults to including all files in the containing directory and subdirectories except those specified by 'exclude'.
+   */
+  include?: string[];
+
+  /** Specifies a list of files to be excluded from compilation. The 'exclude' property only affects the files included via the 'include'. */
+  exclude?: string[];
+
+  /** Used to enable debugging output. */
+  debug?: boolean;
+
+  /** Library specific configuration. */
+  libraries?: {
+    /** Configuration for each library by name where the key is package name */
+    [libraryName: string]: LibraryConfig;
+  };
+}
+
+/** Options for configuring the Language Server for a library */
+interface LibraryConfig {
   /**
    * Specify a custom path to the CustomElements Manifest
    * The path can be for a local file or a remote URL.
    */
   manifestSrc?: string;
 
-  /**
-   * Specifies a list of glob patterns that match files to be included in compilation.
-   * If no 'include' property is present, the server defaults to including all files in the containing directory and subdirectories except those specified by 'exclude'.
-   */
-  include?: string[];
-
-  /** Specifies a list of files to be excluded from the language server. */
-  exclude?: string[];
-
   /** Optional function to format tag names before processing. */
   tagFormatter?: (tagName: string) => string;
+
+  /**
+   * Alternative property name that types may be mapped to
+   * @default "parsedType"
+   */
+  typeSrc?: string;
 
   /** Diagnostic severity levels for various validation checks. */
   diagnosticSeverity?: {
@@ -145,55 +164,16 @@ interface WCConfig {
      * @default "error"
      */
     duplicateAttribute?: DiagnosticSeverity;
-  };
-
-  /** Library specific configuration. */
-  libraries?: {
-    /** Configuration for each library by name where the `libraryName` is package name */
-    [libraryName: string]: {
-      /**
-       * Specify a custom path to the CustomElements Manifest
-       * The path can be for a local file or a remote URL.
-       */
-      manifestSrc?: string;
-
-      /** Optional function to format tag names before processing. */
-      tagFormatter?: (tagName: string) => string;
-
-      /** Diagnostic severity levels for various validation checks. */
-      diagnosticSeverity?: {
-        /**
-         * Severity for invalid boolean attribute values.
-         * @default "error"
-         */
-        invalidBoolean?: DiagnosticSeverity;
-        /**
-         * Severity for invalid number attribute values.
-         * @default "error"
-         */
-        invalidNumber?: DiagnosticSeverity;
-        /**
-         * Severity for invalid attribute values.
-         * @default "error"
-         */
-        invalidAttributeValue?: DiagnosticSeverity;
-        /**
-         * Severity for usage of deprecated attributes.
-         * @default "warning"
-         */
-        deprecatedAttribute?: DiagnosticSeverity;
-        /**
-         * Severity for usage of deprecated elements.
-         * @default "warning"
-         */
-        deprecatedElement?: DiagnosticSeverity;
-        /**
-         * Severity for usage of duplicate attributes.
-         * @default "error"
-         */
-        duplicateAttribute?: DiagnosticSeverity;
-      };
-    };
+    /**
+     * Severity for usage of unknown elements.
+     * @default "warning"
+     */
+    unknownElement?: DiagnosticSeverity;
+    /**
+     * Severity for usage of unknown attributes.
+     * @default "info"
+     */
+    unknownAttribute?: DiagnosticSeverity;
   };
 }
 ```
@@ -207,42 +187,43 @@ export default {
   manifestSrc: './build/custom-elements.json',
 
   /**
-   * Only enable the LAnguage Server feature for the TypeScript
-   * and HTML Files in the `src` directory of the project.
+   * Only enable the Language Server feature for the TypeScript
+   * and HTML files in the `src` directory of the project.
    */
   include: ['src/**/*.ts', 'src/**/*.html'],
 
   /**
-   * Add the custom suffix `_global` for all components
-   * Language server options will now work for `my-button_global`
+   * Add the custom suffix `_global` for all components.
+   * Language server options will now work for `my-button_global`.
    */
   tagFormatter: (tagName) => `${tagName}_global`,
 
   diagnosticSeverity: {
-    /** When a duplicate attribute appears, it will now globally only show a warning instead of an error */
-    deprecatedAttribute: 'warning';
-  }
+    /**
+     * Show duplicate attributes only as a warning instead of an error (global default override).
+     */
+    duplicateAttribute: 'warning'
+  },
 
-  /** Library specific configurations */
+  /** Library specific configurations (override root settings for that library only). */
   libraries: {
-    /** Use the  */
     "@awesome.me/webawesome": {
       /**
-       * Fetch manifest from a URL
-       * This isn't needed if you have the NPM package installed
+       * Fetch manifest from a URL.
+       * (Optional if the NPM package is installed and exposes custom-elements.json)
        */
-      manifestSrc: '[./build/custom-elements.json](https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0-beta.4/dist/custom-elements.json)',
+      manifestSrc: 'https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0-beta.4/dist/custom-elements.json',
 
       /**
-       * Replace `wa-` prefix with `awesome-` for all Web Awesome components
-       * Language server options will now work for `awesome-button` instead of `wa-button`
+       * Replace `wa-` prefix with `awesome-` for all Web Awesome components.
+       * Language server options will now work for `awesome-button` instead of `wa-button`.
        */
       tagFormatter: (tagName) => tagName.replace('wa-', 'awesome-'),
 
-        diagnosticSeverity: {
-          /** Deprecated attributes will now all show as an error for Web Awesome components */
-          duplicateAttribute: 'warning'
-        }
+      diagnosticSeverity: {
+        /** Treat duplicate attributes as warnings just for this library (overrides global). */
+        duplicateAttribute: 'warning'
+      }
     }
   }
 };
@@ -260,9 +241,9 @@ export default {
 
 **IntelliSense not appearing?**
 
+- Make sure you are using the latest version.
+- If your Custom Elements Manifest is not at the root of your project or is remote, use the `wc.config.js` to point the language server to the right direction.
 - Try restarting the language server (`Ctrl/Cmd+Shift+P` > `Web Components: Restart Language Server`)
-- Verify TypeScript/JavaScript language support is enabled
-- Check if other extensions are conflicting
 
 ### Getting Help
 

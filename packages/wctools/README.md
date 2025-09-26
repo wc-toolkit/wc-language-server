@@ -21,7 +21,7 @@ The project currently consists of the CLI tool, but more are on their way.
 - 🔍 **Web Components Validation** - Validates custom elements, attributes, and their values against Custom Elements Manifest
 - 🎯 **Unknown Element Detection** - Identifies unregistered custom elements
 - ⚠️ **Unknown Attribute Detection** - Finds attributes not defined in the manifest
-- 📊 **Multiple Output Formats** - Text, JSON, JUnit XML, and Checkstyle XML
+- 📊 **Multiple Output Formats** - Text, JSON, JUnit XML, Checkstyle XML, SARIF, HTML
 - 🎨 **Colored Output** - Terminal-friendly formatting with colors and icons
 - ⚙️ **Configurable** - Flexible configuration via JSON or JavaScript files
 - 🔧 **CLI Integration** - Perfect for CI/CD pipelines and build processes
@@ -79,13 +79,14 @@ wctools validate --format checkstyle src/*.html
 
 **Options:**
 
-- `-f, --format <format>` - Output format: `text`, `json`, `junit`, `checkstyle` (default: `text`)
+- `-f, --format <format>` - Output format: `text | json | junit | checkstyle | sarif | html` (default: `text`)
+- `-c, --config <path>` - Explicit path to config file (overrides auto-discovery)
 - `--no-color` - Disable colored output
 - `-v, --verbose` - Show files with no issues
 
 **Additional Options:**
 
-- `-o, --output <file>` - Write results to a file. When `--format` is omitted, the CLI will try to autodetect the format from the output filename extension (for example: `.sarif`, `.html`, `.json`, `.xml`).
+- `-o, --output <file>` - Write results to a file. When `--format` is omitted, the CLI attempts to infer from extension (`.json`, `.xml`, `.sarif`, `.html`).
 
 ### Custom Configuration
 
@@ -98,7 +99,12 @@ The configuration will give you default values, but all of the settings are requ
 wctools init
 ```
 
-> **NOTE:** The configuration should be at the root of your project with the name `wc.config.js` in order for the linter and language server to detect it.
+> **NOTE:** Place `wc.config.js` (or another supported name) at the project root for auto-detection.
+
+The generated configuration shows all available options for clarity; every field is optional. Remove entries you do not need.
+
+Supported config filenames (auto-discovered in project root):
+- `wc.config.js / .cjs / .mjs / .ts`
 
 ## Disabling diagnostics in source
 
@@ -138,17 +144,13 @@ import {
 } from "@wc-toolkit/wctools";
 
 const options: LintWebComponentsOptions = {
-  format: "html",
+  format: "html", // any: text|json|junit|checkstyle|sarif|html
   output: "lint-result.html",
 };
 await lintWebComponents(["src/**/*.html"], options);
 ```
 
 This is useful for embedding the validator in build scripts or custom tooling without spawning child processes.
-
-**Options:**
-
-- `-f, --file <filename>` - Configuration file name (default: `wc.config.json`)
 
 ## Output Formats
 
