@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.19
+
+### Patch Changes
+
+- 30a3aee: Fixed config load timing when loading manifests
+
 ## 0.0.18
 
 ### Patch Changes
