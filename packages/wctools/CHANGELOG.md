@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.7
+
+### Patch Changes
+
+- 30a3aee: Fixed config load timing when loading manifests
+
 ## 0.0.6
 
 ### Patch Changes
