@@ -30,10 +30,11 @@ export class ConfigurationService extends BaseConfigurationManager {
       // If an explicit config file exists at configPath, load that file directly.
       if (fs.existsSync(configPath)) {
         debug("config:load:explicitFound", { path: configPath });
-        const userConfig = (await loadConfigFileOrDir(
+        const userConfig = await loadConfigFileOrDir(
           configPath,
           this.workspaceRoot
-        )) as Partial<WCConfig> | undefined;
+        );
+
         const validated = this.validateConfig(userConfig || {});
         this.config = this.mergeWithDefaults(validated as WCConfig);
         debug("config:load:explicitMerged", {

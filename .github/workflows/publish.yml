@@ -39,11 +39,6 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build
         run: pnpm lint && pnpm build
-      # Replace separate npm install with workspace-aware pnpm filtered build
-      - name: Build wctools package
-        run: pnpm --filter wctools build
-      # - name: Run tests
-      #   run: pnpm test
       - name: Create Release Pull Request and Publish
         id: changesets
         uses: changesets/action@v1
@@ -63,6 +58,6 @@ jobs:
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ secrets.VSCODE_MARKETPLACE }}
-          packagePath: ./packages/vscode  # <-- set to extension folder containing package.json with name & version
+          packagePath: ./packages/vscode
           registryUrl: https://marketplace.visualstudio.com
           extensionFile: ${{ steps.publishToOpenVSX.outputs.vsixPath }}

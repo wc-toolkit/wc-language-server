@@ -290,7 +290,6 @@ function getAttributeCompletions(
     })
     .filter(Boolean);
 
-  console.log(customCompletions);
   htmlCompletions.items.push(...customCompletions as html.CompletionItem[]);
   debug("autocomplete:attr:added", {
     tagName,

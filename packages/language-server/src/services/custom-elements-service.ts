@@ -42,7 +42,7 @@ export class CustomElementsService {
 
   constructor() {
     debug("cem:init");
-    this.loadManifests();
+    configurationService.loadConfig().then(() => this.loadManifests());;
   }
 
   public getAllDocs(): Map<string, string> {
@@ -75,7 +75,10 @@ export class CustomElementsService {
 
     const components = getAllComponents(manifest);
 
-    debug("cem:parse:start", { dep: depName || "local", components: components.length });
+    debug("cem:parse:start", {
+      dep: depName || "local",
+      components: components.length,
+    });
     components.forEach((element) => {
       if (depName) {
         element.dependency = depName;
@@ -95,8 +98,9 @@ export class CustomElementsService {
     });
     debug("cem:parse:complete", {
       dep: depName || "local",
-      totalElements: this.customElements.size + this.dependencyCustomElements.size,
-      attributesIndexed: this.attributeData.size
+      totalElements:
+        this.customElements.size + this.dependencyCustomElements.size,
+      attributesIndexed: this.attributeData.size,
     });
   }
 
@@ -125,7 +129,7 @@ export class CustomElementsService {
       tag: tagName,
       dep: depName || "local",
       added,
-      totalAttributeEntries: this.attributeData.size
+      totalAttributeEntries: this.attributeData.size,
     });
   }
 
@@ -162,7 +166,7 @@ export class CustomElementsService {
       tag: tagName,
       attr: attributeName,
       found: options != null,
-      type: Array.isArray(options) ? "enum" : typeof options
+      type: Array.isArray(options) ? "enum" : typeof options,
     });
     return options || null;
   }
@@ -194,8 +198,9 @@ export class CustomElementsService {
       debug("cem:load:complete", {
         localElements: this.customElements.size,
         dependencyElements: this.dependencyCustomElements.size,
-        totalElements: this.customElements.size + this.dependencyCustomElements.size,
-        attributes: this.attributeData.size
+        totalElements:
+          this.customElements.size + this.dependencyCustomElements.size,
+        attributes: this.attributeData.size,
       });
     } catch (error) {
       debug("cem:load:error", error);
@@ -206,7 +211,9 @@ export class CustomElementsService {
   private loadConfigManifests() {
     debug("cem:config:start");
     if (configurationService.config.manifestSrc) {
-      debug("cem:config:primary", { src: configurationService.config.manifestSrc });
+      debug("cem:config:primary", {
+        src: configurationService.config.manifestSrc,
+      });
       this.loadManifestFromFile(
         this.workspaceRoot,
         configurationService.config.manifestSrc
@@ -221,7 +228,10 @@ export class CustomElementsService {
     }
 
     for (const [name, libConfig] of Object.entries(libraryConfigs)) {
-      debug("cem:config:library", { library: name, manifestSrc: libConfig.manifestSrc });
+      debug("cem:config:library", {
+        library: name,
+        manifestSrc: libConfig.manifestSrc,
+      });
       if (!libConfig.manifestSrc) {
         continue;
       }
@@ -302,13 +312,17 @@ export class CustomElementsService {
           depName
         );
       } catch (err) {
-        debug("cem:dep:error", { dep: depName, message: (err as any)?.message });
+        debug("cem:dep:error", {
+          dep: depName,
+          message: (err as any)?.message,
+        });
         error(`Error loading CEM for dependency ${depName}:`, err as any);
       }
     }
     debug("cem:deps:complete", {
       dependencyElements: this.dependencyCustomElements.size,
-      totalElements: this.customElements.size + this.dependencyCustomElements.size
+      totalElements:
+        this.customElements.size + this.dependencyCustomElements.size,
     });
   }
 
@@ -317,7 +331,11 @@ export class CustomElementsService {
     cemPath?: string,
     depName?: string
   ) {
-    debug("cem:file:resolve:start", { packagePath, cemPath, dep: depName || "local" });
+    debug("cem:file:resolve:start", {
+      packagePath,
+      cemPath,
+      dep: depName || "local",
+    });
 
     // Check if the package path exists first
     if (packagePath && !fs.existsSync(packagePath)) {
@@ -380,12 +398,10 @@ export class CustomElementsService {
           debug("cem:url:fetchFailed", { url, status: response.status });
           throw new Error(`Failed to fetch ${url}`);
         }
-        return response
-          .json()
-          .then((manifest) => {
-            debug("cem:url:fetched", { url, dep: depName || "local" });
-            this.parseManifest(manifest, depName);
-          });
+        return response.json().then((manifest) => {
+          debug("cem:url:fetched", { url, dep: depName || "local" });
+          this.parseManifest(manifest, depName);
+        });
       })
       .catch((err) => {
         error(`Error loading manifest from ${url}:`, err as any);
