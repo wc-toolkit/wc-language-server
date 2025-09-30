@@ -83,6 +83,10 @@ function createRestartingWatcher(
   return watcher;
 }
 
+async function loadDocs(): Promise<void> {
+  // const docs = await client.sendRequest('wctoolkit/getDocs');
+}
+
 export async function activate(context: vscode.ExtensionContext) {
   const serverModule = vscode.Uri.joinPath(
     context.extensionUri,
@@ -157,6 +161,8 @@ export async function activate(context: vscode.ExtensionContext) {
   // ref: https://twitter.com/johnsoncodehk/status/1656126976774791168
   const labsInfo = createLabsInfo(serverProtocol);
   labsInfo.addLanguageClient(client);
+
+  await loadDocs();
 
   // Register command to restart the extension only once
   if (!restartCommandRegistered) {
