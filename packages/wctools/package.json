@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/wctools",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "CLI tool for validating Web Components using Custom Elements Manifest",
   "type": "module",
   "main": "dist/index.js",
