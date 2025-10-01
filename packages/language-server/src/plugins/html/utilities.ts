@@ -12,7 +12,7 @@ export const BINDING_PREFIX_CLASS = "[.:?\\[]";
 export const TYPED_PREFIX_REGEX = new RegExp(`^${BINDING_PREFIX_CLASS}`);
 export const TRAILING_BINDING_BRACKET_REGEX = /\]$/;
 export const ATTR_VALUE_REGEX = new RegExp(
-  `<([a-zA-Z0-9-]+)(?:\\s+[^>]*?)?\\s+(${BINDING_PREFIX_CLASS}?[a-zA-Z0-9-]+]?)=["']?([^"']*)$`,
+  `<([a-zA-Z0-9-]+)(?:\\s+[^>]*?)?\\s+(${BINDING_PREFIX_CLASS}?[a-zA-Z0-9-]*]?)=["']?([^"'>]*)$`,
 );
 export const ATTR_NAME_REGEX = new RegExp(
   `<([a-zA-Z0-9-]+)(?:\\s+[^>]*?)?\\s+(${BINDING_PREFIX_CLASS}?[a-zA-Z0-9-]*)$`,

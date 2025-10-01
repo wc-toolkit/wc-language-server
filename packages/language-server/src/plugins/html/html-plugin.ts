@@ -29,6 +29,7 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
     capabilities: {
       ...baseHtmlService.capabilities,
       completionProvider: {
+        ...baseHtmlService.capabilities?.completionProvider,
         triggerCharacters: [
           "<",
           " ",
@@ -65,7 +66,9 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
         const shouldRestart = changes.changes.some(
           (change) =>
             change.uri.endsWith("custom-elements.json") ||
-            change.uri.endsWith("wc.config.js"),
+            change.uri.endsWith("wc.config.js") ||
+            change.uri.endsWith("wc.config.ts") ||
+            change.uri.endsWith("wc.config.mjs")
         );
 
         if (shouldRestart) {
@@ -86,7 +89,7 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
               document,
               position,
               context,
-              token,
+              token
             );
           }
           return getAutoCompleteSuggestions(document, position);

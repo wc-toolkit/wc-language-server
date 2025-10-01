@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
-import { debug, info, setEnableDebugging, warn } from "../utilities/logger.js";
+import { debug, setEnableDebugging, warn } from "../utilities/logger.js";
 import { minimatch } from "minimatch";
 
 export type DiagnosticSeverity = "error" | "warning" | "info" | "hint" | "off";
@@ -376,14 +376,8 @@ export function findConfigFile(directory: string): string | undefined {
   debug("Config file names to search:", CONFIG_FILE_NAMES);
   for (const fileName of CONFIG_FILE_NAMES) {
     const filePath = path.join(directory, fileName);
-    debug(
-      "Checking config file:",
-      filePath,
-      "exists:",
-      fs.existsSync(filePath)
-    );
     if (fs.existsSync(filePath)) {
-      info("Found config file:", filePath);
+      debug("Found config file:", filePath);
       return filePath;
     }
   }
