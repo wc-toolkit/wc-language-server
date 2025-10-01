@@ -12,9 +12,13 @@ The Web Component Tools project is a suite of tools designed to make the integra
 
 The project currently consists of the CLI tool, but more are on their way.
 
+![Demonstration of the wctools cli tool](https://wc-toolkit.com/_astro/wctools_cli_demo.kX5ez82W_1Boy3z.webp)
+
 ## Web Component Linter (`validate`)
 
 `wctools validate` CLI command statically analyzes your code to quickly find problems using information from the [Custom Elements Manifest (CEM)](https://github.com/webcomponents/custom-elements-manifest). Editor support can be found using the [Web Component Language Server](https://wc-toolkit.com/integrations/web-components-language-server/) and you can run wctools as part of your continuous integration pipeline.
+
+> If you're not already using it, be sure check out the [Web Components Language Server](https://wc-toolkit.com/integrations/web-components-language-server/). It is the companion piece to this and provides editor support for web components.
 
 ## Features
 

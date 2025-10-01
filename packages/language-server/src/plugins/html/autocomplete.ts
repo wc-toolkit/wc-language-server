@@ -248,54 +248,57 @@ function getAttributeCompletions(
     });
   }
 
-  const customCompletions: Array<html.CompletionItem | undefined> = attributes
-    .map((attr) => {
-      if (!attr.name) {
-        return undefined;
-      }
-      const hasValues = attr.options && attr.options.length > 0;
-      const isBoolean = attr.type === "boolean";
-      const nameWithPrefix = !attrPrefix
-        ? attr.name
-        : attrPrefix === "["
-          ? `[${attr.name}]`
-          : `${attrPrefix}${attr.name}`;
-      const filterWithPrefix = attrPrefix
-        ? `${attrPrefix}${attr.name}`
-        : attr.name;
-      const insertBaseName = attrPrefix === "[" ? `${attr.name}]` : attr.name;
+  const prefix = attrPrefix ?? "";
+  const suffix = attrPrefix === "[" ? "]" : "";
+  const items = attributes.map((attribute) => {
+    const baseName = attribute.name;
+    const label = `${prefix}${baseName}${suffix}`;
+    const insertText = getInsertText(
+      baseName,
+      attrPrefix,
+      !!attribute.options?.length,
+      attribute.type === "boolean"
+    );
 
-      return {
-        label: nameWithPrefix,
-        kind: html.CompletionItemKind.Property,
-        documentation: {
-          kind: html.MarkupKind.Markdown,
-          value: `${attr.description}\n\n**Type:** \`${attr.type}\``,
-        },
-        insertText:
-          hasValues || attrPrefix
-            ? `${insertBaseName}="$1"$0`
-            : isBoolean
-              ? insertBaseName
-              : `${insertBaseName}="$0"`,
-        insertTextFormat: html.InsertTextFormat.Snippet,
-        sortText: "0" + attr.name,
-        filterText: filterWithPrefix,
-        command:
-          hasValues || !isBoolean || attrPrefix !== "?"
-            ? { command: "editor.action.triggerSuggest", title: "Suggest" }
-            : undefined,
-        deprecated: !!attr.deprecated,
-      };
-    })
-    .filter(Boolean);
-
-  htmlCompletions.items.push(...customCompletions as html.CompletionItem[]);
-  debug("autocomplete:attr:added", {
-    tagName,
-    added: customCompletions.length,
+    return {
+      label, // shows user the prefixed form
+      filterText: label, // ensures typing '?' filters correctly
+      sortText: `0${label}`,
+      kind: html.CompletionItemKind.Property,
+      insertText,
+      insertTextFormat: html.InsertTextFormat.Snippet,
+      detail: attribute.type || "attribute",
+      documentation: attribute.description,
+      deprecated: !!attribute.deprecated,
+    } as html.CompletionItem;
   });
+
+  htmlCompletions.items.push(...items);
   return htmlCompletions;
+}
+
+function getInsertText(
+  label: string,
+  prefix: BindingPrefix | undefined,
+  hasValues?: boolean,
+  isBoolean?: boolean
+): string {
+  switch (prefix) {
+    case "?":
+      return `?${label}="\${0}"`;
+    case ".":
+      return `${label}="\${0}"`;
+    case ":":
+      return `${label}="\${0}"`;
+    case "[":
+      return `${label}]="\${0}"`;
+    default:
+      return hasValues
+        ? `${label}="$1"$0`
+        : isBoolean
+          ? label
+          : `${label}="$0"`;
+  }
 }
 
 function getAttributeValueCompletions(
