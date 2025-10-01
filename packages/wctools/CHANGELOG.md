@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.8
+
+### Patch Changes
+
+- daab834: Fixed boolean binding behavior when using `?` in templates
+
 ## 0.0.7
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.20
+
+### Patch Changes
+
+- daab834: Fixed boolean binding behavior when using `?` in templates
+
 ## 0.0.19
 
 ### Patch Changes
