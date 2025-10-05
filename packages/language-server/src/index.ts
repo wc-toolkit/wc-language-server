@@ -42,7 +42,9 @@ connection.onInitialize((params: InitializeParams) => {
 });
 
 connection.onRequest('wctoolkit/getDocs', () => {
-  return customElementsService.getAllDocs();
+  const docs = customElementsService.getAllDocs(); // Map<string,string>
+  // Convert Map to plain object so it survives JSON serialization over LSP
+  return Object.fromEntries(docs.entries());
 });
 
 /**

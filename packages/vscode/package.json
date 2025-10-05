@@ -15,7 +15,7 @@
   "author": "wc-toolkit",
   "publisher": "wc-toolkit",
   "engines": {
-    "vscode": "^1.82.0"
+    "vscode": "^1.89.0"
   },
   "activationEvents": [
     "*"
@@ -26,6 +26,16 @@
       {
         "command": "wcLanguageServer.restart",
         "title": "Web Components: Restart Language Server"
+      },
+      {
+        "command": "wcLanguageServer.askAI",
+        "title": "Web Components: Ask AI"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "wcLanguageServerAI",
+        "name": "wctools"
       }
     ]
   },

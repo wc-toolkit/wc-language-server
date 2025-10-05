@@ -8,6 +8,15 @@ import {
   TransportKind,
 } from "@volar/vscode/node";
 import * as vscode from "vscode";
+import {
+  activateAIIntegration,
+  answerQuestion,
+  getAIStats,
+} from "./ai-integration";
+
+interface ChatParticipantFactory {
+  createChatParticipant?: (id: string, handler: unknown) => vscode.Disposable;
+}
 
 const RESTART_DEBOUNCE_MS = 300;
 let restartTimer: NodeJS.Timeout | undefined;
@@ -15,6 +24,7 @@ let restarting = false;
 let pendingRestart = false;
 let client: BaseLanguageClient;
 let restartCommandRegistered = false;
+let extensionContext: vscode.ExtensionContext | undefined;
 
 const pendingLogs: string[] = [];
 function log(msg: string) {
@@ -59,6 +69,12 @@ async function restartLanguageClient(reason: string): Promise<void> {
         // ignore stop errors
       }
       await client.start();
+      // After a restart, pull docs again so AI integration stays current
+      try {
+        await loadDocs();
+      } catch (e) {
+        log(`error reloading docs after restart: ${(e as Error).message}`);
+      }
       log(`restart complete`);
     } while (pendingRestart); // loop if another request arrived during previous cycle
   } finally {
@@ -84,7 +100,22 @@ function createRestartingWatcher(
 }
 
 async function loadDocs(): Promise<void> {
-  // const docs = await client.sendRequest('wctoolkit/getDocs');
+  if (!client || !extensionContext) return;
+  const raw =
+    await client.sendRequest<Record<string, string>>("wctoolkit/getDocs");
+  if (!raw || Object.keys(raw).length === 0) {
+    log("no custom element docs found");
+    return;
+  }
+  try {
+    log(`received ${Object.keys(raw).length} custom element docs`);
+    await activateAIIntegration(raw, extensionContext, log);
+    log(
+      `sent ${Object.keys(raw).length} custom element docs to AI integration`
+    );
+  } catch (err) {
+    log(`error activating AI integration with docs: ${(err as Error).message}`);
+  }
 }
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -121,7 +152,10 @@ export async function activate(context: vscode.ExtensionContext) {
     serverOptions,
     clientOptions
   );
+  extensionContext = context;
   await client.start();
+  // Initial docs load + AI integration
+  await loadDocs();
 
   // Watchers (config, manifest, package.json)
   const configWatcher = createRestartingWatcher(
@@ -162,7 +196,67 @@ export async function activate(context: vscode.ExtensionContext) {
   const labsInfo = createLabsInfo(serverProtocol);
   labsInfo.addLanguageClient(client);
 
-  await loadDocs();
+  // loadDocs already invoked above
+
+  // Register Chat Participant (Chat View integration) if API is available
+  try {
+    const chatApi = (vscode as unknown as { chat?: ChatParticipantFactory })
+      .chat; // runtime guard
+    if (chatApi?.createChatParticipant) {
+      const participant = chatApi.createChatParticipant("wcLanguageServerAI", {
+        name: "wctools", // matches package.json chatParticipants name
+        async provideResponse(request: { prompt?: string; promptText?: string }) {
+          const raw = (request.prompt ?? request.promptText ?? "").trim();
+          if (!raw) {
+            return { contents: [{ kind: 'markdown', value: '**wctools**: Ask a question about your project\nType `/help` for commands.' }] };
+          }
+
+          // Slash command handling
+          if (raw.startsWith('/')) {
+            const [cmd] = raw.slice(1).split(/\s+/);
+            const stats = getAIStats();
+            switch (cmd.toLowerCase()) {
+              case 'help':
+                return { contents: [{ kind: 'markdown', value: `**wctools help**\nCommands:\n- /list : list all detected web components\n- /stats : show AI ingestion stats\n- /help : this help\n\nAsk natural questions too (e.g. *How do I use <my-element>?*).` }] };
+              case 'stats':
+                return { contents: [{ kind: 'markdown', value: `**wctools stats**\nChunks: ${stats.chunks}\nEmbeddings: ${stats.embeddings}\nModel: ${stats.model}` }] };
+              case 'list': {
+                try {
+                  const listAnswer = await answerQuestion('what web components are available in this project?');
+                  return { contents: [{ kind: 'markdown', value: `**Component List**\n${listAnswer.trim()}` }] };
+                } catch (e) {
+                  return { contents: [{ kind: 'markdown', value: `Error listing components: ${(e as Error).message}` }] };
+                }
+              }
+              default:
+                return { contents: [{ kind: 'markdown', value: `Unknown command: /${cmd}. Try /help.` }] };
+            }
+          }
+
+          try {
+            const answer = await answerQuestion(raw);
+            const stats = getAIStats();
+            return {
+              contents: [
+                { kind: 'markdown', value: `**Q:** ${raw}\n\n**A:**\n${answer.trim()}` },
+                { kind: 'markdown', value: `_(chunks=${stats.chunks} embeddings=${stats.embeddings} model=${stats.model})_` }
+              ]
+            };
+          } catch (e) {
+            return { contents: [{ kind: 'markdown', value: `Error: ${(e as Error).message}` }] };
+          }
+        }
+      });
+      context.subscriptions.push(participant);
+      log("Registered Chat Participant: wctools (Web Components AI)");
+    } else {
+      log(
+        "Chat API not available (createChatParticipant missing) - using command only"
+      );
+    }
+  } catch (e) {
+    log("Failed to register chat participant: " + (e as Error).message);
+  }
 
   // Register command to restart the extension only once
   if (!restartCommandRegistered) {
@@ -175,7 +269,38 @@ export async function activate(context: vscode.ExtensionContext) {
         );
       }
     );
-    context.subscriptions.push(restartCommand);
+
+    const askCommand = vscode.commands.registerCommand(
+      "wcLanguageServer.askAI",
+      async () => {
+        const question = await vscode.window.showInputBox({
+          prompt: "Ask about your Web Components",
+        });
+        if (!question) return;
+        try {
+          const answer = await answerQuestion(question);
+          const channel =
+            vscode.window.createOutputChannel("Web Components AI");
+          channel.show(true);
+          const stats = getAIStats();
+          channel.appendLine(`Question: ${question}`);
+          channel.appendLine("---");
+          channel.appendLine(answer.trim());
+          channel.appendLine(
+            "\n[context stats] chunks=" +
+              stats.chunks +
+              " embeddings=" +
+              stats.embeddings +
+              " model=" +
+              stats.model
+          );
+        } catch (err) {
+          vscode.window.showErrorMessage(`AI error: ${(err as Error).message}`);
+        }
+      }
+    );
+
+    context.subscriptions.push(restartCommand, askCommand);
     restartCommandRegistered = true;
   }
 
