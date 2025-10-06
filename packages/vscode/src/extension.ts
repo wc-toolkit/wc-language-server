@@ -10,21 +10,17 @@ import {
 import * as vscode from "vscode";
 import {
   activateAIIntegration,
-  answerQuestion,
-  getAIStats,
+  AIIntegrationService,
 } from "./ai-integration";
 
-interface ChatParticipantFactory {
-  createChatParticipant?: (id: string, handler: unknown) => vscode.Disposable;
-}
 
 const RESTART_DEBOUNCE_MS = 300;
 let restartTimer: NodeJS.Timeout | undefined;
 let restarting = false;
 let pendingRestart = false;
 let client: BaseLanguageClient;
-let restartCommandRegistered = false;
 let extensionContext: vscode.ExtensionContext | undefined;
+let aiService: AIIntegrationService | undefined;
 
 const pendingLogs: string[] = [];
 function log(msg: string) {
@@ -101,17 +97,27 @@ function createRestartingWatcher(
 
 async function loadDocs(): Promise<void> {
   if (!client || !extensionContext) return;
-  const raw =
+  const fetchedDocs =
     await client.sendRequest<Record<string, string>>("wctoolkit/getDocs");
-  if (!raw || Object.keys(raw).length === 0) {
+  if (!fetchedDocs || Object.keys(fetchedDocs).length === 0) {
     log("no custom element docs found");
     return;
   }
   try {
-    log(`received ${Object.keys(raw).length} custom element docs`);
-    await activateAIIntegration(raw, extensionContext, log);
+    log(`received ${Object.keys(fetchedDocs).length} custom element docs`);
+    log(`component names: ${Object.keys(fetchedDocs).slice(0, 10).join(', ')}${Object.keys(fetchedDocs).length > 10 ? '...' : ''}`);
+    
+    // Initialize or update AI integration with the fetched docs
+    if (!aiService) {
+      aiService = await activateAIIntegration(extensionContext, fetchedDocs);
+      log("AI integration activated");
+    } else {
+      aiService.updateCEMDocs(fetchedDocs);
+      log("AI integration updated with new docs");
+    }
+    
     log(
-      `sent ${Object.keys(raw).length} custom element docs to AI integration`
+      `sent ${Object.keys(fetchedDocs).length} custom element docs to AI integration`
     );
   } catch (err) {
     log(`error activating AI integration with docs: ${(err as Error).message}`);
@@ -196,117 +202,10 @@ export async function activate(context: vscode.ExtensionContext) {
   const labsInfo = createLabsInfo(serverProtocol);
   labsInfo.addLanguageClient(client);
 
-  // loadDocs already invoked above
-
-  // Register Chat Participant (Chat View integration) if API is available
-  try {
-    const chatApi = (vscode as unknown as { chat?: ChatParticipantFactory })
-      .chat; // runtime guard
-    if (chatApi?.createChatParticipant) {
-      const participant = chatApi.createChatParticipant("wcLanguageServerAI", {
-        name: "wctools", // matches package.json chatParticipants name
-        async provideResponse(request: { prompt?: string; promptText?: string }) {
-          const raw = (request.prompt ?? request.promptText ?? "").trim();
-          if (!raw) {
-            return { contents: [{ kind: 'markdown', value: '**wctools**: Ask a question about your project\nType `/help` for commands.' }] };
-          }
-
-          // Slash command handling
-          if (raw.startsWith('/')) {
-            const [cmd] = raw.slice(1).split(/\s+/);
-            const stats = getAIStats();
-            switch (cmd.toLowerCase()) {
-              case 'help':
-                return { contents: [{ kind: 'markdown', value: `**wctools help**\nCommands:\n- /list : list all detected web components\n- /stats : show AI ingestion stats\n- /help : this help\n\nAsk natural questions too (e.g. *How do I use <my-element>?*).` }] };
-              case 'stats':
-                return { contents: [{ kind: 'markdown', value: `**wctools stats**\nChunks: ${stats.chunks}\nEmbeddings: ${stats.embeddings}\nModel: ${stats.model}` }] };
-              case 'list': {
-                try {
-                  const listAnswer = await answerQuestion('what web components are available in this project?');
-                  return { contents: [{ kind: 'markdown', value: `**Component List**\n${listAnswer.trim()}` }] };
-                } catch (e) {
-                  return { contents: [{ kind: 'markdown', value: `Error listing components: ${(e as Error).message}` }] };
-                }
-              }
-              default:
-                return { contents: [{ kind: 'markdown', value: `Unknown command: /${cmd}. Try /help.` }] };
-            }
-          }
-
-          try {
-            const answer = await answerQuestion(raw);
-            const stats = getAIStats();
-            return {
-              contents: [
-                { kind: 'markdown', value: `**Q:** ${raw}\n\n**A:**\n${answer.trim()}` },
-                { kind: 'markdown', value: `_(chunks=${stats.chunks} embeddings=${stats.embeddings} model=${stats.model})_` }
-              ]
-            };
-          } catch (e) {
-            return { contents: [{ kind: 'markdown', value: `Error: ${(e as Error).message}` }] };
-          }
-        }
-      });
-      context.subscriptions.push(participant);
-      log("Registered Chat Participant: wctools (Web Components AI)");
-    } else {
-      log(
-        "Chat API not available (createChatParticipant missing) - using command only"
-      );
-    }
-  } catch (e) {
-    log("Failed to register chat participant: " + (e as Error).message);
-  }
-
-  // Register command to restart the extension only once
-  if (!restartCommandRegistered) {
-    const restartCommand = vscode.commands.registerCommand(
-      "wcLanguageServer.restart",
-      async () => {
-        scheduleRestart("manual command");
-        vscode.window.showInformationMessage(
-          "Web Components Language Server restart requested."
-        );
-      }
-    );
-
-    const askCommand = vscode.commands.registerCommand(
-      "wcLanguageServer.askAI",
-      async () => {
-        const question = await vscode.window.showInputBox({
-          prompt: "Ask about your Web Components",
-        });
-        if (!question) return;
-        try {
-          const answer = await answerQuestion(question);
-          const channel =
-            vscode.window.createOutputChannel("Web Components AI");
-          channel.show(true);
-          const stats = getAIStats();
-          channel.appendLine(`Question: ${question}`);
-          channel.appendLine("---");
-          channel.appendLine(answer.trim());
-          channel.appendLine(
-            "\n[context stats] chunks=" +
-              stats.chunks +
-              " embeddings=" +
-              stats.embeddings +
-              " model=" +
-              stats.model
-          );
-        } catch (err) {
-          vscode.window.showErrorMessage(`AI error: ${(err as Error).message}`);
-        }
-      }
-    );
-
-    context.subscriptions.push(restartCommand, askCommand);
-    restartCommandRegistered = true;
-  }
-
   return labsInfo.extensionExports;
 }
 
 export function deactivate(): Thenable<void> | undefined {
+  aiService?.dispose();
   return client?.stop();
 }

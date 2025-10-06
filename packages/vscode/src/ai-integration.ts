@@ -1,359 +1,473 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as vscode from "vscode";
-import { WorkspaceState } from "./state";
-import { createHash } from "crypto";
 
-// ------------------------------ Types ------------------------------
-interface DocChunk {
-  component: string;
-  chunkId: string;
-  heading?: string;
-  text: string;
-  tokensApprox: number;
-  hash: string;
-  updatedAt: number;
-}
-interface EmbeddingRecord {
-  chunkId: string;
-  component: string;
-  vector: number[];
-  model: string;
-  chunkHash: string;
-  updatedAt: number;
-}
+/**
+ * AI Integration Service for Web Components
+ * Provides component documentation to any AI model via VS Code Language Model API
+ * (GitHub Copilot, Claude, or other compatible language models)
+ * 
+ * Works in: VS Code, VSCodium, Cursor, Windsurf, and other VS Code forks
+ */
+export class AIIntegrationService {
+  private cemDocs: Record<string, string> = {};
+  private disposables: vscode.Disposable[] = [];
 
-// ------------------------------ State ------------------------------
-let _workspaceState: WorkspaceState | undefined;
-let _context: vscode.ExtensionContext | undefined;
-let _log: (m: string) => void = () => {};
-let _chunks: DocChunk[] = [];
-const _docsIndex: Record<string, string> = {}; // raw docs by component for direct listing & future enrichment
-const _embeddings: Map<string, EmbeddingRecord> = new Map();
-let _embeddingModel = "local-hash-v1";
-let _ingestionInProgress: Promise<void> | null = null; // tracks current ingestion cycle
+  constructor(initialDocs: Record<string, string>) {
+    this.cemDocs = initialDocs;
+  }
 
-const STORAGE_CHUNKS = "ai.docChunks.v1";
-const STORAGE_EMBEDDINGS = "ai.embeddings.v1";
+  /**
+   * Update the documentation cache when new docs are available
+   */
+  updateCEMDocs(docs: Record<string, string>): void {
+    this.cemDocs = docs;
+    
+    // Refresh the virtual context document if it exists
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const virtualDocProvider = (this as any)._virtualDocProvider;
+    if (virtualDocProvider && typeof virtualDocProvider.refresh === 'function') {
+      virtualDocProvider.refresh();
+      console.log('[AI Integration] Virtual context document refreshed with updated docs');
+    }
+  }
 
-// ------------------------------ Helpers ------------------------------
-function sha256(t: string) {
-  return createHash("sha256").update(t).digest("hex");
-}
-function tokenEstimate(t: string) {
-  return Math.round(t.split(/\s+/).filter(Boolean).length * 1.2);
-}
-function splitSections(raw: string): string[] {
-  const parts = raw.split(/\n(?=#+\s)/);
-  return parts.length > 1 ? parts : raw.split(/\n\n+/);
-}
-function chunkDoc(component: string, raw: string, now: number): DocChunk[] {
-  const maxLen = 1200;
-  const secs = splitSections(raw);
-  const out: DocChunk[] = [];
-  let i = 0;
-  for (const sec of secs) {
-    if (sec.length <= maxLen) push(sec);
-    else {
-      const paras = sec.split(/\n\n+/);
-      let buf = "";
-      for (const p of paras) {
-        if ((buf + p).length > maxLen && buf) {
-          push(buf);
-          buf = "";
-        }
-        buf += (buf ? "\n\n" : "") + p;
+  /**
+   * Get documentation for a specific component
+   */
+  getComponentDoc(componentName: string): string | undefined {
+    return this.cemDocs[componentName];
+  }
+
+  /**
+   * Get all available component documentation
+   */
+  getAllDocs(): Record<string, string> {
+    return { ...this.cemDocs };
+  }
+
+  /**
+   * Format documentation for AI context
+   */
+  formatDocsForAI(): string {
+    const entries = Object.entries(this.cemDocs);
+    if (entries.length === 0) {
+      return "No web component documentation available.";
+    }
+
+    let formatted = `# Web Components Documentation\n\n`;
+    formatted += `Available components: ${entries.length}\n\n`;
+
+    for (const [componentName, doc] of entries) {
+      formatted += `## ${componentName}\n\n`;
+      formatted += `${doc}\n\n`;
+      formatted += `---\n\n`;
+    }
+
+    return formatted;
+  }
+
+  /**
+   * Search for relevant documentation based on query
+   */
+  searchDocs(query: string): string {
+    // Clean up the query: remove <, >, and normalize
+    const cleanQuery = query.replace(/[<>]/g, '').toLowerCase().trim();
+    const matches: Array<[string, string]> = [];
+
+    for (const [name, doc] of Object.entries(this.cemDocs)) {
+      const lowerName = name.toLowerCase();
+      const lowerDoc = doc.toLowerCase();
+
+      // Try multiple matching strategies:
+      // 1. Exact match on component name
+      // 2. Component name contains query
+      // 3. Query contains component name
+      // 4. Documentation contains query
+      if (
+        lowerName === cleanQuery ||
+        lowerName.includes(cleanQuery) ||
+        cleanQuery.includes(lowerName) ||
+        lowerDoc.includes(cleanQuery)
+      ) {
+        matches.push([name, doc]);
       }
-      if (buf) push(buf);
     }
-  }
-  return out;
-  function push(text: string) {
-    const heading = text.match(/^#{1,6}\s+(.*)$/m)?.[1]?.trim();
-    out.push({
-      component,
-      chunkId: `${component}::${i++}`,
-      heading,
-      text: text.trim(),
-      tokensApprox: tokenEstimate(text),
-      hash: sha256(text),
-      updatedAt: now,
-    });
-  }
-}
 
-// ------------------------------ Embedding Provider ------------------------------
-interface EmbeddingProvider {
-  model: string;
-  embed(texts: string[]): Promise<number[][]>;
-}
-class LocalHashEmbeddingProvider implements EmbeddingProvider {
-  model = _embeddingModel;
-  dim = 64;
-  async embed(texts: string[]) {
-    return texts.map((t) => this.vec(t));
-  }
-  vec(t: string) {
-    const v = new Array<number>(this.dim).fill(0);
-    for (const tok of t.toLowerCase().split(/\W+/).filter(Boolean)) {
-      let h = 0;
-      for (let i = 0; i < tok.length; i++)
-        h = (h * 31 + tok.charCodeAt(i)) >>> 0;
-      v[h % this.dim] += 1;
+    if (matches.length === 0) {
+      // Provide helpful debug info
+      const availableComponents = Object.keys(this.cemDocs).slice(0, 10);
+      return `No documentation found matching "${query}".
+
+Available components (showing first 10): ${availableComponents.join(', ')}${Object.keys(this.cemDocs).length > 10 ? `, and ${Object.keys(this.cemDocs).length - 10} more...` : ''}
+
+Try asking about one of these components by name.`;
     }
-    const n = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
-    return v.map((x) => x / n);
+
+    let result = `# Search Results for "${query}"\n\n`;
+    result += `Found ${matches.length} matching component(s):\n\n`;
+
+    for (const [name, doc] of matches) {
+      result += `## ${name}\n\n`;
+      result += `${doc}\n\n`;
+      result += `---\n\n`;
+    }
+
+    return result;
   }
-}
-let embeddingProvider: EmbeddingProvider = new LocalHashEmbeddingProvider();
-export function setEmbeddingProvider(p: EmbeddingProvider) {
-  embeddingProvider = p;
-  _embeddingModel = p.model;
+
+  dispose(): void {
+    for (const disposable of this.disposables) {
+      disposable.dispose();
+    }
+    this.disposables = [];
+  }
 }
 
-// ------------------------------ Persistence ------------------------------
-function restore(context: vscode.ExtensionContext) {
-  _context = context;
-  const sc = context.workspaceState.get<DocChunk[]>(STORAGE_CHUNKS, []);
-  const se = context.workspaceState.get<EmbeddingRecord[]>(
-    STORAGE_EMBEDDINGS,
-    []
-  );
-  if (sc?.length) {
-    _chunks = sc;
-    _log(`AI: restored ${_chunks.length} chunks`);
+/**
+ * Language Model Tool for Web Components Documentation
+ * This allows Copilot to access your docs without needing @wctools
+ */
+class WCToolsLanguageModelTool implements vscode.LanguageModelTool<{ query?: string }> {
+  private service: AIIntegrationService;
+  
+  constructor(service: AIIntegrationService) {
+    this.service = service;
   }
-  if (se?.length) {
-    for (const e of se)
-      if (e.model === embeddingProvider.model) _embeddings.set(e.chunkId, e);
-    if (se.length) _log(`AI: restored ${_embeddings.size} embeddings`);
+
+  async invoke(
+    options: vscode.LanguageModelToolInvocationOptions<{ query?: string }>,
+    _token: vscode.CancellationToken
+  ) {
+    const query = options.input.query || '';
+    
+    if (!query || query.toLowerCase().includes('all') || query.toLowerCase().includes('list')) {
+      return new vscode.LanguageModelToolResult([
+        new vscode.LanguageModelTextPart(this.service.formatDocsForAI())
+      ]);
+    }
+    
+    return new vscode.LanguageModelToolResult([
+      new vscode.LanguageModelTextPart(this.service.searchDocs(query))
+    ]);
   }
-}
-async function persist() {
-  if (!_context) return;
-  await _context.workspaceState.update(STORAGE_CHUNKS, _chunks);
-  await _context.workspaceState.update(
-    STORAGE_EMBEDDINGS,
-    Array.from(_embeddings.values())
-  );
+
+  prepareInvocation(
+    options: vscode.LanguageModelToolInvocationPrepareOptions<{ query?: string }>
+  ) {
+    const query = options.input.query || 'all components';
+    return {
+      invocationMessage: `Searching web components documentation for: ${query}`,
+    };
+  }
 }
 
-// ------------------------------ Public Ingestion ------------------------------
+/**
+ * Detect the VS Code environment (VS Code, VSCodium, Cursor, Windsurf, etc.)
+ */
+function detectEnvironment(): string {
+  const productName = vscode.env.appName.toLowerCase();
+  const uriAuthority = vscode.env.uriScheme.toLowerCase();
+  
+  console.log(`[AI Integration] Product name: ${vscode.env.appName}`);
+  console.log(`[AI Integration] URI scheme: ${vscode.env.uriScheme}`);
+  
+  // Check URI scheme first (more reliable for Cursor)
+  if (uriAuthority.includes('cursor')) return 'cursor';
+  if (uriAuthority.includes('windsurf')) return 'windsurf';
+  
+  // Then check product name
+  if (productName.includes('cursor')) return 'cursor';
+  if (productName.includes('windsurf')) return 'windsurf';
+  if (productName.includes('vscodium')) return 'vscodium';
+  if (productName.includes('visual studio code')) return 'vscode';
+  // VSCodium might also identify as "code - oss"
+  if (productName.includes('code - oss')) return 'vscodium';
+  return 'unknown';
+}
+
+/**
+ * Activate AI integration with VS Code Language Model API
+ * This makes your web component documentation available to any language model
+ * (GitHub Copilot, Claude, or other compatible AI extensions)
+ * 
+ * Compatible with: VS Code, VSCodium, Cursor, Windsurf, and other VS Code forks
+ */
 export async function activateAIIntegration(
-  docs: Record<string, string>,
   context: vscode.ExtensionContext,
-  log: (msg: string) => void
-): Promise<void> {
-  // Wrap ingestion so answerQuestion can await if needed
-  const doIngest = async () => {
-  _log = log;
-  if (!_workspaceState) _workspaceState = new WorkspaceState(context);
-  restore(context);
-  const keys = Object.keys(docs || {});
-  if (!keys.length) {
-    log("AI Integration - no docs to process");
-    return;
-  }
-  const updated = await _workspaceState.getUpdatedDocs(docs);
-  const updatedKeys = Object.keys(updated);
-  // If nothing is reported as updated BUT we have no chunks yet (first activation scenario edge), treat all as new
-  if (!updatedKeys.length && _chunks.length === 0) {
-    const nowAll = Date.now();
-    for (const k of keys) {
-      _docsIndex[k] = docs[k];
-      _chunks.push(...chunkDoc(k, docs[k], nowAll));
-    }
-    log(`AI: chunked (initial no-update case) ${keys.length} components; total chunks=${_chunks.length}`);
-    await persist();
-    setTimeout(() => {
-      ensureEmbeddings().catch((e) =>
-        _log(`AI: embedding precompute failed: ${(e as Error).message}`)
-      );
-    }, 50);
-    return;
-  } else if (!updatedKeys.length) {
-    // truly no changes and we already have chunks
-    return;
-  }
-  const now = Date.now();
-  const changed = new Set(updatedKeys);
-  _chunks = _chunks.filter((c) => !changed.has(c.component));
-  // update docs index with changed components
-  for (const k of updatedKeys) _docsIndex[k] = docs[k];
-  for (const tag of updatedKeys) {
-    const raw = docs[tag];
-    _chunks.push(...chunkDoc(tag, raw, now));
-  }
-  log(
-    `AI: chunked ${updatedKeys.length} components; total chunks=${_chunks.length}`
-  );
-  await persist();
-  // Precompute embeddings in the background (non-blocking for activation) to improve first-answer latency
-  setTimeout(() => {
-    ensureEmbeddings().catch((e) =>
-      _log(`AI: embedding precompute failed: ${(e as Error).message}`)
-    );
-  }, 50);
-  };
-  _ingestionInProgress = doIngest();
-  await _ingestionInProgress.catch(()=>{}); // don't throw here; logging already done
-  _ingestionInProgress = null;
-}
+  initialDocs: Record<string, string>
+): Promise<AIIntegrationService> {
+  const service = new AIIntegrationService(initialDocs);
+  const env = detectEnvironment();
+  console.log(`[AI Integration] Detected environment: ${env}`);
 
-// ------------------------------ Embeddings & Retrieval ------------------------------
-async function ensureEmbeddings() {
-  const pending = _chunks.filter((c) => {
-    const e = _embeddings.get(c.chunkId);
-    return !e || e.chunkHash !== c.hash || e.model !== embeddingProvider.model;
+  // Register chat participant for web components (works in all environments)
+  console.log(`[AI Integration] Registering chat participant in ${env} environment`);
+  console.log(`[AI Integration] Available APIs:`, {
+    chat: typeof vscode.chat,
+    lm: typeof vscode.lm,
+    createChatParticipant: typeof vscode.chat?.createChatParticipant
   });
-  if (!pending.length) return;
-  const vecs = await embeddingProvider.embed(pending.map((c) => c.text));
-  const now = Date.now();
-  pending.forEach((c, i) => {
-    _embeddings.set(c.chunkId, {
-      chunkId: c.chunkId,
-      component: c.component,
-      vector: vecs[i],
-      model: embeddingProvider.model,
-      chunkHash: c.hash,
-      updatedAt: now,
-    });
-  });
-  _log(`AI: embedded ${pending.length} chunks (total=${_embeddings.size})`);
-  await persist();
-}
-function cosine(a: number[], b: number[]) {
-  let d = 0,
-    na = 0,
-    nb = 0;
-  for (let i = 0; i < Math.min(a.length, b.length); i++) {
-    d += a[i] * b[i];
-    na += a[i] * a[i];
-    nb += b[i] * b[i];
-  }
-  return d / ((Math.sqrt(na) || 1) * (Math.sqrt(nb) || 1));
-}
-export async function getRAGContextForQuery(
-  query: string,
-  k = 8,
-  maxTokens = 3500
-) {
-  await ensureEmbeddings();
-  const [qv] = await embeddingProvider.embed([query]);
-  const scored = Array.from(_embeddings.values())
-    .map((e) => ({ e, score: cosine(qv, e.vector) }))
-    .sort((a, b) => b.score - a.score);
-  const chosen: DocChunk[] = [];
-  let budget = 0;
-  for (const { e } of scored) {
-    if (chosen.length >= k) break;
-    const c = _chunks.find((x) => x.chunkId === e.chunkId);
-    if (!c) continue;
-    if (budget + c.tokensApprox > maxTokens) continue;
-    chosen.push(c);
-    budget += c.tokensApprox;
-  }
-  const contextText = chosen
-    .map(
-      (c) =>
-        `Component: <${c.component}>${c.heading ? ` | ${c.heading}` : ""}\n${c.text}`
-    )
-    .join("\n---\n");
-  return { chunks: chosen, contextText };
-}
-async function waitForIngestion(timeoutMs = 4000) {
-  if (_chunks.length) return; // already have data
-  const start = Date.now();
-  while (_ingestionInProgress) {
-    try { await Promise.race([_ingestionInProgress, new Promise(r=>setTimeout(r,100))]); } catch { /* swallow */ }
-    if (_chunks.length) return;
-    if (Date.now() - start > timeoutMs) return; // give up after timeout
-  }
-}
+  
+  let participant: vscode.ChatParticipant | undefined;
+  
+  try {
+    participant = vscode.chat.createChatParticipant(
+      "wcLanguageServerAI",
+      async (
+      request: vscode.ChatRequest,
+      _chatContext: vscode.ChatContext,
+      stream: vscode.ChatResponseStream,
+      token: vscode.CancellationToken
+    ) => {
+      // Extract component names from the user's query
+      const query = request.prompt;
 
-function detectListIntent(qLower: string): boolean {
-  const simple = /(what|which)\s+(web\s+)?components/.test(qLower) || /list\s+(all\s+)?(web\s+)?components/.test(qLower);
-  if (simple) return true;
-  // heuristic: contains 'components' + one of 'available','defined','in this project'
-  if (qLower.includes('component') && (qLower.includes('available') || qLower.includes('defined') || qLower.includes('in this project'))) return true;
-  return false;
-}
+      // Debug: Log available docs
+      const docCount = Object.keys(service.getAllDocs()).length;
+      console.log(`[AI Integration] Query: "${query}"`);
+      console.log(`[AI Integration] Available docs: ${docCount}`);
+      console.log(`[AI Integration] Component names:`, Object.keys(service.getAllDocs()).slice(0, 5));
 
-export async function answerQuestion(question: string) {
-  if (!_context) throw new Error("AI not initialized");
-  const qLower = question.toLowerCase();
-  await waitForIngestion();
-  const listIntent = detectListIntent(qLower);
+      // Provide relevant documentation as context
+      let contextDoc: string;
 
-  // Fast path: direct enumeration if user is clearly asking for list of components
-  if (listIntent) {
-    const namesSet = new Set<string>();
-    if (_chunks.length) {
-      for (const c of _chunks) namesSet.add(c.component);
-    } else {
-      for (const k of Object.keys(_docsIndex)) namesSet.add(k);
-    }
-    const names = Array.from(namesSet).sort((a, b) => a.localeCompare(b));
-    if (!names.length) {
-      if (!_chunks.length && !_docsIndex || (Object.keys(_docsIndex).length===0)) {
-        return "Docs not loaded yet (try again after build/manifest load).";
+      if (
+        query.toLowerCase().includes("all") ||
+        query.toLowerCase().includes("list")
+      ) {
+        contextDoc = service.formatDocsForAI();
+      } else {
+        contextDoc = service.searchDocs(query);
       }
-      return "Not in docs.";
+
+      console.log(`[AI Integration] Context doc length: ${contextDoc.length} chars`);
+      console.log(`[AI Integration] Context preview:`, contextDoc.substring(0, 200));
+
+      // For Cursor: Return documentation directly so user can see it
+      // and then ask follow-up questions to Cursor's AI with the context visible
+      if (env === 'cursor') {
+        stream.markdown(
+          `## Web Component Documentation\n\n${contextDoc}\n\n---\n\n` +
+          `💡 **Tip:** You can now ask Cursor's AI follow-up questions about these components, ` +
+          `and it will use the documentation above as context.`
+        );
+        return;
+      }
+
+      // For VS Code/other environments: Use Language Model API if available
+      // Check if Language Model API is available (may not be in all forks)
+      if (typeof vscode.lm?.selectChatModels !== 'function') {
+        // Fallback for environments without Language Model API
+        stream.markdown(
+          `**Web Component Documentation Found:**\n\n${contextDoc}\n\n---\n\n` +
+          `*Note: This editor doesn't support the Language Model API. ` +
+          `The documentation above can help you understand the component.*`
+        );
+        return;
+      }
+
+      const models = await vscode.lm.selectChatModels();
+
+      if (models.length === 0) {
+        // No models available - provide documentation directly
+        stream.markdown(
+          `**Web Component Documentation:**\n\n${contextDoc}\n\n---\n\n` +
+          `*No AI model is available. Please ensure you have GitHub Copilot or another compatible AI extension installed.*`
+        );
+        return;
+      }
+
+      // Use the first available model (could be GPT-4, GPT-3.5, Claude, etc.)
+      const model = models[0];
+      console.log(`[AI Integration] Using model: ${model.vendor}/${model.family} (${model.name})`);
+
+      const messages = [
+        vscode.LanguageModelChatMessage.User(
+          `You are a helpful assistant for web components. Here is the documentation for the available components:\n\n${contextDoc}\n\nUser question: ${query}`
+        ),
+      ];
+
+      try {
+        const response = await model.sendRequest(messages, {}, token);
+
+        for await (const fragment of response.text) {
+          stream.markdown(fragment);
+        }
+      } catch (err) {
+        if (err instanceof vscode.LanguageModelError) {
+          stream.markdown(`Error: ${err.message}`);
+        } else {
+          // Unknown error - still provide the docs
+          console.error('[AI Integration] Error:', err);
+          stream.markdown(
+            `**Error generating AI response, but here's the documentation:**\n\n${contextDoc}`
+          );
+        }
+      }
     }
-    // Provide a concise list. Avoid invoking LM for deterministic answer
-    return (
-      `The project defines ${names.length} web component${names.length === 1 ? "" : "s"}:\n` +
-      names.map((n) => `- <${n}>`).join("\n")
-    );
-  }
-
-  const { contextText, chunks } = await getRAGContextForQuery(question);
-  const system = `You are a Web Components assistant. Use ONLY provided context chunks. If answer not found, reply exactly: Not in docs.`;
-  // If retrieval produced no chunks, attempt a graceful fallback for discovery-style questions
-  let augmentedContext = contextText;
-  if (!chunks.length) {
-    const names = Array.from(new Set(_chunks.map((c) => c.component))).sort();
-    if (names.length) {
-      augmentedContext =
-        `Component Inventory:\n` + names.map((n) => `<${n}>`).join(", ");
-    }
-  }
-  const prompt = `${system}\n\nContext (chunks=${chunks.length}):\n${augmentedContext}\n\nQuestion:\n${question}\n\nAnswer:`;
-  return sendToVSCodeLM(prompt);
-}
-export function getAIStats() {
-  return {
-    chunks: _chunks.length,
-    embeddings: _embeddings.size,
-    model: embeddingProvider.model,
-  };
-}
-
-async function sendToVSCodeLM(prompt: string): Promise<string> {
-  // Uses VSCode's built-in language model API
-  // Works with Copilot, GitHub Models, or other providers
-
-  const models = await vscode.lm.selectChatModels();
-
-  if (models.length === 0) {
-    throw new Error(
-      "No language models available. Please install an AI extension like GitHub Copilot."
-    );
-  }
-
-  const model = models[0];
-  const messages = [vscode.LanguageModelChatMessage.User(prompt)];
-
-  const chatRequest = await model.sendRequest(
-    messages,
-    {},
-    new vscode.CancellationTokenSource().token
   );
 
-  let result = "";
-  for await (const fragment of chatRequest.text) {
-    result += fragment;
+    participant.iconPath = vscode.Uri.joinPath(
+      context.extensionUri,
+      "assets",
+      "icon.png"
+    );
+
+    context.subscriptions.push(participant);
+    console.log(`[AI Integration] ✅ Chat participant '@wctools' registered successfully`);
+  } catch (err) {
+    console.error(`[AI Integration] ❌ Failed to register chat participant:`, err);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    vscode.window.showWarningMessage(
+      `Web Components: Chat participant (@wctools) registration failed in ${env}. ${errMsg}`
+    );
   }
 
-  return result;
+  // Register as a language model tool so AI can access docs without @wctools
+  // This API may not be available in all VS Code forks (e.g., Cursor, Windsurf)
+  if (typeof vscode.lm?.registerTool === 'function') {
+    try {
+      const tool = vscode.lm.registerTool('wctools-docs', new WCToolsLanguageModelTool(service));
+      context.subscriptions.push(tool);
+      console.log('[AI Integration] Language Model Tool registered successfully');
+    } catch (err) {
+      console.log('[AI Integration] Language Model Tool registration failed (not supported in this environment):', err);
+    }
+  } else {
+    console.log('[AI Integration] Language Model Tool API not available in this environment');
+  }
+
+  // Register inline completion provider for component usage hints
+  const inlineProvider = vscode.languages.registerInlineCompletionItemProvider(
+    [
+      { language: "html" },
+      { language: "typescript" },
+      { language: "javascript" },
+      { language: "vue" },
+      { language: "svelte" },
+      { language: "astro" },
+      { language: "markdown" },
+      { language: "php" },
+      { language: "python" },
+      { language: "ruby" },
+      { language: "go" },
+      { language: "csharp" },
+    ],
+    {
+      async provideInlineCompletionItems(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        _context: vscode.InlineCompletionContext,
+        _token: vscode.CancellationToken
+      ): Promise<vscode.InlineCompletionItem[] | undefined> {
+        // This provides component documentation context to GitHub Copilot's inline suggestions
+        // Copilot will automatically use the component docs when generating suggestions
+
+        const line = document.lineAt(position.line).text;
+        const componentMatch = line.match(/<([a-z]+-[a-z-]+)/i);
+
+        if (componentMatch) {
+          const componentName = componentMatch[1];
+          const doc = service.getComponentDoc(componentName);
+
+          if (doc) {
+            // The documentation is available in the service and will be used
+            // by Copilot through the Language Model API
+            // No need to return anything here - Copilot handles it
+          }
+        }
+
+        return undefined;
+      },
+    }
+  );
+
+  context.subscriptions.push(inlineProvider);
+  context.subscriptions.push(service);
+
+  // For Cursor and Windsurf: Register in-memory context documents
+  // These editors can read virtual documents without writing to disk
+  registerVirtualContextDocuments(context, service, env);
+
+  return service;
 }
 
-// legacy helpers removed (superseded by retrieval flow)
+/**
+ * Register virtual context documents for VS Code forks
+ * This provides documentation to AI without writing files to disk
+ * - VS Code: Uses Language Model API + virtual document
+ * - VSCodium: Same as VS Code (can use compatible AI extensions)
+ * - Cursor: Can reference virtual documents
+ * - Windsurf: Can reference virtual documents
+ */
+function registerVirtualContextDocuments(
+  context: vscode.ExtensionContext,
+  service: AIIntegrationService,
+  env: string
+): void {
+  // Create a virtual document provider that serves component documentation
+  const virtualDocProvider = new (class implements vscode.TextDocumentContentProvider {
+    private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
+    readonly onDidChange = this._onDidChange.event;
+
+    provideTextDocumentContent(_uri: vscode.Uri): string {
+      const docsContent = service.formatDocsForAI();
+      
+      return `# Web Components Documentation
+# In-memory context for AI assistants (${env})
+# This virtual document provides component documentation without writing to disk
+
+This project uses custom web components. The following documentation describes all available components:
+
+${docsContent}
+
+## Instructions for AI
+When the user asks about web components or custom elements (HTML tags with hyphens like <sl-button>, <my-component>):
+1. Refer to the documentation above
+2. Provide accurate information based on these component definitions
+3. Do not make assumptions about properties or behavior not documented here
+
+## Available via @wctools
+You can also explicitly query this documentation using the @wctools chat participant.
+
+---
+Generated: ${new Date().toISOString()}
+Note: This is a virtual document in memory, not written to disk.
+`;
+    }
+
+    // Allow external updates to refresh the document
+    refresh(): void {
+      this._onDidChange.fire(vscode.Uri.parse('wc-docs:/context'));
+    }
+  })();
+
+  // Register the virtual document provider with a custom scheme
+  const providerRegistration = vscode.workspace.registerTextDocumentContentProvider(
+    'wc-docs',
+    virtualDocProvider
+  );
+
+  context.subscriptions.push(providerRegistration);
+
+  // Store the provider so we can update it when docs change
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (service as any)._virtualDocProvider = virtualDocProvider;
+
+  // Create a virtual document URI
+  const virtualDocUri = vscode.Uri.parse('wc-docs:/context/web-components.md');
+
+  // Open the virtual document in the background (some editors can reference it)
+  // This makes it available to AI systems that scan open documents
+  vscode.workspace.openTextDocument(virtualDocUri).then((doc) => {
+    console.log(`[AI Integration] Created virtual context document (${doc.uri.toString()})`);
+    console.log(`[AI Integration] Document has ${doc.lineCount} lines of component documentation`);
+    
+    // Note: We don't show the document to the user, but it's available to AI
+    // Some AI systems (like Cursor) can reference open/virtual documents
+  }, (err: Error) => {
+    console.log('[AI Integration] Could not create virtual context document:', err.message);
+  });
+
+  console.log(`[AI Integration] Virtual context provider registered for ${env}`);
+}

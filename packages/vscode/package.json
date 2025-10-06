@@ -18,7 +18,9 @@
     "vscode": "^1.89.0"
   },
   "activationEvents": [
-    "*"
+    "*",
+    "onLanguage:*",
+    "onStartupFinished"
   ],
   "main": "./dist/client.js",
   "contributes": {
@@ -28,14 +30,33 @@
         "title": "Web Components: Restart Language Server"
       },
       {
-        "command": "wcLanguageServer.askAI",
-        "title": "Web Components: Ask AI"
+        "command": "wcLanguageServer.openAIDocs",
+        "title": "Web Components: Open AI Documentation Context"
       }
     ],
     "chatParticipants": [
       {
         "id": "wcLanguageServerAI",
         "name": "wctools"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "wctools-docs",
+        "displayName": "Web Components Documentation",
+        "modelDescription": "Retrieves comprehensive documentation for custom web components used in this project. ALWAYS use this tool first when the user asks about: component properties/attributes (e.g., 'what properties does sl-button have?'), component usage, component behavior, available components, or any questions mentioning HTML tags with hyphens (like <sl-button>, <my-component>). The documentation includes detailed markdown descriptions of each component's API, properties, events, slots, and usage examples. Extract the component name from the user's question and pass it as the query parameter.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "The component name to search for (e.g., 'sl-button', 'sl-input'). Extract this from the user's question. Use 'all' to retrieve all available component documentation."
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
       }
     ]
   },
