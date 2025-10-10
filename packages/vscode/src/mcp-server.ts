@@ -1,0 +1,481 @@
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import {
+  CallToolRequestSchema,
+  GetPromptRequestSchema,
+  ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  ReadResourceRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import type {
+  CallToolRequest,
+  GetPromptRequest,
+  ReadResourceRequest,
+} from "@modelcontextprotocol/sdk/types.js";
+import * as http from "http";
+
+// Simple logger that works both in VS Code and standalone
+const log = (message: string) => {
+  const timestamp = new Date().toISOString();
+  console.error(`[${timestamp}] [MCP Server] ${message}`);
+};
+
+export interface MCPServerOptions {
+  /** Transport mode: 'stdio' for process communication, 'http' for HTTP/SSE */
+  transport?: "stdio" | "http";
+  /** Port to listen on when using HTTP transport */
+  port?: number;
+  /** Host to bind to when using HTTP transport */
+  host?: string;
+}
+
+/**
+ * Internal MCP server for providing web component information to AI agents
+ * This server runs within the VS Code extension and does not reach out to external sources
+ */
+export class WebComponentMCPServer {
+  private server: Server;
+  private componentDocs: Record<string, string> = {};
+  private options: MCPServerOptions;
+  private httpServer?: http.Server;
+
+  constructor(options: MCPServerOptions = {}) {
+    this.options = {
+      transport: options.transport || "stdio",
+      port: options.port || 3000,
+      host: options.host || "localhost",
+    };
+
+    this.server = new Server(
+      {
+        name: "web-components-mcp-server",
+        version: "1.0.0",
+      },
+      {
+        capabilities: {
+          resources: {},
+          tools: {},
+          prompts: {},
+        },
+      }
+    );
+
+    this.setupHandlers();
+  }
+
+  /**
+   * Set the component documentation from the language server
+   */
+  public setComponentDocs(docs: Record<string, string>): void {
+    this.componentDocs = docs;
+  }
+
+  private setupHandlers(): void {
+    // List available prompts
+    this.server.setRequestHandler(
+      ListPromptsRequestSchema,
+      async () => ({
+        prompts: [
+          {
+            name: "component-docs",
+            description:
+              "Get documentation for all web components in the workspace",
+            arguments: [],
+          },
+          {
+            name: "component-info",
+            description:
+              "Get detailed information about a specific web component",
+            arguments: [
+              {
+                name: "tagName",
+                description:
+                  "The tag name of the component (e.g., 'sl-button')",
+                required: true,
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    // Handle prompt requests
+    this.server.setRequestHandler(
+      GetPromptRequestSchema,
+      async (request: GetPromptRequest) => {
+        const { name, arguments: args } = request.params;
+
+        if (name === "component-docs") {
+          // Return all component documentation from cache
+          if (Object.keys(this.componentDocs).length === 0) {
+            throw new Error("No component documentation available");
+          }
+
+          const allDocs = Object.values(this.componentDocs).join("\n\n---\n\n");
+
+          return {
+            description:
+              "Documentation for all web components in the workspace",
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: `Here is the documentation for all web components in this workspace:\n\n${allDocs}\n\nYou can now answer questions about these components.`,
+                },
+              },
+            ],
+          };
+        }
+
+        if (name === "component-info") {
+          const tagName = args?.tagName as string;
+          if (!tagName) {
+            throw new Error("tagName is required");
+          }
+
+          const doc = this.componentDocs[tagName];
+
+          return {
+            description: `Documentation for ${tagName}`,
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: doc,
+                },
+              },
+            ],
+          };
+        }
+
+        throw new Error(`Unknown prompt: ${name}`);
+      }
+    );
+
+    // List available tools (simplified set with query tool)
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+      tools: [
+        {
+          name: "wctools-docs",
+          displayName: "Web Component Docs",
+          description:
+            "Retrieves comprehensive documentation for custom web components used in this project. ALWAYS use this tool first when the user asks about: component properties/attributes (e.g., 'what properties does sl-button have?'), component usage, component behavior, available components, or any questions mentioning HTML tags with hyphens (like <sl-button>, <my-component>). The documentation includes detailed markdown descriptions of each component's API, properties, events, slots, and usage examples. Extract the component name from the user's question and pass it as the query parameter. If the user asks for a list of all components, return a summary of all available components with their descriptions and packages. If the user asks for a comparison between components, provide details for each component mentioned. If the user asks general questions about web components or how to use them, provide relevant documentation snippets. ONLY use this tool for questions directly related to web components in this project. For any other questions, use other appropriate tools or respond directly.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description:
+                  "The component name to search for (e.g., 'sl-button', 'sl-input'). Extract this from the user's question. Use 'all' to retrieve all available component documentation.",
+              },
+            },
+            required: ["query"],
+          },
+        },
+      ],
+    }));
+
+    // Handle tool calls
+    this.server.setRequestHandler(
+      CallToolRequestSchema,
+      async (request: CallToolRequest) => {
+        const { arguments: args } = request.params;
+
+        try {
+          const query = (args as Record<string, unknown>).query as string;
+          if (!query) {
+            throw new Error("query is required");
+          }
+
+          // Use the cached component documentation directly
+          if (Object.keys(this.componentDocs).length === 0) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: "No component documentation available. Please ensure the language server has loaded component data.",
+                },
+              ],
+              isError: true,
+            };
+          }
+
+          // Return all documentation as context for the AI to answer the query
+          const allDocs = Object.values(this.componentDocs).join("\n\n---\n\n");
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Here is the complete documentation for all web components in the workspace. Use this to answer the query: "${query}"\n\n${allDocs}`,
+              },
+            ],
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+
+    // List available resources
+    this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
+      const components = this.componentDocs;
+      const resources = [];
+
+      for (const [tagName, description] of Object.entries(components)) {
+        resources.push({
+          uri: `wc://component/${tagName}`,
+          name: `Component: ${tagName}`,
+          description: description || "Web component definition",
+          mimeType: "text/markdown",
+        });
+      }
+
+      return {
+        resources,
+      };
+    });
+
+    // Read resource content
+    this.server.setRequestHandler(
+      ReadResourceRequestSchema,
+      async (request: ReadResourceRequest) => {
+        const uri = request.params.uri;
+
+        if (uri.startsWith("wc://component/")) {
+          const tagName = uri.replace("wc://component/", "");
+          const documentation =
+            this.componentDocs[tagName] ||
+            `# Component not found: ${tagName}`;
+
+          return {
+            contents: [
+              {
+                uri,
+                mimeType: "text/markdown",
+                text: documentation,
+              },
+            ],
+          };
+        }
+        throw new Error(`Unknown resource URI: ${uri}`);
+      }
+    );
+  }
+
+  /**
+   * Starts the MCP server with the configured transport
+   */
+  public async start(): Promise<void> {
+    if (this.options.transport === "http") {
+      await this.startHttpServer();
+    } else {
+      await this.startStdioServer();
+    }
+  }
+
+  /**
+   * Starts the MCP server with stdio transport
+   */
+  private async startStdioServer(): Promise<void> {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    log("MCP server started with stdio transport");
+  }
+
+  /**
+   * Sets CORS headers on the response
+   */
+  private setCorsHeaders(res: http.ServerResponse): void {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  }
+
+  /**
+   * Handles OPTIONS preflight requests
+   */
+  private handleOptionsRequest(res: http.ServerResponse): void {
+    res.writeHead(200);
+    res.end();
+  }
+
+  /**
+   * Handles the /health endpoint
+   */
+  private handleHealthCheck(res: http.ServerResponse): void {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        status: "ok",
+        componentsLoaded: Object.keys(this.componentDocs).length,
+      })
+    );
+  }
+
+  /**
+   * Handles the /sse endpoint for Server-Sent Events
+   */
+  private async handleSseConnection(res: http.ServerResponse): Promise<void> {
+    log("SSE connection established");
+
+    // Set SSE headers
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+
+    const transport = new SSEServerTransport("/message", res);
+    await this.server.connect(transport);
+  }
+
+  /**
+   * Handles the /message endpoint for receiving client messages
+   */
+  private handleMessageRequest(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ): void {
+    let body = "";
+    
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+
+    req.on("end", async () => {
+      try {
+        // Parse and handle the JSON-RPC message
+        const message = JSON.parse(body);
+        log(`Received message: ${JSON.stringify(message)}`);
+
+        // The transport handles the actual message processing
+        res.writeHead(202, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ accepted: true }));
+      } catch (error) {
+        log(`Error processing message: ${error}`);
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error:
+              error instanceof Error ? error.message : "Invalid JSON",
+          })
+        );
+      }
+    });
+  }
+
+  /**
+   * Handles 404 Not Found responses
+   */
+  private handleNotFound(res: http.ServerResponse): void {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not Found");
+  }
+
+  /**
+   * Routes incoming HTTP requests to the appropriate handler
+   */
+  private async routeRequest(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ): Promise<void> {
+    this.setCorsHeaders(res);
+
+    // Handle preflight requests
+    if (req.method === "OPTIONS") {
+      this.handleOptionsRequest(res);
+      return;
+    }
+
+    const url = new URL(req.url || "/", `http://${req.headers.host}`);
+
+    // Route to appropriate handler
+    if (url.pathname === "/health" && req.method === "GET") {
+      this.handleHealthCheck(res);
+    } else if (url.pathname === "/sse" && req.method === "GET") {
+      await this.handleSseConnection(res);
+    } else if (url.pathname === "/message" && req.method === "POST") {
+      this.handleMessageRequest(req, res);
+    } else {
+      this.handleNotFound(res);
+    }
+  }
+
+  /**
+   * Starts the MCP server with HTTP/SSE transport using Node.js built-in http module
+   */
+  private async startHttpServer(): Promise<void> {
+    this.httpServer = http.createServer((req, res) => {
+      this.routeRequest(req, res).catch((error) => {
+        log(`Error handling request: ${error}`);
+        res.writeHead(500, { "Content-Type": "text/plain" });
+        res.end("Internal Server Error");
+      });
+    });
+
+    this.httpServer.listen(this.options.port, this.options.host, () => {
+      log(
+        `MCP server started with HTTP/SSE transport on http://${this.options.host}:${this.options.port}`
+      );
+      log(
+        `Connect using: http://${this.options.host}:${this.options.port}/sse`
+      );
+    });
+  }
+
+  /**
+   * Closes the MCP server
+   */
+  public async close(): Promise<void> {
+    if (this.httpServer) {
+      await new Promise<void>((resolve) => {
+        this.httpServer?.close(() => resolve());
+      });
+    }
+    await this.server.close();
+  }
+}
+
+// For standalone execution (when run as a separate process)
+if (require.main === module) {
+  // Parse command line arguments
+  const args = process.argv.slice(2);
+  const transportIndex = args.indexOf("--transport");
+  const portIndex = args.indexOf("--port");
+  const hostIndex = args.indexOf("--host");
+
+  const options: MCPServerOptions = {
+    transport:
+      transportIndex >= 0
+        ? (args[transportIndex + 1] as "stdio" | "http")
+        : "stdio",
+    port: portIndex >= 0 ? parseInt(args[portIndex + 1]) : 3000,
+    host: hostIndex >= 0 ? args[hostIndex + 1] : "localhost",
+  };
+
+  const server = new WebComponentMCPServer(options);
+  server.start().catch((error) => {
+    log("Failed to start MCP server: " + error.message);
+    process.exit(1);
+  });
+
+  // Graceful shutdown
+  process.on("SIGINT", async () => {
+    log("Shutting down MCP server...");
+    await server.close();
+    process.exit(0);
+  });
+}

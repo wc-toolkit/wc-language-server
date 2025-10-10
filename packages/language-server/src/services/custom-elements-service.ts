@@ -184,8 +184,24 @@ export class CustomElementsService {
   }
 
   public dispose() {
+    debug("cem:dispose");
     this.customElements.clear();
     this.customElementsDocs.clear();
+    this.dependencyCustomElements.clear();
+    this.attributeOptions.clear();
+    this.attributeData.clear();
+    this.manifestPath = null;
+    this.manifestContent = "";
+  }
+
+  public reload() {
+    debug("cem:reload:start");
+    this.dispose();
+    this.loadManifests();
+    debug("cem:reload:complete", {
+      localElements: this.customElements.size,
+      dependencyElements: this.dependencyCustomElements.size,
+    });
   }
 
   private loadManifests() {

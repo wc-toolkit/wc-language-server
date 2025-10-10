@@ -41,6 +41,34 @@
           "endsPattern": "watching\\.\\.\\."
         }
       }
+    },
+    {
+      "label": "Open in Cursor (HTML Demo)",
+      "type": "shell",
+      "command": "cursor",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
+        "${workspaceFolder}/demos/html"
+      ],
+      "dependsOn": ["npm: build:ls"],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Open in Cursor (NPM Demo)",
+      "type": "shell",
+      "command": "cursor",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/packages/vscode",
+        "${workspaceFolder}/demos/npm"
+      ],
+      "dependsOn": ["npm: build:ls"],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
     }
   ]
 }
