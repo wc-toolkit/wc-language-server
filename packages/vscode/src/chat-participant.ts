@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { log } from "./utilities";
+import { parseQuery, formatQueryResult } from "./query-parser";
 
 /**
  * Chat participant for web components
@@ -174,8 +175,6 @@ async function handleComponentQuery(
   for await (const fragment of chatResponse.text) {
     stream.markdown(fragment);
   }
-
-  stream.markdown("\n\n---\n*Information from Custom Elements Manifest in your workspace*\n");
 
   return {
     metadata: {
@@ -396,47 +395,26 @@ function registerLanguageModelTool(
       invoke: async (
         options: vscode.LanguageModelToolInvocationOptions<{ query: string }>
       ) => {
-        const query = options.input.query?.toLowerCase() || "";
+        const query = options.input.query || "";
         log(`Language Model Tool invoked with query: ${query}`);
 
-        let resultContent: string;
-
-        // Handle "all" query
-        if (query === "all") {
-          const allDocs = Object.entries(componentDocs)
-            .map(([tag, doc]) => `## Component: ${tag}\n\n${doc}`)
-            .join("\n\n---\n\n");
-
-          resultContent =
-            allDocs || "No component documentation available yet.";
-        } else {
-          // Find specific component
-          const componentName = query.trim();
-
-          if (componentDocs[componentName]) {
-            resultContent = componentDocs[componentName];
-          } else {
-            // Try to find similar components
-            const similarComponents = Object.keys(componentDocs).filter(
-              (name) =>
-                name.includes(componentName) || componentName.includes(name)
-            );
-
-            if (similarComponents.length > 0) {
-              resultContent = similarComponents
-                .map((tag) => `## Component: ${tag}\n\n${componentDocs[tag]}`)
-                .join("\n\n---\n\n");
-            } else {
-              // No matches found
-              const availableComponents =
-                Object.keys(componentDocs).join(", ");
-              resultContent = `Component "${componentName}" not found. Available components: ${availableComponents || "none"}`;
-            }
-          }
+        // Check if docs are available
+        if (Object.keys(componentDocs).length === 0) {
+          return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(
+              "No component documentation available. Please ensure the language server has loaded component data."
+            ),
+          ]);
         }
 
+        // Use smart query parser
+        const result = parseQuery(query, componentDocs);
+        const formattedResult = formatQueryResult(result);
+
+        log(`Query result: ${result.type}, ${result.components.length} component(s)`);
+
         return new vscode.LanguageModelToolResult([
-          new vscode.LanguageModelTextPart(resultContent),
+          new vscode.LanguageModelTextPart(formattedResult),
         ]);
       },
       prepareInvocation: async (
@@ -444,16 +422,18 @@ function registerLanguageModelTool(
           query: string;
         }>,
       ) => {
-        const query = options.input.query?.toLowerCase() || "";
-        const componentName = query.trim();
-
+        const query = options.input.query || "";
+        
+        // Quick parse to show appropriate progress message
+        const result = parseQuery(query, componentDocs);
+        
         let message: string;
-        if (query === "all") {
-          message = `Retrieving documentation for all ${Object.keys(componentDocs).length} components`;
-        } else if (componentDocs[componentName]) {
-          message = `Retrieving documentation for ${componentName}`;
+        if (result.type === 'none') {
+          message = `Searching for: ${query}`;
+        } else if (result.message) {
+          message = result.message;
         } else {
-          message = `Searching for component: ${componentName}`;
+          message = `Retrieving component documentation`;
         }
 
         return {

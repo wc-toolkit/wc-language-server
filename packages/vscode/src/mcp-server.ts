@@ -15,6 +15,7 @@ import type {
   ReadResourceRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import * as http from "http";
+import { parseQuery, formatQueryResult } from "./query-parser.js";
 
 // Simple logger that works both in VS Code and standalone
 const log = (message: string) => {
@@ -163,14 +164,23 @@ export class WebComponentMCPServer {
           name: "wctools-docs",
           displayName: "Web Component Docs",
           description:
-            "Retrieves comprehensive documentation for custom web components used in this project. ALWAYS use this tool first when the user asks about: component properties/attributes (e.g., 'what properties does sl-button have?'), component usage, component behavior, available components, or any questions mentioning HTML tags with hyphens (like <sl-button>, <my-component>). The documentation includes detailed markdown descriptions of each component's API, properties, events, slots, and usage examples. Extract the component name from the user's question and pass it as the query parameter. If the user asks for a list of all components, return a summary of all available components with their descriptions and packages. If the user asks for a comparison between components, provide details for each component mentioned. If the user asks general questions about web components or how to use them, provide relevant documentation snippets. ONLY use this tool for questions directly related to web components in this project. For any other questions, use other appropriate tools or respond directly.",
+            "Retrieves comprehensive documentation for custom web components used in this project. This tool uses intelligent query parsing to understand natural language requests. " +
+            "ALWAYS use this tool first when the user asks about: component properties/attributes, component usage, component behavior, available components, or any questions mentioning HTML tags with hyphens. " +
+            "The tool supports multiple query types: " +
+            "1) Specific component lookup: 'sl-button', '<my-component>' " +
+            "2) Fuzzy search: 'button' finds all button-related components " +
+            "3) Content search: 'components with size attribute' " +
+            "4) Comparisons: 'compare sl-button and sl-icon-button' " +
+            "5) List all: 'all components', 'list components' " +
+            "Simply pass the user's question as-is in the query parameter - the tool will intelligently parse it and return relevant documentation. " +
+            "ONLY use this tool for questions directly related to web components in this project.",
           inputSchema: {
             type: "object",
             properties: {
               query: {
                 type: "string",
                 description:
-                  "The component name to search for (e.g., 'sl-button', 'sl-input'). Extract this from the user's question. Use 'all' to retrieve all available component documentation.",
+                  "The user's question or search query. Can be a component name (e.g., 'sl-button'), partial name (e.g., 'button'), comparison request (e.g., 'compare X and Y'), attribute search (e.g., 'components with size'), or 'all' for everything. The tool intelligently parses natural language.",
               },
             },
             required: ["query"],
@@ -191,6 +201,8 @@ export class WebComponentMCPServer {
             throw new Error("query is required");
           }
 
+          log(`MCP tool called with query: ${query}`);
+
           // Use the cached component documentation directly
           if (Object.keys(this.componentDocs).length === 0) {
             return {
@@ -204,18 +216,22 @@ export class WebComponentMCPServer {
             };
           }
 
-          // Return all documentation as context for the AI to answer the query
-          const allDocs = Object.values(this.componentDocs).join("\n\n---\n\n");
+          // Use smart query parser to find relevant components
+          const result = parseQuery(query, this.componentDocs);
+          const formattedResult = formatQueryResult(result);
+
+          log(`Query result: ${result.type}, ${result.components.length} component(s)`);
 
           return {
             content: [
               {
                 type: "text",
-                text: `Here is the complete documentation for all web components in the workspace. Use this to answer the query: "${query}"\n\n${allDocs}`,
+                text: formattedResult,
               },
             ],
           };
         } catch (error) {
+          log(`Error handling tool call: ${error instanceof Error ? error.message : String(error)}`);
           return {
             content: [
               {
