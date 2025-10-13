@@ -74,6 +74,7 @@ export class CustomElementsService {
     if (!manifest.modules) return;
 
     const components = getAllComponents(manifest);
+    const altType = configurationService.config.typeSrc;
 
     debug("cem:parse:start", {
       dep: depName || "local",
@@ -92,7 +93,7 @@ export class CustomElementsService {
       this.customElements.set(tagName, element);
       this.customElementsDocs.set(
         tagName,
-        `### \`<${tagName}>\`\n\n---\n\n${getComponentDetailsTemplate(element)}`
+        `### \`<${tagName}>\`\n\n---\n\n${getComponentDetailsTemplate(element, { altType })}`
       );
       this.setAttributeOptions(tagName, element, depName);
     });

@@ -107,10 +107,9 @@
     "prepare": "npm run build && vsce package --pre-release",
     "manual-deploy": "npm run build && vsce publish"
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
     "@types/vscode": "^1.82.0",
     "@volar/language-server": "~2.4.0",
     "@volar/vscode": "~2.4.0",
