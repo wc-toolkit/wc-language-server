@@ -5,6 +5,7 @@ require("esbuild")
     entryPoints: {
       client: "./src/extension.ts",
       server: "../language-server/src/index.ts",
+      "mcp-server": "./src/mcp-server.ts",
     },
     sourcemap: true,
     bundle: true,

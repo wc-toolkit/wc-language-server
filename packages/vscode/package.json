@@ -15,7 +15,7 @@
   "author": "wc-toolkit",
   "publisher": "wc-toolkit",
   "engines": {
-    "vscode": "^1.82.0"
+    "vscode": "^1.95.0"
   },
   "activationEvents": [
     "*"
@@ -24,10 +24,82 @@
   "contributes": {
     "commands": [
       {
-        "command": "wcLanguageServer.restart",
+        "command": "wctools.restart",
         "title": "Web Components: Restart Language Server"
+      },
+      {
+        "command": "wcLanguageServer.checkDocs",
+        "title": "Web Components: Check Loaded Documentation"
+      },
+      {
+        "command": "wctools.checkMcpStatus",
+        "title": "Web Components: Check MCP Server Status"
       }
-    ]
+    ],
+    "chatParticipants": [
+      {
+        "id": "wctools",
+        "name": "wctools",
+        "description": "Get information about web components in your workspace",
+        "isSticky": false
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "wctools-docs",
+        "displayName": "Web Components Documentation",
+        "modelDescription": "Provides comprehensive documentation for custom web components (custom HTML elements with hyphens like <sl-button>, <wa-button>, <my-component>) in this workspace. Use this tool FIRST when the user asks about: component properties/attributes, events, slots, methods, CSS parts, component usage, component behavior, available components, or any questions about HTML tags containing hyphens. The tool retrieves detailed markdown documentation from the project's Custom Elements Manifest including API details, usage examples, and component descriptions. Extract the component tag name from the user's question and pass it as the query parameter (e.g., 'sl-button', 'wa-button'). Use 'all' to see all available components.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "The component name to search for (e.g., 'sl-button', 'sl-input'). Extract this from the user's question. Use 'all' to retrieve all available component documentation."
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    ],
+    "configuration": {
+      "title": "Web Components Language Server",
+      "properties": {
+        "wctools.mcp.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable the Model Context Protocol (MCP) server for AI agent integration. When enabled, starts a local MCP server that AI clients can connect to."
+        },
+        "wctools.mcp.transport": {
+          "type": "string",
+          "enum": ["stdio", "http"],
+          "default": "http",
+          "description": "MCP server transport mode: 'stdio' for process communication, 'http' for HTTP/SSE (recommended for external clients)"
+        },
+        "wctools.mcp.port": {
+          "type": "number",
+          "default": 3000,
+          "description": "Port number for the MCP server when using HTTP transport"
+        },
+        "wctools.mcp.host": {
+          "type": "string",
+          "default": "localhost",
+          "description": "Host address for the MCP server when using HTTP transport"
+        }
+      }
+    },
+    "modelContextProtocol": {
+      "servers": {
+        "web-components": {
+          "command": "node",
+          "args": [
+            "${extensionPath}/dist/mcp-server.js"
+          ],
+          "description": "Web Components MCP Server - Provides web component information from Custom Elements Manifest to AI agents"
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node scripts/build -- --minify",
@@ -35,7 +107,9 @@
     "prepare": "npm run build && vsce package --pre-release",
     "manual-deploy": "npm run build && vsce publish"
   },
+  "dependencies": {},
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
     "@types/vscode": "^1.82.0",
     "@volar/language-server": "~2.4.0",
     "@volar/vscode": "~2.4.0",

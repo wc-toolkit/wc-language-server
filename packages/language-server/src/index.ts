@@ -8,6 +8,7 @@ import {
 import { create as createCssService } from "volar-service-css";
 import { create as createEmmetService } from "volar-service-emmet";
 import { webComponentHtmlPlugin } from "./plugins/html/html-plugin.js";
+import { customElementsService } from "./services/custom-elements-service.js";
 
 /** Language Server Protocol connection instance for communication with the client */
 const connection = createConnection();
@@ -38,6 +39,12 @@ connection.onInitialize((params: InitializeParams) => {
     })),
     [webComponentHtmlPlugin(), createCssService(), createEmmetService()]
   );
+});
+
+connection.onRequest('wctools/getDocs', () => {
+  const docs = customElementsService.getAllDocs(); // Map<string,string>
+  // Convert Map to plain object so it survives JSON serialization over LSP
+  return Object.fromEntries(docs.entries());
 });
 
 /**

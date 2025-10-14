@@ -21,5 +21,5 @@ export default {
     "unknownElement": "hint",
     "unknownAttribute": "hint"
   },
-  debug: true
+  debug: false
 };

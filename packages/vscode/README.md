@@ -30,6 +30,12 @@ This extension uses the [Custom Elements Manifest](https://github.com/webcompone
 
 - **Project dependencies** - scans project dependencies for manifests
 
+### 🤖 AI Integration
+
+- **Chat Participant** - Ask questions about your components with `@wctools` in VS Code chat
+- **Language Model Tool** - Other editors can automatically access component docs
+- **MCP Server** - Connect external AI tools like Claude Desktop to your component documentation
+
 ## Installation
 
 ### From VS Code Marketplace
@@ -80,6 +86,109 @@ Rules can be listed separated by spaces or commas (whitespace around commas is i
 
 This plugin currently works with any file type, but additional configurations will be added to customize this experience in the future.
 
+## AI Integration
+
+![Demonstration of the web components language server with AI integration](https://wc-toolkit.com/_astro/wc-toolkit_ai_demo.CxGKU86C_ZDSnDU.webp)
+
+
+The Web Components Language Server provides built-in AI integration to help you work with Web Components more efficiently.
+
+### VS Code Chat Participant
+
+If you're using VS Code (version 1.90+), you can use the `@wctools` chat participant to get information about your Web Components directly in the native chat interface.
+
+**Example queries:**
+
+- `@wctools what properties does my-button have?`
+- `@wctools compare my-button and my-link`
+- `@wctools list all components`
+- `@wctools search for form components`
+
+### Language Model Tool (Cursor/Copilot)
+
+For editors like Cursor that support Language Model Tools, the extension registers the `wctools-docs` tool that AI assistants can use automatically to retrieve component documentation.
+
+**The AI can:**
+- Look up component properties, methods, and events
+- Get type information for attributes
+- Access component descriptions and usage examples
+- Query all components at once
+
+**Example conversation with Cursor:**
+```
+You: "How do I use the my-button component?"
+Cursor AI: *automatically uses wctools-docs tool* "The my-button component has..."
+```
+
+### Model Context Protocol (MCP) Server
+
+The extension includes an optional MCP server that exposes your Web Component documentation to external AI tools like Claude Desktop.
+
+#### Enabling the MCP Server
+
+By default, the MCP server is disabled. To enable it:
+
+1. Open VS Code Settings (`Ctrl/Cmd + ,`)
+2. Search for "wctools mcp"
+3. Enable "Wctools: MCP Enabled"
+4. Configure optional settings:
+   - **Transport**: `http` (default) or `stdio`
+   - **Port**: `3000` (default)
+   - **Host**: `localhost` (default)
+
+Or add to your `settings.json`:
+
+```json
+{
+  "wctools.mcp.enabled": true,
+  "wctools.mcp.transport": "http",
+  "wctools.mcp.port": 3000,
+  "wctools.mcp.host": "localhost"
+}
+```
+
+#### Using with other editor
+
+To connect Claude Desktop to the MCP server:
+
+1. Follow your editors guidelines for connecting to an MCP server
+2. The following is the wctools server configuration:
+
+```json
+{
+  "mcpServers": {
+    "wctools": {
+      "url": "http://localhost:3000/sse"
+    }
+  }
+}
+```
+
+1. Restart your editor
+
+**Now your editor can access your component documentation!**
+
+```
+You: "What properties does my-button have?"
+Editor: *uses wctools MCP server* "Based on your project's components..."
+```
+
+#### MCP Server Endpoints
+
+When running in HTTP mode, the server exposes:
+
+- `http://localhost:3000/health` - Health check endpoint
+- `http://localhost:3000/sse` - Server-Sent Events endpoint for MCP clients
+- `http://localhost:3000/message` - Message handling endpoint
+
+#### Checking MCP Server Status
+
+Run the command `Web Components: Check MCP Server Status` from the Command Palette to verify:
+- Whether the MCP server is enabled
+- Current configuration (transport, port, host)
+- Number of components loaded
+- Server health status
+
 ## Configuration
 
 To configure the Web Components Language serve create a file named `wc.config.js` at the root of your workspace and export the configuration object.
@@ -116,7 +225,7 @@ interface WCConfig extends LibraryConfig {
 }
 
 /** Options for configuring the Language Server for a library */
-interface LibraryConfig {
+export interface LibraryConfig {
   /**
    * Specify a custom path to the CustomElements Manifest
    * The path can be for a local file or a remote URL.
@@ -176,6 +285,8 @@ interface LibraryConfig {
     unknownAttribute?: DiagnosticSeverity;
   };
 }
+
+type DiagnosticSeverity = "error" | "warning" | "info" | "hint" | "off";
 ```
 
 #### Example Configuration

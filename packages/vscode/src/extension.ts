@@ -1,123 +1,117 @@
 import * as serverProtocol from "@volar/language-server/protocol";
-import { activateAutoInsertion, createLabsInfo, getTsdk } from "@volar/vscode";
-import {
-  BaseLanguageClient,
-  LanguageClient,
-  LanguageClientOptions,
-  ServerOptions,
-  TransportKind,
-} from "@volar/vscode/node";
+import { activateAutoInsertion, createLabsInfo } from "@volar/vscode";
 import * as vscode from "vscode";
+import { registerChatParticipant } from "./chat-participant";
+import {
+  createClient,
+  createRestartingWatcher,
+  getClientInstance,
+  log,
+  scheduleRestart,
+  setExtensionContext,
+  setOnRestartCallback,
+} from "./utilities";
+import { WebComponentMCPServer } from "./mcp-server";
 
-const RESTART_DEBOUNCE_MS = 300;
-let restartTimer: NodeJS.Timeout | undefined;
-let restarting = false;
-let pendingRestart = false;
-let client: BaseLanguageClient;
 let restartCommandRegistered = false;
 
-const pendingLogs: string[] = [];
-function log(msg: string) {
-  const line = `[web components language server] ${msg}`;
-  const channel: vscode.OutputChannel | undefined = client?.outputChannel;
-  if (channel) {
-    if (pendingLogs.length) {
-      for (const l of pendingLogs) channel.appendLine(l);
-      pendingLogs.length = 0;
-    }
-    channel.appendLine(line);
-  } else {
-    pendingLogs.push(line);
-  }
-}
+// Store component docs - shared across the extension
+const componentDocs: Record<string, string> = {};
 
-function scheduleRestart(reason: string) {
-  log(`restart scheduled: ${reason}`);
-  if (restartTimer) clearTimeout(restartTimer);
-  restartTimer = setTimeout(() => {
-    void restartLanguageClient(`debounced: ${reason}`);
-  }, RESTART_DEBOUNCE_MS);
-}
+// MCP server instance
+let mcpServer: WebComponentMCPServer | undefined;
 
-async function restartLanguageClient(reason: string): Promise<void> {
-  if (restarting) {
-    pendingRestart = true;
+// Load component documentation from language server
+async function loadDocs(): Promise<void> {
+  const client = getClientInstance();
+  if (!client) {
     return;
   }
-  restarting = true;
-  try {
-    do {
-      pendingRestart = false;
-      log(`restarting - ${reason}`);
-      try {
-        if (client) {
-          await client.stop();
-          // Allow Node a brief moment to fully release resources (inspector port, ipc handles).
-          await new Promise((r) => setTimeout(r, 50));
-        }
-      } catch {
-        // ignore stop errors
-      }
-      await client.start();
-      log(`restart complete`);
-    } while (pendingRestart); // loop if another request arrived during previous cycle
-  } finally {
-    restarting = false;
-  }
-}
 
-function createRestartingWatcher(
-  glob: string,
-  label: string
-): vscode.FileSystemWatcher {
-  const watcher = vscode.workspace.createFileSystemWatcher(glob);
-  watcher.onDidChange((uri) =>
-    scheduleRestart(`${label} changed: ${uri.fsPath}`)
-  );
-  watcher.onDidCreate((uri) =>
-    scheduleRestart(`${label} created: ${uri.fsPath}`)
-  );
-  watcher.onDidDelete((uri) =>
-    scheduleRestart(`${label} deleted: ${uri.fsPath}`)
-  );
-  return watcher;
+  try {
+    const fetchedDocs =
+      await client.sendRequest<Record<string, string>>("wctools/getDocs");
+
+    if (!fetchedDocs || Object.keys(fetchedDocs).length === 0) {
+      log("no custom element docs found");
+      return;
+    }
+
+    log(`loaded ${Object.keys(fetchedDocs).length} component docs`);
+
+    // Clear existing docs and add new ones
+    for (const key in componentDocs) {
+      delete componentDocs[key];
+    }
+    Object.assign(componentDocs, fetchedDocs);
+
+    log("component docs updated");
+  } catch (error) {
+    log(`Error loading docs: ${error}`);
+  }
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-  const serverModule = vscode.Uri.joinPath(
-    context.extensionUri,
-    "dist",
-    "server.js"
-  );
-  const runOptions = { execArgv: [] as string[] };
-  const debugOptions = { execArgv: ["--nolazy", "--inspect=0"] }; // use dynamic port to avoid collisions
-  const serverOptions: ServerOptions = {
-    run: {
-      module: serverModule.fsPath,
-      transport: TransportKind.ipc,
-      options: runOptions,
-    },
-    debug: {
-      module: serverModule.fsPath,
-      transport: TransportKind.ipc,
-      options: debugOptions,
-    },
-  };
-  const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: "file", language: "*" }],
-    initializationOptions: {
-      typescript: {
-        tsdk: (await getTsdk(context))!.tsdk,
-      },
-    },
-  };
-  client = new LanguageClient(
-    "wcLanguageServer",
-    "Web Components Language Server",
-    serverOptions,
-    clientOptions
-  );
+  setExtensionContext(context);
+  
+  // Create and start the language client
+  const client = await createClient();
   await client.start();
+  
+  // Set up callback for after restart
+  setOnRestartCallback(() => {
+    void loadDocs();
+    // Update MCP server with new docs
+    if (mcpServer) {
+      mcpServer.setComponentDocs(componentDocs);
+    }
+  });
+
+  // Start MCP server if enabled
+  const mcpEnabled = vscode.workspace.getConfiguration("wctools").get<boolean>("mcp.enabled", false);
+  const mcpTransport = vscode.workspace.getConfiguration("wctools").get<"stdio" | "http">("mcp.transport", "http");
+  const mcpPort = vscode.workspace.getConfiguration("wctools").get<number>("mcp.port", 3000);
+  const mcpHost = vscode.workspace.getConfiguration("wctools").get<string>("mcp.host", "localhost");
+
+  log(`MCP server enabled: ${mcpEnabled}, transport: ${mcpTransport}, port: ${mcpPort}`);
+
+  if (mcpEnabled) {
+    try {
+      mcpServer = new WebComponentMCPServer({
+        transport: mcpTransport,
+        port: mcpPort,
+        host: mcpHost,
+      });
+      
+      await mcpServer.start();
+      log(`MCP server started (${mcpTransport} mode)`);
+      
+      // Set initial docs (will be empty at first, but will be updated when loadDocs completes)
+      mcpServer.setComponentDocs(componentDocs);
+    } catch (error) {
+      log(`Failed to start MCP server: ${error}`);
+      vscode.window.showWarningMessage(
+        `Failed to start Web Components MCP server: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  // Register chat participant and language model tool
+  // The chat participant holds a reference to componentDocs, so updates are reflected
+  // This handles both VS Code Chat Participant and Cursor/Copilot Language Model Tool
+  registerChatParticipant(context, componentDocs);
+  log("Chat participant and language model tool registration attempted");
+
+  // Load docs after a short delay to ensure language server is ready
+  setTimeout(() => {
+    void loadDocs().then(() => {
+      // Update MCP server with loaded docs
+      if (mcpServer) {
+        mcpServer.setComponentDocs(componentDocs);
+        log("MCP server updated with component docs");
+      }
+    });
+  }, 1000);
 
   // Watchers (config, manifest, package.json)
   const configWatcher = createRestartingWatcher(
@@ -173,9 +167,49 @@ export async function activate(context: vscode.ExtensionContext) {
     restartCommandRegistered = true;
   }
 
+  // Command to check MCP server status
+  const checkMcpCommand = vscode.commands.registerCommand(
+    "wctools.checkMcpStatus",
+    () => {
+      if (!mcpServer) {
+        vscode.window.showInformationMessage(
+          "MCP server is not enabled. Enable it in settings: wctools.mcp.enabled"
+        );
+      } else {
+        const transport = vscode.workspace.getConfiguration("wctools").get<string>("mcp.transport", "http");
+        const port = vscode.workspace.getConfiguration("wctools").get<number>("mcp.port", 3000);
+        const host = vscode.workspace.getConfiguration("wctools").get<string>("mcp.host", "localhost");
+        const componentCount = Object.keys(componentDocs).length;
+        
+        if (transport === "http") {
+          vscode.window.showInformationMessage(
+            `MCP server is running on http://${host}:${port} with ${componentCount} component(s) loaded`,
+            "Open Health Check"
+          ).then(selection => {
+            if (selection === "Open Health Check") {
+              vscode.env.openExternal(vscode.Uri.parse(`http://${host}:${port}/health`));
+            }
+          });
+        } else {
+          vscode.window.showInformationMessage(
+            `MCP server is running in stdio mode with ${componentCount} component(s) loaded`
+          );
+        }
+      }
+    }
+  );
+  context.subscriptions.push(checkMcpCommand);
+
   return labsInfo.extensionExports;
 }
 
-export function deactivate(): Thenable<void> | undefined {
-  return client?.stop();
+export async function deactivate(): Promise<void> {
+  // Close MCP server
+  if (mcpServer) {
+    await mcpServer.close();
+    log("MCP server closed");
+  }
+  
+  const client = getClientInstance();
+  await client?.stop();
 }

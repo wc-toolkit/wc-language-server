@@ -63,7 +63,7 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
 
       // Watch for changes to custom-elements.json and wc.config.js files
       context.env?.onDidChangeWatchedFiles?.((changes) => {
-        const shouldRestart = changes.changes.some(
+        const shouldReload = changes.changes.some(
           (change) =>
             change.uri.endsWith("custom-elements.json") ||
             change.uri.endsWith("wc.config.js") ||
@@ -71,9 +71,8 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
             change.uri.endsWith("wc.config.mjs")
         );
 
-        if (shouldRestart) {
-          // Restart the language server process
-          process.exit(0);
+        if (shouldReload) {
+          customElementsService.reload();
         }
       });
 
