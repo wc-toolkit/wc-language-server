@@ -1,6 +1,6 @@
 {
   "name": "web-components-language-server",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "icon": "assets/icon_alpha.png",
   "repository": {
     "type": "git",
@@ -73,7 +73,10 @@
         },
         "wctools.mcp.transport": {
           "type": "string",
-          "enum": ["stdio", "http"],
+          "enum": [
+            "stdio",
+            "http"
+          ],
           "default": "http",
           "description": "MCP server transport mode: 'stdio' for process communication, 'http' for HTTP/SSE (recommended for external clients)"
         },
