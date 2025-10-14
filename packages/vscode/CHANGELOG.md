@@ -1,5 +1,12 @@
 # web-components-language-server
 
+## 0.0.21
+
+### Patch Changes
+
+- 36a616c: Added types to descriptions for attributes, properties, and events
+- 5e8c7a6: Added AI support and MCP server
+
 ## 0.0.20
 
 ### Patch Changes
