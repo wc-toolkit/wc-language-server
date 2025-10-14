@@ -1,5 +1,5 @@
 /**
- * Utility functions for parsing and handling AI queries about web components
+ * Simplified utility functions for parsing and handling AI queries about web components
  */
 
 export interface ComponentInfo {
@@ -8,358 +8,479 @@ export interface ComponentInfo {
 }
 
 export interface QueryResult {
-  type: 'single' | 'multiple' | 'search' | 'all' | 'none';
+  type: "single" | "multiple" | "search" | "all" | "none" | "property" | "reasoning";
   components: ComponentInfo[];
   searchTerm?: string;
   message?: string;
+  propertyType?: string; // For property-specific queries
+  comparisonTarget?: string; // For reasoning queries comparing to HTML elements
 }
 
 /**
  * Extract component names from text (e.g., "sl-button", "<my-component>", `wa-card`)
  */
 function extractComponentNames(text: string): string[] {
-  const components: string[] = [];
-  
-  // Pattern 1: Quoted or backticked: `sl-button`, "my-component"
-  const quotedPattern = /[`"']([a-z][a-z0-9]*-[a-z0-9-]+)[`"']/gi;
-  let match;
-  while ((match = quotedPattern.exec(text)) !== null) {
-    components.push(match[1].toLowerCase());
-  }
-  
-  // Pattern 2: HTML tags: <sl-button>, </my-component>
-  const tagPattern = /<\/?([a-z][a-z0-9]*-[a-z0-9-]+)[\s>]/gi;
-  while ((match = tagPattern.exec(text)) !== null) {
-    const component = match[1].toLowerCase();
-    if (!components.includes(component)) {
-      components.push(component);
+  const components = new Set<string>();
+
+  // Combined pattern for quoted, tagged, and standalone component names
+  const patterns = [
+    /[`"']([a-z][a-z0-9]*-[a-z0-9-]+)[`"']/gi, // `sl-button`, "my-component"
+    /<\/?([a-z][a-z0-9]*-[a-z0-9-]+)[\s>]/gi, // <sl-button>, </my-component>
+    /(?:^|\s)([a-z]{2,}[a-z0-9]*-[a-z0-9-]{2,})(?:\s|[.,;:!?]|$)/gi, // standalone
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      components.add(match[1].toLowerCase());
     }
   }
-  
-  // Pattern 3: Standalone hyphenated words (more conservative)
-  // Only match if surrounded by spaces/punctuation and looks like a component
-  const standalonePattern = /(?:^|\s)([a-z]{2,}[a-z0-9]*-[a-z0-9-]{2,})(?:\s|[.,;:!?]|$)/gi;
-  while ((match = standalonePattern.exec(text)) !== null) {
-    const component = match[1].toLowerCase();
-    if (!components.includes(component)) {
-      components.push(component);
-    }
-  }
-  
-  return components;
+
+  return Array.from(components);
 }
 
 /**
- * Find components by fuzzy matching (e.g., "button" finds "sl-button", "md-button")
+ * Extract meaningful terms using simplified NLP patterns
  */
-function fuzzyMatchComponents(
-  searchTerm: string,
-  componentDocs: Record<string, string>
-): string[] {
-  const lowerTerm = searchTerm.toLowerCase();
-  const matches: string[] = [];
-  
-  for (const tagName of Object.keys(componentDocs)) {
-    const lowerTag = tagName.toLowerCase();
-    
-    // Exact match
-    if (lowerTag === lowerTerm) {
-      return [tagName]; // Return immediately if exact match
-    }
-    
-    // Contains search term
-    if (lowerTag.includes(lowerTerm)) {
-      matches.push(tagName);
-      continue;
-    }
-    
-    // Search term contains component name part
-    const parts = lowerTag.split('-');
-    if (parts.some(part => part.length > 2 && lowerTerm.includes(part))) {
-      matches.push(tagName);
-      continue;
-    }
-    
-    // Component name contains search term parts
-    const searchParts = lowerTerm.split(/[-\s]+/);
-    if (searchParts.some(part => part.length > 2 && lowerTag.includes(part))) {
-      matches.push(tagName);
+function extractSemanticTerms(prompt: string): string[] {
+  const terms = new Set<string>();
+  const lower = prompt.toLowerCase();
+
+  // Simple semantic associations - much more focused
+  const semanticMap: Record<string, string[]> = {
+    click: ["button", "clickable"],
+    type: ["input", "text"],
+    select: ["dropdown", "menu", "option"],
+    show: ["modal", "dialog", "display"],
+    navigate: ["menu", "nav", "link"],
+    round: ["rounded", "pill"],
+    flat: ["minimal", "simple"],
+  };
+
+  // Add semantic terms
+  for (const [trigger, associations] of Object.entries(semanticMap)) {
+    if (lower.includes(trigger)) {
+      associations.forEach((term) => terms.add(term));
     }
   }
-  
-  return matches;
+
+  // Extract basic patterns: "create a [term]", "make it [term]", etc.
+  const patterns = [
+    /\b(?:create|make|build|add|use)\s+(?:a|an|the)?\s*([a-z-]+)/g,
+    /\b([a-z-]+)\s+(?:component|button|input|form|dialog|modal)/g,
+    /\b([a-z-]+)\b/g, // All individual words
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(lower)) !== null) {
+      const term = match[1].trim();
+      if (term.length > 2) terms.add(term);
+    }
+  }
+
+  return Array.from(terms);
 }
 
 /**
- * Search components by content (properties, events, description, etc.)
+ * Simple semantic scoring
  */
-function searchComponentsByContent(
+function calculateSemanticScore(
   searchTerm: string,
-  componentDocs: Record<string, string>
-): string[] {
-  const lowerTerm = searchTerm.toLowerCase();
-  const matches: string[] = [];
-  
+  componentName: string
+): number {
+  let score = 0;
+  const lower = searchTerm.toLowerCase();
+  const name = componentName.toLowerCase();
+
+  // Basic functional/visual associations
+  const associations: Record<string, string[]> = {
+    button: ["click", "action", "submit"],
+    input: ["type", "enter", "form"],
+    modal: ["show", "popup", "dialog"],
+    menu: ["nav", "select", "dropdown"],
+    card: ["display", "container"],
+    pill: ["rounded", "button"],
+  };
+
+  for (const [component, keywords] of Object.entries(associations)) {
+    if (name.includes(component) && keywords.some((k) => lower.includes(k))) {
+      score += 3;
+    }
+  }
+
+  return Math.min(score, 8);
+}
+
+/**
+ * Extract design keywords using simplified approach
+ */
+export function extractDesignKeywords(prompt: string): string[] {
+  const semanticTerms = extractSemanticTerms(prompt);
+  const componentNames = extractComponentNames(prompt);
+  return Array.from(new Set([...semanticTerms, ...componentNames]));
+}
+
+/**
+ * Find relevant components with simplified scoring
+ */
+export function findRelevantComponents(
+  searchTerms: string[],
+  componentDocs: Record<string, string>,
+  maxResults: number = 10
+): ComponentInfo[] {
+  const scored: Array<{ tagName: string; score: number }> = [];
+
   for (const [tagName, doc] of Object.entries(componentDocs)) {
+    let score = 0;
+    const lowerName = tagName.toLowerCase();
     const lowerDoc = doc.toLowerCase();
-    
-    // Search in documentation content
-    if (lowerDoc.includes(lowerTerm)) {
-      matches.push(tagName);
+
+    for (const term of searchTerms) {
+      const lowerTerm = term.toLowerCase();
+
+      // Exact name match (highest score)
+      if (lowerName === lowerTerm) score += 20;
+      // Name contains term
+      else if (lowerName.includes(lowerTerm)) score += 10;
+      // Component part match (e.g., "button" matches "sl-button")
+      else if (lowerName.split("-").some((part) => part === lowerTerm))
+        score += 8;
+
+      // Documentation matches
+      const docMatches = (lowerDoc.match(new RegExp(lowerTerm, "g")) || [])
+        .length;
+      score += docMatches * 2;
+
+      // Semantic scoring
+      score += calculateSemanticScore(lowerTerm, lowerName);
+    }
+
+    if (score > 0) {
+      scored.push({ tagName, score });
     }
   }
-  
-  return matches;
+
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxResults)
+    .map((item) => ({
+      tagName: item.tagName,
+      doc: componentDocs[item.tagName],
+    }));
 }
 
 /**
- * Detect if query is asking for a comparison
+ * Unified query type detection
  */
-function isComparisonQuery(query: string): boolean {
-  const lowerQuery = query.toLowerCase();
-  return (
-    lowerQuery.includes('compare') ||
-    lowerQuery.includes('difference') ||
-    lowerQuery.includes('vs') ||
-    lowerQuery.includes('versus') ||
-    lowerQuery.includes('better') ||
-    (lowerQuery.includes('what') && lowerQuery.includes('between'))
-  );
+function detectQueryType(query: string): { 
+  type: string; 
+  keywords: string[]; 
+  propertyType?: string;
+  comparisonTarget?: string;
+} {
+  const lower = query.toLowerCase().trim();
+
+  // Property-specific queries (NEW)
+  const propertyPatterns = [
+    { pattern: /what\s+(events?|event\s+handlers?)\s+(?:does\s+)?(.+?)\s+(?:have|emit|fire|trigger)/i, property: "events" },
+    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(events?|event\s+handlers?)\s+(?:of\s+|for\s+)?(.+)/i, property: "events" },
+    { pattern: /what\s+(attributes?|props?|properties)\s+(?:does\s+)?(.+?)\s+(?:have|accept|support)/i, property: "attributes" },
+    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(attributes?|props?|properties)\s+(?:of\s+|for\s+)?(.+)/i, property: "attributes" },
+    { pattern: /what\s+(slots?)\s+(?:does\s+)?(.+?)\s+(?:have|accept|support)/i, property: "slots" },
+    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(slots?)\s+(?:of\s+|for\s+)?(.+)/i, property: "slots" },
+    { pattern: /what\s+(methods?|functions?)\s+(?:does\s+)?(.+?)\s+(?:have|support|provide)/i, property: "methods" },
+    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(methods?|functions?)\s+(?:of\s+|for\s+)?(.+)/i, property: "methods" },
+    { pattern: /what\s+(css\s+parts?|parts?)\s+(?:does\s+)?(.+?)\s+(?:have|support|expose)/i, property: "css-parts" },
+    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(css\s+parts?|parts?)\s+(?:of\s+|for\s+)?(.+)/i, property: "css-parts" },
+    { pattern: /what\s+(css\s+variables?|custom\s+properties)\s+(?:does\s+)?(.+?)\s+(?:have|support|use)/i, property: "css-variables" },
+    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(css\s+variables?|custom\s+properties)\s+(?:of\s+|for\s+)?(.+)/i, property: "css-variables" }
+  ];
+
+  for (const { pattern, property } of propertyPatterns) {
+    const match = query.match(pattern);
+    if (match) {
+      const componentText = match[2] || match[1];
+      const components = extractComponentNames(componentText);
+      
+      if (components.length > 0) {
+        return { 
+          type: "property", 
+          keywords: components, 
+          propertyType: property 
+        };
+      }
+    }
+  }
+
+  // List/all query
+  if (["all", "list", "show all", "available"].some((k) => lower.includes(k))) {
+    return { type: "list", keywords: [] };
+  }
+
+  // Enhanced comparison query detection
+  if (
+    ["compare", "vs", "versus", "difference", "differ", "better", "between"].some((k) =>
+      lower.includes(k)
+    ) || 
+    /what.*(difference|different).*between/i.test(query) ||
+    /\b(\w+-\w+)\s+(vs|versus|and)\s+(\w+-\w+)\b/i.test(query) ||
+    // NEW: Reasoning/justification patterns
+    (/why\s+(would|should|use|choose)/i.test(query) && /instead\s+of/i.test(query)) ||
+    /what.*(advantage|benefit|reason).*over/i.test(query) ||
+    /when\s+(to\s+use|should\s+I\s+use).*instead\s+of/i.test(query) ||
+    /better\s+than/i.test(query)
+  ) {
+    const components = extractComponentNames(query);
+    
+    // Check for "instead of" pattern with HTML elements
+    const insteadMatch = query.match(/(.+?)\s+instead\s+of\s+(?:a\s+)?(?:standard\s+)?(?:html\s+)?(button|input|div|span|form|select|textarea|img|link|anchor)/i);
+    if (insteadMatch) {
+      const componentText = insteadMatch[1];
+      const htmlElement = insteadMatch[2];
+      const extractedComponents = extractComponentNames(componentText);
+      
+      if (extractedComponents.length > 0) {
+        return { 
+          type: "reasoning", 
+          keywords: extractedComponents,
+          comparisonTarget: htmlElement
+        };
+      }
+    }
+    
+    // Check for "over" pattern with HTML elements
+    const overMatch = query.match(/(.+?)\s+(?:have\s+)?over\s+(?:a\s+)?(?:standard\s+)?(?:html\s+)?(button|input|div|span|form|select|textarea|img|link|anchor)/i);
+    if (overMatch) {
+      const componentText = overMatch[1];
+      const htmlElement = overMatch[2];
+      const extractedComponents = extractComponentNames(componentText);
+      
+      if (extractedComponents.length > 0) {
+        return { 
+          type: "reasoning", 
+          keywords: extractedComponents,
+          comparisonTarget: htmlElement
+        };
+      }
+    }
+    
+    // If we found exactly 2 components, it's definitely a comparison
+    if (components.length === 2) {
+      return { type: "compare", keywords: components };
+    }
+    
+    // Try to extract components from "between X and Y" pattern
+    const betweenMatch = query.match(/between\s+[`"]?([a-z]+-[a-z0-9-]+)[`"]?\s+and\s+[`"]?([a-z]+-[a-z0-9-]+)[`"]?/i);
+    if (betweenMatch) {
+      return { type: "compare", keywords: [betweenMatch[1], betweenMatch[2]] };
+    }
+    
+    // Fallback: look for any components mentioned
+    if (components.length >= 2) {
+      return { type: "compare", keywords: components.slice(0, 2) };
+    }
+    
+    return { type: "compare", keywords: components };
+  }
+
+  // Implementation query
+  if (
+    ["how to", "how can", "create", "build", "make"].some((k) =>
+      lower.includes(k)
+    )
+  ) {
+    return { type: "implementation", keywords: extractDesignKeywords(query) };
+  }
+
+  // Search query
+  if (["search", "find", "with", "that have"].some((k) => lower.includes(k))) {
+    return {
+      type: "search",
+      keywords: [lower.replace(/^(search|find|show|list)\s+/i, "")],
+    };
+  }
+
+  // Default: fuzzy search
+  return {
+    type: "fuzzy",
+    keywords: lower
+      .replace(/[^a-z0-9\s-]/g, " ")
+      .split(/\s+/)
+      .filter((t) => t.length > 2),
+  };
 }
 
 /**
- * Detect if query is asking for a list
- */
-function isListQuery(query: string): boolean {
-  const lowerQuery = query.toLowerCase();
-  return (
-    lowerQuery.includes('list') ||
-    lowerQuery.includes('show all') ||
-    lowerQuery.includes('what components') ||
-    lowerQuery.includes('available components') ||
-    lowerQuery.includes('which components') ||
-    query.toLowerCase().trim() === 'all'
-  );
-}
-
-/**
- * Detect if query is asking for search/filter
- */
-function isSearchQuery(query: string): boolean {
-  const lowerQuery = query.toLowerCase();
-  return (
-    lowerQuery.includes('search') ||
-    lowerQuery.includes('find') ||
-    lowerQuery.includes('with') ||
-    lowerQuery.includes('that have') ||
-    lowerQuery.includes('that has')
-  );
-}
-
-/**
- * Extract search criteria from query (e.g., "components with size attribute")
- */
-function extractSearchCriteria(query: string): string {
-  // Remove common query prefixes
-  const criteria = query
-    .replace(/^(search|find|show|list|get)\s+(for\s+|me\s+)?/i, '')
-    .replace(/components?\s+(with|that have|that has|having)\s+/i, '')
-    .replace(/^(what|which)\s+/i, '')
-    .trim();
-  
-  return criteria;
-}
-
-/**
- * Main function to parse a query and determine what components to return
+ * Simplified main parsing function
  */
 export function parseQuery(
   query: string,
   componentDocs: Record<string, string>
 ): QueryResult {
-  const trimmedQuery = query.trim();
-  
-  if (!trimmedQuery) {
+  if (!query.trim()) {
     return {
-      type: 'none',
+      type: "none",
       components: [],
-      message: 'Please provide a query about web components.',
+      message: "Please provide a query about web components.",
     };
   }
-  
-  // Check for "all" query
-  if (isListQuery(trimmedQuery)) {
-    const allComponents = Object.entries(componentDocs).map(([tagName, doc]) => ({
+
+  const queryInfo = detectQueryType(query);
+  const { type, keywords, propertyType, comparisonTarget } = queryInfo;
+
+  // Handle list query
+  if (type === "list") {
+    const components = Object.entries(componentDocs).map(([tagName, doc]) => ({
       tagName,
       doc,
     }));
-    
     return {
-      type: 'all',
-      components: allComponents,
-      message: `Showing all ${allComponents.length} components`,
+      type: "all",
+      components,
+      message: `Showing all ${components.length} components`,
     };
   }
-  
-  // Extract explicit component names from query
-  const explicitComponents = extractComponentNames(trimmedQuery);
-  
-  // Check for comparison query
-  if (isComparisonQuery(trimmedQuery) && explicitComponents.length >= 2) {
-    const components: ComponentInfo[] = [];
-    
-    for (const tagName of explicitComponents.slice(0, 3)) { // Limit to 3 components
-      if (componentDocs[tagName]) {
-        components.push({ tagName, doc: componentDocs[tagName] });
-      }
-    }
-    
-    if (components.length >= 2) {
-      return {
-        type: 'multiple',
-        components,
-        message: `Comparing ${components.map(c => c.tagName).join(', ')}`,
-      };
-    }
-  }
-  
-  // Check for single explicit component
-  if (explicitComponents.length === 1) {
-    const tagName = explicitComponents[0];
-    if (componentDocs[tagName]) {
-      return {
-        type: 'single',
-        components: [{ tagName, doc: componentDocs[tagName] }],
-        message: `Information about ${tagName}`,
-      };
-    }
-  }
-  
-  // If we have multiple explicit components, return them all
-  if (explicitComponents.length > 1) {
-    const components: ComponentInfo[] = [];
-    
-    for (const tagName of explicitComponents) {
-      if (componentDocs[tagName]) {
-        components.push({ tagName, doc: componentDocs[tagName] });
-      }
-    }
-    
+
+  // Handle reasoning query (component vs HTML element)
+  if (type === "reasoning" && comparisonTarget) {
+    const explicitComponents = extractComponentNames(query);
+    const components = explicitComponents
+      .filter((name) => componentDocs[name])
+      .map((name) => ({ tagName: name, doc: componentDocs[name] }));
+
     if (components.length > 0) {
       return {
-        type: 'multiple',
+        type: "reasoning",
         components,
-        message: `Information about ${components.map(c => c.tagName).join(', ')}`,
+        comparisonTarget,
+        message: `Comparing ${components[0].tagName} with HTML ${comparisonTarget}`,
       };
     }
-  }
-  
-  // Check for search/filter query
-  if (isSearchQuery(trimmedQuery)) {
-    const criteria = extractSearchCriteria(trimmedQuery);
-    const matches = searchComponentsByContent(criteria, componentDocs);
     
-    if (matches.length > 0) {
-      const components = matches.map(tagName => ({
-        tagName,
-        doc: componentDocs[tagName],
-      }));
-      
+    // No explicit components found, but it's a reasoning query
+    return {
+      type: "none",
+      components: [],
+      message: `No components found for reasoning query: "${query}"`,
+    };
+  }
+
+  // Handle property query
+  if (type === "property" && propertyType) {
+    const explicitComponents = extractComponentNames(query);
+    const components = explicitComponents
+      .filter((name) => componentDocs[name])
+      .map((name) => ({ tagName: name, doc: componentDocs[name] }));
+
+    if (components.length > 0) {
       return {
-        type: 'search',
+        type: "property",
         components,
-        searchTerm: criteria,
-        message: `Found ${matches.length} component(s) matching "${criteria}"`,
+        propertyType,
+        message: `Finding ${propertyType} for ${components[0].tagName}`,
       };
     }
-  }
-  
-  // Try fuzzy matching on the entire query or key terms
-  const searchTerms = trimmedQuery
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, ' ')
-    .split(/\s+/)
-    .filter(term => term.length > 2);
-  
-  for (const term of searchTerms) {
-    const fuzzyMatches = fuzzyMatchComponents(term, componentDocs);
     
-    if (fuzzyMatches.length > 0) {
-      const components = fuzzyMatches.slice(0, 10).map(tagName => ({
-        tagName,
-        doc: componentDocs[tagName],
-      }));
-      
+    // No explicit components found, but it's a property query
+    return {
+      type: "none",
+      components: [],
+      message: `No components found for ${propertyType} query: "${query}"`,
+    };
+  }
+
+  // Handle explicit component names
+  const explicitComponents = extractComponentNames(query);
+  if (explicitComponents.length > 0) {
+    const components = explicitComponents
+      .filter((name) => componentDocs[name])
+      .map((name) => ({ tagName: name, doc: componentDocs[name] }));
+
+    if (components.length > 0) {
       return {
-        type: fuzzyMatches.length === 1 ? 'single' : 'search',
+        type: components.length === 1 ? "single" : "multiple",
         components,
-        searchTerm: term,
         message:
-          fuzzyMatches.length === 1
-            ? `Found component: ${fuzzyMatches[0]}`
-            : `Found ${fuzzyMatches.length} component(s) matching "${term}"`,
+          components.length === 1
+            ? `Information about ${components[0].tagName}`
+            : `Information about ${components.map((c) => c.tagName).join(", ")}`,
       };
     }
   }
-  
-  // No matches found
-  const availableCount = Object.keys(componentDocs).length;
+
+  // Handle search with keywords
+  if (keywords.length > 0) {
+    const components = findRelevantComponents(keywords, componentDocs);
+
+    if (components.length > 0) {
+      return {
+        type: components.length === 1 ? "single" : "search",
+        components,
+        searchTerm: keywords.join(" "),
+        message:
+          components.length === 1
+            ? `Found component: ${components[0].tagName}`
+            : `Found ${components.length} component(s) matching "${keywords.join(" ")}"`,
+      };
+    }
+  }
+
+  // No matches
   return {
-    type: 'none',
+    type: "none",
     components: [],
-    message: `No components found matching your query. ${availableCount} component(s) available. Try "list all components" to see what's available.`,
+    message: `No components found. Try "list all components" to see what's available.`,
   };
 }
 
 /**
  * Format query result for AI consumption
  */
-export function formatQueryResult(result: QueryResult): string {
-  if (result.type === 'none') {
-    return result.message || 'No components found.';
+export function formatQueryResult(
+  result: QueryResult,
+  originalQuery?: string
+): string {
+  if (result.type === "none") {
+    return result.message || "No components found.";
   }
-  
-  if (result.type === 'all') {
-    // For "all" queries, provide a summary first, then full docs
+
+  if (result.type === "single") {
+    return `# ${result.components[0].tagName}\n\n${result.components[0].doc}`;
+  }
+
+  if (result.type === "all") {
     const summary = result.components
       .map((c) => {
-        // Extract first line of description
-        const lines = c.doc.split('\n').filter((l) => l.trim());
-        const firstContent = lines.find((l) => !l.startsWith('#'));
-        return `- **${c.tagName}**: ${firstContent ? firstContent.substring(0, 100) : 'No description'}`;
+        const firstLine =
+          c.doc.split("\n").find((l) => l.trim() && !l.startsWith("#")) || "";
+        return `- **${c.tagName}**: ${firstLine.substring(0, 100)}`;
       })
-      .join('\n');
-    
-    return `# Available Components (${result.components.length})\n\n${summary}\n\n---\n\n# Full Documentation\n\n${result.components.map((c) => `## ${c.tagName}\n\n${c.doc}`).join('\n\n---\n\n')}`;
+      .join("\n");
+
+    return `# Available Components (${result.components.length})\n\n${summary}\n\n---\n\n${result.components.map((c) => `## ${c.tagName}\n\n${c.doc}`).join("\n\n---\n\n")}`;
   }
-  
-  if (result.type === 'single') {
-    const component = result.components[0];
-    return `# ${component.tagName}\n\n${component.doc}`;
+
+  // Multiple or search results
+  let output = `# ${result.message}\n\n`;
+
+  if (originalQuery?.toLowerCase().includes("how")) {
+    output += `*Based on: "${originalQuery}"*\n\n`;
   }
-  
-  if (result.type === 'multiple' || result.type === 'search') {
-    let output = `# ${result.message}\n\n`;
-    
-    // If more than 5 components, show summary first
-    if (result.components.length > 5) {
-      const summary = result.components
-        .map((c) => {
-          const lines = c.doc.split('\n').filter((l) => l.trim());
-          const firstContent = lines.find((l) => !l.startsWith('#'));
-          return `- **${c.tagName}**: ${firstContent ? firstContent.substring(0, 80) : 'No description'}`;
-        })
-        .join('\n');
-      
-      output += `## Summary\n\n${summary}\n\n---\n\n## Detailed Documentation\n\n`;
-    }
-    
-    output += result.components
-      .map((c) => `## ${c.tagName}\n\n${c.doc}`)
-      .join('\n\n---\n\n');
-    
-    return output;
+
+  if (result.components.length > 5) {
+    const summary = result.components
+      .map((c) => {
+        const firstLine =
+          c.doc.split("\n").find((l) => l.trim() && !l.startsWith("#")) || "";
+        return `- **${c.tagName}**: ${firstLine.substring(0, 80)}`;
+      })
+      .join("\n");
+    output += `## Summary\n\n${summary}\n\n---\n\n## Details\n\n`;
   }
-  
-  return result.message || 'No information available.';
+
+  output += result.components
+    .map((c) => `## ${c.tagName}\n\n${c.doc}`)
+    .join("\n\n---\n\n");
+  return output;
 }

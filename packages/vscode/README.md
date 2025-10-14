@@ -88,6 +88,9 @@ This plugin currently works with any file type, but additional configurations wi
 
 ## AI Integration
 
+![Demonstration of the web components language server with AI integration](https://wc-toolkit.com/_astro/wc-toolkit_ai_demo.CxGKU86C_ZDSnDU.webp)
+
+
 The Web Components Language Server provides built-in AI integration to help you work with Web Components more efficiently.
 
 ### VS Code Chat Participant
@@ -222,7 +225,7 @@ interface WCConfig extends LibraryConfig {
 }
 
 /** Options for configuring the Language Server for a library */
-interface LibraryConfig {
+export interface LibraryConfig {
   /**
    * Specify a custom path to the CustomElements Manifest
    * The path can be for a local file or a remote URL.
@@ -282,6 +285,8 @@ interface LibraryConfig {
     unknownAttribute?: DiagnosticSeverity;
   };
 }
+
+type DiagnosticSeverity = "error" | "warning" | "info" | "hint" | "off";
 ```
 
 #### Example Configuration

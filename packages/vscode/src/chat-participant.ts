@@ -1,390 +1,343 @@
 import * as vscode from "vscode";
 import { log } from "./utilities";
-import { parseQuery, formatQueryResult } from "./query-parser";
-
-/**
- * Chat participant for web components
- * Provides component information directly in Copilot Chat using fetchedDocs
- * Enhanced with natural language query parsing and tailored responses
- */
-
-/**
- * Find component tag name in query
- */
-function findComponentInQuery(prompt: string): string | null {
-  // Try various patterns to extract component name
-  const patterns = [
-    /[`<]([a-z]+-[a-z0-9-]+)[>`]/i,  // `sl-button` or <sl-button>
-    /\b([a-z]+-[a-z0-9-]+)\b/i,      // sl-button
-  ];
-
-  for (const pattern of patterns) {
-    const match = prompt.match(pattern);
-    if (match?.[1]) {
-      return match[1];
-    }
-  }
-
-  return null;
-}
+import { parseQuery, formatQueryResult, QueryResult, ComponentInfo } from "./query-parser";
 
 type ChatResult = Record<string, unknown>;
 
 /**
- * Handle the case when no documentation is available
+ * Handle when no documentation is available
  */
 function handleNoDocsAvailable(stream: vscode.ChatResponseStream): ChatResult {
   stream.markdown(
-    "⚠️ **No component documentation is available yet.**\n\n" +
-    "This could mean:\n" +
-    "1. The language server is still loading\n" +
-    "2. No `custom-elements.json` file was found in your workspace\n" +
-    "3. The language server needs to be restarted\n\n" +
-    "Please wait a moment and try again, or check the Output panel " +
-    "(View → Output → Web Components Language Server) for more details.\n\n"
+    "⚠️ **No component documentation available.**\n\n" +
+      "Check that your workspace has a `custom-elements.json` file and the language server is running.\n\n"
   );
   return {};
 }
 
 /**
- * Handle comparison queries between two components
- */
-async function handleComparisonQuery(
-  originalPrompt: string,
-  componentDocs: Record<string, string>,
-  stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
-): Promise<ChatResult | null> {
-  const tagMatches = originalPrompt.match(/[`<]?([a-z]+-[a-z0-9-]+)[>`]?/gi);
-
-  if (!tagMatches || tagMatches.length < 2) {
-    return null;
-  }
-
-  const tags = tagMatches.slice(0, 2).map((t) => t.replace(/[`<>]/g, ""));
-  const [tag1, tag2] = tags;
-
-  if (!componentDocs[tag1] || !componentDocs[tag2]) {
-    return null;
-  }
-
-  stream.progress(`Comparing ${tag1} and ${tag2}...`);
-
-  const messages = [
-    vscode.LanguageModelChatMessage.User(
-      `The user asked: "${originalPrompt}"\n\n` +
-      `Here is the documentation for <${tag1}>:\n\n${componentDocs[tag1]}\n\n` +
-      `Here is the documentation for <${tag2}>:\n\n${componentDocs[tag2]}\n\n` +
-      `Please provide a friendly, comprehensive comparison of these two components. ` +
-      `Highlight their key differences, use cases, and help the user understand when to use each one. ` +
-      `Format your response in markdown.`
-    )
-  ];
-
-  const chatModels = await vscode.lm.selectChatModels();
-
-  if (chatModels.length === 0) {
-    stream.markdown("⚠️ No language model available. Showing raw documentation:\n\n");
-    stream.markdown(`## \`<${tag1}>\`\n\n${componentDocs[tag1]}\n\n`);
-    stream.markdown(`## \`<${tag2}>\`\n\n${componentDocs[tag2]}\n\n`);
-    return {};
-  }
-
-  const chatResponse = await chatModels[0].sendRequest(messages, {}, token);
-  for await (const fragment of chatResponse.text) {
-    stream.markdown(fragment);
-  }
-
-  return {};
-}
-
-/**
- * Handle listing all available components
- */
-function handleListComponents(
-  componentDocs: Record<string, string>,
-  stream: vscode.ChatResponseStream
-): ChatResult {
-  stream.progress("Fetching web components...");
-  const componentNames = Object.keys(componentDocs);
-
-  if (componentNames.length === 0) {
-    stream.markdown(
-      "No web components found in this workspace. Make sure you have a `custom-elements.json` file.\n\n"
-    );
-    return {};
-  }
-
-  stream.markdown(
-    `Found **${componentNames.length}** web component${componentNames.length !== 1 ? "s" : ""}:\n\n`
-  );
-
-  for (const tagName of componentNames) {
-    const doc = componentDocs[tagName];
-    const descMatch = doc.match(/^#[^\n]+\n+([^\n]+)/m);
-    const description = descMatch ? descMatch[1].trim() : "";
-
-    stream.markdown(
-      `- \`<${tagName}>\`${description ? ` - ${description}` : ""}\n`
-    );
-  }
-  stream.markdown("\n");
-
-  return {};
-}
-
-/**
- * Handle component-specific queries with language model assistance
- */
-async function handleComponentQuery(
-  tagName: string,
-  originalPrompt: string,
-  componentDocs: Record<string, string>,
-  stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
-): Promise<ChatResult> {
-  stream.progress(`Looking up ${tagName}...`);
-  const doc = componentDocs[tagName];
-
-  stream.markdown(`## 📚 \`<${tagName}>\` (from your workspace)\n\n`);
-
-  const messages = [
-    vscode.LanguageModelChatMessage.User(
-      `The user asked: "${originalPrompt}"\n\n` +
-      `Here is the complete documentation for the <${tagName}> web component:\n\n${doc}\n\n` +
-      `IMPORTANT: Use the documentation provided above to answer the question. ` +
-      `Do NOT make assumptions. ` +
-      `If the documentation doesn't contain the answer, say so explicitly. ` +
-      `Please provide a helpful, user-friendly response to their question. ` +
-      `Extract and present the most relevant information from the documentation. ` +
-      `Be concise but thorough. Format your response in markdown. ` +
-      `If they're asking about specific features (attributes, events, slots, methods, etc.), ` +
-      `focus on those sections while providing helpful context.`
-    )
-  ];
-
-  const chatModels = await vscode.lm.selectChatModels();
-
-  if (chatModels.length === 0) {
-    stream.markdown(doc);
-    stream.markdown("\n");
-    return {};
-  }
-
-  const chatResponse = await chatModels[0].sendRequest(messages, {}, token);
-  for await (const fragment of chatResponse.text) {
-    stream.markdown(fragment);
-  }
-
-  return {
-    metadata: {
-      command: "componentInfo",
-      component: tagName
-    }
-  };
-}
-
-/**
- * Handle when a component is not found
- */
-function handleComponentNotFound(
-  tagName: string,
-  componentDocs: Record<string, string>,
-  stream: vscode.ChatResponseStream
-): ChatResult {
-  stream.markdown(
-    `Component \`<${tagName}>\` not found in this workspace.\n\n`
-  );
-
-  // Suggest similar components
-  const similarComponents = Object.keys(componentDocs).filter(
-    (name) =>
-      name.includes(tagName.split("-")[0]) ||
-      name.includes(tagName.split("-")[1] || "")
-  );
-
-  if (similarComponents.length > 0) {
-    stream.markdown("Did you mean:\n");
-    for (const similar of similarComponents.slice(0, 3)) {
-      stream.markdown(`- \`<${similar}>\`\n`);
-    }
-    stream.markdown("\n");
-  }
-
-  stream.markdown(
-    "Make sure:\n" +
-    "1. The component is defined in your `custom-elements.json`\n" +
-    "2. The language server has loaded the manifest\n\n"
-  );
-  return {};
-}
-
-/**
- * Handle search queries
- */
-function handleSearchQuery(
-  prompt: string,
-  componentDocs: Record<string, string>,
-  stream: vscode.ChatResponseStream
-): ChatResult {
-  const query = prompt
-    .replace(/search|find|for|component|web component/gi, "")
-    .trim();
-
-  if (!query) {
-    stream.markdown("Please provide a search term.\n\n");
-    return {};
-  }
-
-  stream.progress(`Searching for "${query}"...`);
-
-  const results: string[] = [];
-  const lowerQuery = query.toLowerCase();
-
-  for (const [tagName, doc] of Object.entries(componentDocs)) {
-    if (
-      tagName.toLowerCase().includes(lowerQuery) ||
-      doc.toLowerCase().includes(lowerQuery)
-    ) {
-      results.push(tagName);
-    }
-  }
-
-  if (results.length === 0) {
-    stream.markdown(`No components found matching "${query}".\n\n`);
-    return {};
-  }
-
-  stream.markdown(
-    `Found **${results.length}** component(s) matching "${query}":\n\n`
-  );
-  for (const tagName of results) {
-    const doc = componentDocs[tagName];
-    const descMatch = doc.match(/^#[^\n]+\n+([^\n]+)/m);
-    const description = descMatch ? descMatch[1].trim() : "";
-
-    stream.markdown(
-      `- \`<${tagName}>\`${description ? ` - ${description}` : ""}\n`
-    );
-  }
-  stream.markdown("\n");
-
-  return {};
-}
-
-/**
- * Show default help message
+ * Show help message with examples
  */
 function showHelpMessage(stream: vscode.ChatResponseStream): ChatResult {
   stream.markdown("### Web Components Assistant 🎨\n\n");
-  stream.markdown(
-    "I can help you with web components in your workspace. Try asking:\n\n"
-  );
-
-  stream.markdown("**Quick Information:**\n");
+  stream.markdown("Ask me about components in your workspace:\n\n");
   stream.markdown('- "What does `sl-button` do?"\n');
-  stream.markdown('- "Describe `sl-dialog`"\n');
-  stream.markdown('- "Tell me about `sl-input`"\n\n');
-
-  stream.markdown("**Specific Details:**\n");
-  stream.markdown('- "What attributes does `sl-dialog` have?"\n');
-  stream.markdown('- "What events does `sl-button` emit?"\n');
-  stream.markdown('- "Show me the slots for `sl-card`"\n');
-  stream.markdown('- "What methods does `sl-drawer` have?"\n');
-  stream.markdown('- "CSS parts for `sl-button`"\n\n');
-
-  stream.markdown("**Usage & Examples:**\n");
-  stream.markdown('- "How do I use `sl-dialog`?"\n');
-  stream.markdown('- "Show me an example of `sl-button`"\n\n');
-
-  stream.markdown("**Discovery:**\n");
+  stream.markdown('- "How can I create a pill button?"\n');
   stream.markdown('- "List all components"\n');
-  stream.markdown('- "Search for card components"\n');
   stream.markdown('- "Compare `sl-button` and `sl-icon-button`"\n\n');
-
-  stream.markdown(
-    "💡 I'll provide tailored information from your Custom Elements Manifest documentation!\n\n"
-  );
-
   return {};
 }
 
 /**
- * Main chat request handler
+ * Main chat request handler using simplified query parsing
  */
 async function handleChatRequest(
   request: vscode.ChatRequest,
   componentDocs: Record<string, string>,
   stream: vscode.ChatResponseStream,
   token: vscode.CancellationToken
-): Promise<Record<string, unknown>> {
-  const prompt = request.prompt.toLowerCase();
-  const originalPrompt = request.prompt;
+): Promise<ChatResult> {
+  const query = request.prompt.trim();
 
-  // Early check: if no docs available, inform user
-  if (Object.keys(componentDocs).length === 0 && !prompt.includes("help")) {
+  // Early check: if no docs available
+  if (Object.keys(componentDocs).length === 0) {
     return handleNoDocsAvailable(stream);
   }
 
-  try {
-    // Find component in query (check early for optimization)
-    const tagName = findComponentInQuery(originalPrompt);
-
-    // Handle comparison queries (multiple components)
-    if (
-      prompt.includes("compare") ||
-      prompt.includes("difference") ||
-      prompt.includes(" vs ")
-    ) {
-      const result = await handleComparisonQuery(originalPrompt, componentDocs, stream, token);
-      if (result !== null) {
-        return result;
-      }
-    }
-
-    // List all components
-    if (
-      prompt.includes("list") ||
-      prompt.includes("what components") ||
-      prompt.includes("show components") ||
-      prompt.includes("available")
-    ) {
-      return handleListComponents(componentDocs, stream);
-    }
-
-    // Handle component-specific queries with language model
-    if (tagName && componentDocs[tagName]) {
-      return await handleComponentQuery(tagName, originalPrompt, componentDocs, stream, token);
-    }
-
-    // Component not found
-    if (tagName) {
-      return handleComponentNotFound(tagName, componentDocs, stream);
-    }
-
-    // Search
-    if (prompt.includes("search") || prompt.includes("find")) {
-      return handleSearchQuery(prompt, componentDocs, stream);
-    }
-
-    // Default help
+  // Handle help requests
+  if (!query || query.toLowerCase().includes('help')) {
     return showHelpMessage(stream);
+  }
+
+  try {
+    // Use the unified query parser
+    const result = parseQuery(query, componentDocs);
+    
+    if (result.type === 'none') {
+      stream.markdown(result.message || 'No components found for your query.');
+      return {};
+    }
+
+    // Show progress
+    stream.progress(result.message || 'Processing query...');
+
+    // Special handling for comparison queries
+    if (result.type === 'multiple' && result.components.length === 2 && 
+        (query.toLowerCase().includes('compare') || 
+         query.toLowerCase().includes('difference') || 
+         query.toLowerCase().includes('vs') ||
+         query.toLowerCase().includes('between'))) {
+      
+      return await handleComparisonQuery(result.components, query, stream, token);
+    }
+
+    // Special handling for property queries
+    if (result.type === 'property' && result.propertyType) {
+      return await handlePropertyQuery(result.components, result.propertyType, query, stream, token);
+    }
+
+    // Special handling for reasoning queries (component vs HTML element)
+    if (result.type === 'reasoning' && result.comparisonTarget) {
+      return await handleReasoningQuery(result.components, result.comparisonTarget, query, stream, token);
+    }
+
+    // For simple results, show directly
+    if (result.type === 'single' || result.type === 'all' || result.components.length <= 3) {
+      const formatted = formatQueryResult(result, query);
+      stream.markdown(formatted);
+      return {
+        metadata: {
+          type: result.type,
+          components: result.components.map(c => c.tagName)
+        }
+      };
+    }
+
+    // For complex queries, use AI assistance
+    return await handleComplexQuery(result, query, stream, token);
+
   } catch (error) {
-    stream.markdown(
-      `❌ Error: ${error instanceof Error ? error.message : String(error)}\n\n`
-    );
+    stream.markdown(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
     return {};
   }
 }
 
 /**
- * Registers the Language Model Tool for Cursor/Copilot integration
+ * Handle comparison queries between exactly two components
+ */
+async function handleComparisonQuery(
+  components: ComponentInfo[],
+  originalQuery: string,
+  stream: vscode.ChatResponseStream,
+  token: vscode.CancellationToken
+): Promise<ChatResult> {
+  
+  const [comp1, comp2] = components;
+  
+  stream.progress(`Comparing ${comp1.tagName} and ${comp2.tagName}...`);
+
+  const messages = [
+    vscode.LanguageModelChatMessage.User(
+      `The user asked: "${originalQuery}"\n\n` +
+      `Please provide a comprehensive comparison between these two web components:\n\n` +
+      `## Component 1: ${comp1.tagName}\n\n${comp1.doc}\n\n` +
+      `## Component 2: ${comp2.tagName}\n\n${comp2.doc}\n\n` +
+      `INSTRUCTIONS: Create a detailed comparison focusing on:\n` +
+      `1. **Purpose & Use Cases** - What each component is designed for\n` +
+      `2. **Key Differences** - Major functional and design differences\n` +
+      `3. **Attributes & Properties** - Compare their customization options\n` +
+      `4. **When to Use Each** - Clear guidance on component selection\n` +
+      `5. **Code Examples** - Show basic usage of both (if possible)\n\n` +
+      `Format your response in clear markdown with headers and bullet points. ` +
+      `Be practical and help the user understand which component fits their needs better.`
+    ),
+  ];
+
+  const chatModels = await vscode.lm.selectChatModels();
+  
+  if (chatModels.length === 0) {
+    // Fallback: show side-by-side documentation
+    stream.markdown(`## Comparison: \`${comp1.tagName}\` vs \`${comp2.tagName}\`\n\n`);
+    stream.markdown(`### \`${comp1.tagName}\`\n\n${comp1.doc}\n\n`);
+    stream.markdown(`### \`${comp2.tagName}\`\n\n${comp2.doc}\n\n`);
+    stream.markdown(`💡 *Enable a language model for AI-powered comparison analysis.*\n\n`);
+  } else {
+    const chatResponse = await chatModels[0].sendRequest(messages, {}, token);
+    for await (const fragment of chatResponse.text) {
+      stream.markdown(fragment);
+    }
+  }
+
+  return {
+    metadata: {
+      type: "comparison",
+      components: [comp1.tagName, comp2.tagName],
+      query: originalQuery
+    }
+  };
+}
+
+/**
+ * Handle property-specific queries for components
+ */
+async function handlePropertyQuery(
+  components: ComponentInfo[],
+  propertyType: string,
+  originalQuery: string,
+  stream: vscode.ChatResponseStream,
+  token: vscode.CancellationToken
+): Promise<ChatResult> {
+  
+  if (components.length === 0) {
+    stream.markdown('❌ No components found for your property query.');
+    return {};
+  }
+
+  const component = components[0]; // Focus on the first/main component
+  
+  stream.progress(`Finding ${propertyType} for ${component.tagName}...`);
+
+  const messages = [
+    vscode.LanguageModelChatMessage.User(
+      `The user asked: "${originalQuery}"\n\n` +
+      `They want to know about the ${propertyType} of the component: ${component.tagName}\n\n` +
+      `Here is the component documentation:\n\n${component.doc}\n\n` +
+      `INSTRUCTIONS: Extract and present information about the component's ${propertyType}. Focus specifically on:\n` +
+      `1. **${propertyType.charAt(0).toUpperCase() + propertyType.slice(1)}** - List all relevant ${propertyType}\n` +
+      `2. **Details** - For each ${propertyType.slice(0, -1)}, provide name, type, and description\n` +
+      `3. **Usage Examples** - Show practical code examples when possible\n` +
+      `4. **Important Notes** - Any special considerations or common patterns\n\n` +
+      `If the documentation doesn't clearly show ${propertyType}, say so and suggest where to find this information. ` +
+      `Format your response in clear markdown with proper sections and code blocks.`
+    ),
+  ];
+
+  const chatModels = await vscode.lm.selectChatModels();
+  
+  if (chatModels.length === 0) {
+    // Fallback: show component documentation with focus hint
+    stream.markdown(`## ${propertyType.charAt(0).toUpperCase() + propertyType.slice(1)} for \`${component.tagName}\`\n\n`);
+    stream.markdown(`${component.doc}\n\n`);
+    stream.markdown(`💡 *Enable a language model for AI-powered ${propertyType} extraction.*\n\n`);
+  } else {
+    const chatResponse = await chatModels[0].sendRequest(messages, {}, token);
+    for await (const fragment of chatResponse.text) {
+      stream.markdown(fragment);
+    }
+  }
+
+  return {
+    metadata: {
+      type: "property",
+      propertyType: propertyType,
+      component: component.tagName,
+      query: originalQuery
+    }
+  };
+}
+
+/**
+ * Handle reasoning queries comparing web components to HTML elements
+ */
+async function handleReasoningQuery(
+  components: ComponentInfo[],
+  comparisonTarget: string,
+  originalQuery: string,
+  stream: vscode.ChatResponseStream,
+  token: vscode.CancellationToken
+): Promise<ChatResult> {
+  
+  if (components.length === 0) {
+    stream.markdown('❌ No components found for your reasoning query.');
+    return {};
+  }
+
+  const component = components[0]; // Focus on the first/main component
+  
+  stream.progress(`Analyzing advantages of ${component.tagName} over HTML ${comparisonTarget}...`);
+
+  const messages = [
+    vscode.LanguageModelChatMessage.User(
+      `The user asked: "${originalQuery}"\n\n` +
+      `They want to understand why they should use the web component "${component.tagName}" instead of a standard HTML "${comparisonTarget}" element.\n\n` +
+      `Here is the component documentation:\n\n${component.doc}\n\n` +
+      `INSTRUCTIONS: Provide a comprehensive comparison explaining the advantages and benefits of using the web component over the standard HTML element. Focus on:\n` +
+      `1. **Enhanced Functionality** - What extra features does the web component provide?\n` +
+      `2. **Better User Experience** - How does it improve usability, accessibility, or appearance?\n` +
+      `3. **Developer Benefits** - Easier APIs, better consistency, reduced code complexity\n` +
+      `4. **Styling & Customization** - Advanced theming, CSS custom properties, better control\n` +
+      `5. **Accessibility Improvements** - Built-in ARIA support, keyboard navigation, screen reader compatibility\n` +
+      `6. **Practical Examples** - Show code comparisons when relevant\n` +
+      `7. **When to Use Each** - Scenarios where the web component is clearly better\n\n` +
+      `Be practical and help the user understand the real-world benefits. If there are cases where the standard HTML element might be sufficient, mention those too for balanced guidance.`
+    ),
+  ];
+
+  const chatModels = await vscode.lm.selectChatModels();
+  
+  if (chatModels.length === 0) {
+    // Fallback: show component documentation with reasoning hint
+    stream.markdown(`## Why Use \`${component.tagName}\` Instead of HTML \`${comparisonTarget}\`?\n\n`);
+    stream.markdown(`### Component Documentation:\n\n${component.doc}\n\n`);
+    stream.markdown(`### Key Advantages:\n\n`);
+    stream.markdown(`- **Enhanced Functionality**: Web components often provide richer features than basic HTML elements\n`);
+    stream.markdown(`- **Better Accessibility**: Built-in ARIA support and keyboard navigation\n`);
+    stream.markdown(`- **Consistent Styling**: Unified design system across your application\n`);
+    stream.markdown(`- **Easier APIs**: More intuitive properties and methods\n`);
+    stream.markdown(`- **Future-Proof**: Part of modern web component standards\n\n`);
+    stream.markdown(`💡 *Enable a language model for detailed AI-powered reasoning analysis.*\n\n`);
+  } else {
+    const chatResponse = await chatModels[0].sendRequest(messages, {}, token);
+    for await (const fragment of chatResponse.text) {
+      stream.markdown(fragment);
+    }
+  }
+
+  return {
+    metadata: {
+      type: "reasoning",
+      component: component.tagName,
+      comparisonTarget: comparisonTarget,
+      query: originalQuery
+    }
+  };
+}
+
+/**
+ * Handle complex queries with AI assistance
+ */
+async function handleComplexQuery(
+  result: QueryResult,
+  originalQuery: string,
+  stream: vscode.ChatResponseStream,
+  token: vscode.CancellationToken
+): Promise<ChatResult> {
+  
+  const componentContext = result.components
+    .slice(0, 5) // Limit to top 5 for AI processing
+    .map((comp: ComponentInfo) => `## ${comp.tagName}\n\n${comp.doc}`)
+    .join('\n\n---\n\n');
+
+  const messages = [
+    vscode.LanguageModelChatMessage.User(
+      `User asked: "${originalQuery}"\n\n` +
+      `Based on this query, here are relevant components from their workspace:\n\n` +
+      `${componentContext}\n\n` +
+      `Please provide a helpful, practical answer. Focus on which components are most suitable ` +
+      `and how to use them. Include code examples when possible. Format in markdown.`
+    ),
+  ];
+
+  const chatModels = await vscode.lm.selectChatModels();
+  
+  if (chatModels.length === 0) {
+    // Fallback: show formatted results without AI
+    const formatted = formatQueryResult(result, originalQuery);
+    stream.markdown(formatted);
+  } else {
+    const chatResponse = await chatModels[0].sendRequest(messages, {}, token);
+    for await (const fragment of chatResponse.text) {
+      stream.markdown(fragment);
+    }
+  }
+
+  return {
+    metadata: {
+      type: result.type,
+      components: result.components.map((c: ComponentInfo) => c.tagName),
+      searchTerm: result.searchTerm
+    }
+  };
+}
+
+/**
+ * Register Language Model Tool for Cursor/Copilot integration
  */
 function registerLanguageModelTool(
   context: vscode.ExtensionContext,
   componentDocs: Record<string, string>
 ): void {
-  if (!vscode.lm || !vscode.lm.registerTool) {
+  if (!vscode.lm?.registerTool) {
     log("Language Model Tool API not available");
     return;
   }
@@ -392,13 +345,10 @@ function registerLanguageModelTool(
   const wcToolsTool = vscode.lm.registerTool<{ query: string }>(
     "wctools-docs",
     {
-      invoke: async (
-        options: vscode.LanguageModelToolInvocationOptions<{ query: string }>
-      ) => {
+      invoke: async (options) => {
         const query = options.input.query || "";
         log(`Language Model Tool invoked with query: ${query}`);
 
-        // Check if docs are available
         if (Object.keys(componentDocs).length === 0) {
           return new vscode.LanguageModelToolResult([
             new vscode.LanguageModelTextPart(
@@ -407,9 +357,8 @@ function registerLanguageModelTool(
           ]);
         }
 
-        // Use smart query parser
         const result = parseQuery(query, componentDocs);
-        const formattedResult = formatQueryResult(result);
+        const formattedResult = formatQueryResult(result, query);
 
         log(`Query result: ${result.type}, ${result.components.length} component(s)`);
 
@@ -417,27 +366,12 @@ function registerLanguageModelTool(
           new vscode.LanguageModelTextPart(formattedResult),
         ]);
       },
-      prepareInvocation: async (
-        options: vscode.LanguageModelToolInvocationPrepareOptions<{
-          query: string;
-        }>,
-      ) => {
+      prepareInvocation: async (options) => {
         const query = options.input.query || "";
-        
-        // Quick parse to show appropriate progress message
         const result = parseQuery(query, componentDocs);
-        
-        let message: string;
-        if (result.type === 'none') {
-          message = `Searching for: ${query}`;
-        } else if (result.message) {
-          message = result.message;
-        } else {
-          message = `Retrieving component documentation`;
-        }
 
         return {
-          invocationMessage: message,
+          invocationMessage: result.message || `Searching for: ${query}`,
         };
       },
     }
@@ -448,52 +382,35 @@ function registerLanguageModelTool(
 }
 
 /**
- * Registers the Chat Participant for VS Code native chat
+ * Register VS Code Chat Participant
  */
 function registerChatParticipantInternal(
   context: vscode.ExtensionContext,
   componentDocs: Record<string, string>
 ): void {
-  // Check if the Chat API is available (VS Code 1.90+)
-  // Note: Cursor does not support this API - it uses Language Model Tools instead
-  if (!vscode.chat || !vscode.chat.createChatParticipant) {
-    log(
-      "[wctools] Chat API not available - this is expected in Cursor. Use Language Model Tools instead (wctools-docs)."
-    );
+  if (!vscode.chat?.createChatParticipant) {
+    log("Chat API not available - use Language Model Tools instead (wctools-docs).");
     return;
   }
 
   const participant = vscode.chat.createChatParticipant(
     "wctools",
-    async (
-      request: vscode.ChatRequest,
-      _context: vscode.ChatContext,
-      stream: vscode.ChatResponseStream,
-      token: vscode.CancellationToken
-    ) => {
+    async (request, _context, stream, token) => {
       return await handleChatRequest(request, componentDocs, stream, token);
     }
   );
 
-  participant.iconPath = vscode.Uri.joinPath(
-    context.extensionUri,
-    "assets",
-    "icon.png"
-  );
-
+  participant.iconPath = vscode.Uri.joinPath(context.extensionUri, "assets", "icon_chat.png");
   context.subscriptions.push(participant);
 }
 
 /**
- * Registers both the Chat Participant (VS Code) and Language Model Tool (Cursor/Copilot)
+ * Register both Chat Participant (VS Code) and Language Model Tool (Cursor/Copilot)
  */
 export function registerChatParticipant(
   context: vscode.ExtensionContext,
   componentDocs: Record<string, string>
 ): void {
-  // Register VS Code Chat Participant
   registerChatParticipantInternal(context, componentDocs);
-  
-  // Register Language Model Tool for Cursor/Copilot
   registerLanguageModelTool(context, componentDocs);
 }

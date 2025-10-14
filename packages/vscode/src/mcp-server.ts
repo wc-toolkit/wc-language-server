@@ -218,7 +218,7 @@ export class WebComponentMCPServer {
 
           // Use smart query parser to find relevant components
           const result = parseQuery(query, this.componentDocs);
-          const formattedResult = formatQueryResult(result);
+          const formattedResult = formatQueryResult(result, query);
 
           log(`Query result: ${result.type}, ${result.components.length} component(s)`);
 
