@@ -1,4 +1,4 @@
-import { customElementsService } from "../../services/custom-elements-service.js";
+import { manifestService } from "../../services/manifest-service.js";
 import * as html from "vscode-html-languageservice";
 import * as fs from "fs";
 import * as path from "path";
@@ -19,11 +19,11 @@ export function getGoToDefinition(
   const offset = textDocument.offsetAt(position);
   const node = htmlDocument.findNodeAt(offset);
 
-  if (!node?.tag || !customElementsService.hasCustomElement(node.tag)) {
+  if (!node?.tag || !manifestService.hasCustomElement(node.tag)) {
     return null;
   }
 
-  const manifestPath = customElementsService.getManifestPath();
+  const manifestPath = manifestService.getManifestPath();
   if (!manifestPath) {
     // silent
     return null;
@@ -39,7 +39,7 @@ export function getGoToDefinition(
   }
 
   // Find position in manifest - look for the tag name definition
-  const positionInManifest = customElementsService.findPositionInManifest(
+  const positionInManifest = manifestService.findPositionInManifest(
     `"tagName": "${node.tag}"`,
   );
 

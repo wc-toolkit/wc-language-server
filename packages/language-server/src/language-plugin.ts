@@ -9,7 +9,7 @@ import type { TypeScriptExtraServiceScript } from "@volar/typescript";
 import type * as ts from "typescript";
 import * as html from "vscode-html-languageservice";
 import { URI } from "vscode-uri";
-import { customElementsService } from "./services/custom-elements-service.js";
+import { manifestService } from "./services/manifest-service.js";
 
 /** File extensions supported by the language plugin */
 const SUPPORTED_EXTENSIONS = {
@@ -205,7 +205,7 @@ export class WebComponentsVirtualCode implements VirtualCode {
 
     // Create specific mappings for custom elements to enable better features
     this.htmlDocument.roots.forEach((node) => {
-      if (node.tag && customElementsService.hasCustomElement(node.tag)) {
+      if (node.tag && manifestService.hasCustomElement(node.tag)) {
         // Map the tag name for go-to-definition
         const tagStart = node.start + 1; // Skip '<'
 
@@ -222,7 +222,7 @@ export class WebComponentsVirtualCode implements VirtualCode {
 
         // Map custom attributes for better IntelliSense
         if (node.attributes) {
-          const element = customElementsService.getCustomElement(node.tag);
+          const element = manifestService.getCustomElement(node.tag);
           Object.keys(node.attributes).forEach((attrName) => {
             const isCustomAttribute = element?.attributes?.some(
               (attr: { name: string }) => attr.name === attrName,

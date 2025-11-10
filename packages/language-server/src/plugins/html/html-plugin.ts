@@ -4,7 +4,7 @@ import {
   LanguageServicePlugin,
 } from "@volar/language-server";
 import { create as createHtmlService } from "volar-service-html";
-import { customElementsService } from "../../services/custom-elements-service.js";
+import { manifestService } from "../../services/manifest-service.js";
 import { configurationService } from "../../services/configuration-service.js";
 import * as html from "vscode-html-languageservice";
 import { getHoverContent } from "./hover.js";
@@ -42,6 +42,8 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
           ".",
           ":",
           "[",
+          "@",
+          "(",
           ..."abcdefghijklmnopqrstuvwxyz".split(""),
         ],
       },
@@ -72,7 +74,7 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
         );
 
         if (shouldReload) {
-          customElementsService.reload();
+          manifestService.reload();
         }
       });
 
@@ -126,7 +128,7 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
 
         dispose() {
           baseService.dispose?.();
-          customElementsService.dispose();
+          manifestService.dispose();
         },
       };
     },

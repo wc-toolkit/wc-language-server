@@ -16,6 +16,6 @@ export {
   BaseConfigurationManager,
 } from "./shared-configuration.js";
 export {
-  customElementsService,
-  CustomElementsService,
-} from "./custom-elements-service.js";
+  manifestService,
+  ManifestService
+} from "./manifest-service.js";

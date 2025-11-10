@@ -11,6 +11,8 @@ import {
 } from "@wc-toolkit/cem-utilities";
 import { parseAttributeValueOptions } from "../utilities/cem-utils.js";
 import { readFileSync } from "fs";
+import { autocompleteService } from "./autocomplete-service.js";
+
 
 export type AttributeInfo = {
   name: string;
@@ -28,7 +30,7 @@ export type AttributeTypes = Map<AttributeKey, string[] | string>;
  * Simplified service for managing custom elements manifest data.
  * Handles loading, parsing, and providing access to custom element definitions.
  */
-export class CustomElementsService {
+export class ManifestService {
   private customElementsDocs = new Map<string, string>();
   private customElements = new Map<string, Component>();
   private manifestPath: string | null = null;
@@ -96,6 +98,7 @@ export class CustomElementsService {
         `### \`<${tagName}>\`\n\n---\n\n${getComponentDetailsTemplate(element, { altType })}`
       );
       this.setAttributeOptions(tagName, element, depName);
+      autocompleteService.loadCache(tagName, element);
     });
     debug("cem:parse:complete", {
       dep: depName || "local",
@@ -193,6 +196,7 @@ export class CustomElementsService {
     this.attributeData.clear();
     this.manifestPath = null;
     this.manifestContent = "";
+    autocompleteService.dispose();
   }
 
   public reload() {
@@ -449,13 +453,13 @@ export class CustomElementsService {
   }
 }
 
-let _singletonCustomElementsService: CustomElementsService | undefined;
+let _singletonManifestService: ManifestService | undefined;
 
-export function getCustomElementsService(): CustomElementsService {
-  if (!_singletonCustomElementsService) {
-    _singletonCustomElementsService = new CustomElementsService();
+export function getManifestService(): ManifestService {
+  if (!_singletonManifestService) {
+    _singletonManifestService = new ManifestService();
   }
-  return _singletonCustomElementsService;
+  return _singletonManifestService;
 }
 
-export const customElementsService = getCustomElementsService();
+export const manifestService = getManifestService();

@@ -1,10 +1,10 @@
-import { getComponentDetailsTemplate } from "@wc-toolkit/cem-utilities";
+// import { getComponentDetailsTemplate } from "@wc-toolkit/cem-utilities";
 import {
   AttributeInfo,
-  customElementsService,
-} from "../../services/custom-elements-service.js";
+  manifestService,
+} from "../../services/manifest-service.js";
 import * as html from "vscode-html-languageservice";
-import { configurationService } from "../../services/configuration-service.js";
+// import { configurationService } from "../../services/configuration-service.js";
 import {
   ATTR_NAME_REGEX,
   ATTR_VALUE_REGEX,
@@ -13,6 +13,7 @@ import {
   getBaseAttributeName,
 } from "./utilities.js";
 import { debug } from "../../utilities/logger.js";
+import { autocompleteService } from "../../services/autocomplete-service.js";
 
 export function getAutoCompleteSuggestions(
   document: html.TextDocument,
@@ -53,6 +54,8 @@ function getCompletions(
   beforeText: string,
   completions: html.CompletionList
 ): html.CompletionList | null {
+  console.log(`[AUTOCOMPLETE] beforeText (last 80 chars): "${beforeText.slice(-80)}"`);
+  
   // Tag completion: <my-elem|
   const tagMatch = beforeText.match(/<([a-zA-Z0-9-]*)$/);
   if (tagMatch) {
@@ -87,7 +90,7 @@ function getCompletions(
     return getAttributeValueCompletions(completions, tagName, attributeName);
   }
 
-  // Attribute name completion: <my-elem | and with template-binding prefixes: .| :| [| ?|
+  // Attribute name completion: <my-elem | and with template-binding prefixes: .| :| [| ?| @|
   const attrNameMatch = beforeText.match(ATTR_NAME_REGEX);
   if (attrNameMatch) {
     const tagName = attrNameMatch[1];
@@ -98,7 +101,7 @@ function getCompletions(
       raw: rawAttr,
       prefix: attrPrefix,
     });
-    return getAttributeCompletions(completions, tagName, attrPrefix);
+    return getAttributeCompletions(completions, tagName, attrPrefix, beforeText);
   }
 
   // wctools directive completions inside HTML comments, e.g.
@@ -188,34 +191,7 @@ function getTagCompletions(
   htmlCompletions: html.CompletionList,
   includeOpeningBrackets: boolean = false
 ): html.CompletionList {
-  const customElements = customElementsService.getCustomElements();
-  debug("autocomplete:build:tagCompletions", customElements.length);
-
-  const customCompletions: html.CompletionItem[] = customElements.map(
-    (element) => {
-      const formattedTagName = configurationService.getFormattedTagName(
-        element.tagName!,
-        element.dependency as string
-      );
-      const tag = includeOpeningBrackets
-        ? `<${formattedTagName}>$0</${formattedTagName}>`
-        : `${formattedTagName}>$0</${formattedTagName}>`;
-      return {
-        label: formattedTagName,
-        kind: html.CompletionItemKind.Snippet,
-        documentation: {
-          kind: "markdown",
-          value: getComponentDetailsTemplate(element),
-        },
-        insertText: tag,
-        insertTextFormat: html.InsertTextFormat.Snippet,
-        detail: "Custom Element",
-        sortText: "0" + formattedTagName,
-        deprecated: !!element.deprecated,
-      };
-    }
-  );
-
+  const customCompletions = autocompleteService.getTagCompletions(includeOpeningBrackets);
   htmlCompletions.items.push(...customCompletions);
   return htmlCompletions;
 }
@@ -223,83 +199,85 @@ function getTagCompletions(
 function getAttributeCompletions(
   htmlCompletions: html.CompletionList,
   tagName: string,
-  attrPrefix?: BindingPrefix
+  attrPrefix?: BindingPrefix,
+  beforeText?: string
 ): html.CompletionList {
-  const element = customElementsService.getCustomElement(tagName);
-  if (!element) {
-    debug("autocomplete:attr:noElement", { tagName });
-    return htmlCompletions;
-  }
+  // const element = manifestService.getCustomElement(tagName);
+  // if (!element) {
+  //   debug("autocomplete:attr:noElement", { tagName });
+  //   return htmlCompletions;
+  // }
 
-  let attributes = getAttributeInfo(tagName);
-  const originalCount = attributes.length;
-  if (attrPrefix === "?") {
-    attributes = attributes.filter((a) => a.type === "boolean");
-    debug("autocomplete:attr:booleanFilter", {
-      tagName,
-      before: originalCount,
-      after: attributes.length,
-    });
-  } else {
-    debug("autocomplete:attr:list", {
-      tagName,
-      count: attributes.length,
-      prefix: attrPrefix,
-    });
-  }
+  // let attributes = getAttributeInfo(tagName);
+  // const originalCount = attributes.length;
+  // if (attrPrefix === "?") {
+  //   attributes = attributes.filter((a) => a.type === "boolean");
+  //   debug("autocomplete:attr:booleanFilter", {
+  //     tagName,
+  //     before: originalCount,
+  //     after: attributes.length,
+  //   });
+  // } else {
+  //   debug("autocomplete:attr:list", {
+  //     tagName,
+  //     count: attributes.length,
+  //     prefix: attrPrefix,
+  //   });
+  // }
 
-  const prefix = attrPrefix ?? "";
-  const suffix = attrPrefix === "[" ? "]" : "";
-  const items = attributes.map((attribute) => {
-    const baseName = attribute.name;
-    const label = `${prefix}${baseName}${suffix}`;
-    const insertText = getInsertText(
-      baseName,
-      attrPrefix,
-      !!attribute.options?.length,
-      attribute.type === "boolean"
-    );
+  // const prefix = attrPrefix ?? "";
+  // const suffix = attrPrefix === "[" ? "]" : "";
+  // const items = attributes.map((attribute) => {
+  //   const baseName = attribute.name;
+  //   const label = `${prefix}${baseName}${suffix}`;
+  //   const insertText = getInsertText(
+  //     baseName,
+  //     attrPrefix,
+  //     !!attribute.options?.length,
+  //     attribute.type === "boolean"
+  //   );
 
-    return {
-      label, // shows user the prefixed form
-      filterText: label, // ensures typing '?' filters correctly
-      sortText: `0${label}`,
-      kind: html.CompletionItemKind.Property,
-      insertText,
-      insertTextFormat: html.InsertTextFormat.Snippet,
-      detail: attribute.type || "attribute",
-      documentation: attribute.description,
-      deprecated: !!attribute.deprecated,
-    } as html.CompletionItem;
-  });
+  //   return {
+  //     label, // shows user the prefixed form
+  //     filterText: label, // ensures typing '?' filters correctly
+  //     sortText: `0${label}`,
+  //     kind: html.CompletionItemKind.Property,
+  //     insertText,
+  //     insertTextFormat: html.InsertTextFormat.Snippet,
+  //     detail: attribute.type || "attribute",
+  //     documentation: attribute.description,
+  //     deprecated: !!attribute.deprecated,
+  //   } as html.CompletionItem;
+  // });
+  const items = autocompleteService.getAttributeCompletions(tagName, attrPrefix, beforeText);
 
   htmlCompletions.items.push(...items);
   return htmlCompletions;
 }
 
-function getInsertText(
-  label: string,
-  prefix: BindingPrefix | undefined,
-  hasValues?: boolean,
-  isBoolean?: boolean
-): string {
-  switch (prefix) {
-    case "?":
-      return `?${label}="\${0}"`;
-    case ".":
-      return `${label}="\${0}"`;
-    case ":":
-      return `${label}="\${0}"`;
-    case "[":
-      return `${label}]="\${0}"`;
-    default:
-      return hasValues
-        ? `${label}="$1"$0`
-        : isBoolean
-          ? label
-          : `${label}="$0"`;
-  }
-}
+// function getInsertText(
+//   label: string,
+//   prefix: BindingPrefix | undefined,
+//   hasValues?: boolean,
+//   isBoolean?: boolean
+// ): string {
+//   switch (prefix) {
+//     case "?":
+//       return `?${label}="\${0}"`;
+//     case ".":
+//       return `${label}="\${0}"`;
+//     case ":":
+//       return `${label}="\${0}"`;
+//     case "[":
+//       return `${label}]="\${0}"`;
+//     default:
+//       return hasValues
+//         ? `${label}="$1"$0`
+//         : isBoolean
+//           ? label
+//           : `${label}="$0"`;
+//   }
+// }
 
 function getAttributeValueCompletions(
   htmlCompletions: html.CompletionList,
@@ -338,7 +316,7 @@ function getAttributeValueCompletions(
 }
 
 function getAttributeInfo(tagName: string): AttributeInfo[] {
-  return Array.from(customElementsService.attributeData?.entries())
+  return Array.from(manifestService.attributeData?.entries())
     .filter(([key]) => key.startsWith(`${tagName}:`))
     .map(([, value]) => value);
 }
