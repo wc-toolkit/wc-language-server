@@ -222,6 +222,19 @@ export class AutocompleteService {
     return undefined;
   }
 
+  public getAttributeValueCompletions(
+    tagName: string,
+    attributeName: string
+  ): ExtendedHtmlCompletionItem[] {
+    const componentCache = this.componentCache.get(tagName);
+    if (!componentCache) {
+      return [];
+    }
+
+    const attributeNameNormalized = getBaseAttributeName(attributeName);
+    return componentCache.attributeValues?.get(attributeNameNormalized) || [];
+  }
+
   private loadTagCache(tagName: string, component: Component) {
     const completion: html.CompletionItem = {
       label: tagName,
