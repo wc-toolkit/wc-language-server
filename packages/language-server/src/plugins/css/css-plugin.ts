@@ -65,10 +65,7 @@ export function webComponentCssPlugin(): LanguageServicePlugin {
          * - Component selectors
          */
         provideCompletionItems(document, position) {
-          if (
-            document.languageId !== "css" ||
-            !shouldProvideEnhancedService(document)
-          ) {
+          if (!shouldProvideEnhancedService(document)) {
             return null;
           }
 
