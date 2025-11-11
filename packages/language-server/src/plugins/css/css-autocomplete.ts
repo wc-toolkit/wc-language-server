@@ -23,31 +23,16 @@ export function getCssAutoCompleteSuggestions(
     offset,
   });
 
-  const cssLanguageService = css.getCSSLanguageService();
-
-  const textDocument = css.TextDocument.create(
-    document.uri,
-    "css",
-    0,
-    document.getText()
-  );
-  const stylesheet = cssLanguageService.parseStylesheet(textDocument);
-
-  // Get default CSS completions
-  const result = cssLanguageService.doComplete(
-    textDocument,
-    position,
-    stylesheet
-  );
-
-  // Add custom completions for web components
-  const customCompletions = getCompletions(result);
+  // Only return custom web component completions
+  // Volar's built-in CSS service will handle standard CSS completions
+  const customCompletions = getCompletions();
 
   return customCompletions;
 }
 
-function getCompletions(completions: css.CompletionList) {
-  completions.items.push(...autocompleteService.getCssCompletions());
-
-  return completions;
+function getCompletions(): css.CompletionList {
+  return {
+    isIncomplete: false,
+    items: autocompleteService.getCssCompletions(),
+  };
 }

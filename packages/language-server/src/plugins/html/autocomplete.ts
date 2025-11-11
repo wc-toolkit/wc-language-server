@@ -20,38 +20,27 @@ export function getAutoCompleteSuggestions(
   const text = document.getText();
   const offset = document.offsetAt(position);
   const beforeText = text.substring(0, offset);
-  const htmlLanguageService = html.getLanguageService();
 
-  const textDocument = html.TextDocument.create(
-    document.uri,
-    "html",
-    0,
-    document.getText()
-  );
-  const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
-
-  // Get default completions
-  const result = htmlLanguageService.doComplete(
-    textDocument,
-    position,
-    htmlDocument
-  );
-
-  // Add snippet completions for custom tags and attributes
-  const customCompletions = getCompletions(beforeText, result);
+  // Only return custom web component completions
+  // Volar's built-in HTML service will handle standard HTML completions
+  const customCompletions = getCompletions(beforeText);
 
   return customCompletions;
 }
 
 function getCompletions(
-  beforeText: string,
-  completions: html.CompletionList
+  beforeText: string
 ): html.CompletionList | null {
+  const completions: html.CompletionList = {
+    isIncomplete: false,
+    items: [],
+  };
+
   // Tag completion: <my-elem|
   const tagMatch = beforeText.match(/<([a-zA-Z0-9-]*)$/);
   if (tagMatch) {
     debug("autocomplete:trigger:tag", { partial: tagMatch[1] });
-    return getTagCompletions(completions);
+    return getTagCompletions();
   }
 
   // Tag name without opening '<': my-ele|
@@ -68,7 +57,9 @@ function getCompletions(
     ) {
       debug("autocomplete:trigger:bareTag", { partial: bareTagMatch[1] });
       addLintSnippets(completions);
-      return getTagCompletions(completions, true);
+      const tagCompletions = getTagCompletions(true);
+      completions.items.push(...tagCompletions.items);
+      return completions;
     }
   }
 
@@ -78,7 +69,7 @@ function getCompletions(
     const tagName = attrValueMatch[1];
     const attributeName = attrValueMatch[2];
     debug("autocomplete:trigger:attrValue", { tagName, attributeName });
-    return getAttributeValueCompletions(completions, tagName, attributeName);
+    return getAttributeValueCompletions(tagName, attributeName);
   }
 
   // Attribute name completion: <my-elem | and with template-binding prefixes: .| :| [| ?| @|
@@ -93,7 +84,6 @@ function getCompletions(
       prefix: attrPrefix,
     });
     return getAttributeCompletions(
-      completions,
       tagName,
       attrPrefix,
       beforeText
@@ -184,18 +174,18 @@ function addLintRuleCompletions(completions: html.CompletionList) {
 }
 
 function getTagCompletions(
-  htmlCompletions: html.CompletionList,
   includeOpeningBrackets: boolean = false
 ): html.CompletionList {
   const customCompletions = autocompleteService.getTagCompletions(
     includeOpeningBrackets
   );
-  htmlCompletions.items.push(...customCompletions);
-  return htmlCompletions;
+  return {
+    isIncomplete: false,
+    items: customCompletions,
+  };
 }
 
 function getAttributeCompletions(
-  htmlCompletions: html.CompletionList,
   tagName: string,
   attrPrefix?: BindingPrefix,
   beforeText?: string
@@ -206,12 +196,13 @@ function getAttributeCompletions(
     beforeText
   );
 
-  htmlCompletions.items.push(...items);
-  return htmlCompletions;
+  return {
+    isIncomplete: false,
+    items: items,
+  };
 }
 
 function getAttributeValueCompletions(
-  htmlCompletions: html.CompletionList,
   tagName: string,
   attributeName: string
 ): html.CompletionList {
@@ -220,6 +211,8 @@ function getAttributeValueCompletions(
     attributeName
   );
 
-  htmlCompletions.items.push(...attrValueCompletions);
-  return htmlCompletions;
+  return {
+    isIncomplete: false,
+    items: attrValueCompletions,
+  };
 }

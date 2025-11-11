@@ -2,10 +2,12 @@ import {
   createConnection,
   createServer,
   createTypeScriptProject,
-  loadTsdkByPath,
   InitializeParams,
+  loadTsdkByPath,
 } from "@volar/language-server/node.js";
 import { create as createEmmetService } from "volar-service-emmet";
+import { create as createCssService } from "volar-service-css";
+import { create as createHtmlService } from "volar-service-html";
 import { webComponentHtmlPlugin } from "./plugins/html/html-plugin.js";
 import { webComponentCssPlugin } from "./plugins/css/css-plugin.js";
 import { manifestService } from "./services/manifest-service.js";
@@ -38,8 +40,10 @@ connection.onInitialize((params: InitializeParams) => {
       languagePlugins: [],
     })),
     [
-      webComponentCssPlugin(),
+      createHtmlService(),
+      createCssService(),
       webComponentHtmlPlugin(),
+      webComponentCssPlugin(),
       createEmmetService()
     ]
   );

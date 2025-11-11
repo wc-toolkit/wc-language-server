@@ -2,8 +2,8 @@
 import {
   LanguageServiceContext,
   LanguageServicePlugin,
+  LanguageServicePluginInstance,
 } from "@volar/language-server";
-import { create as createHtmlService } from "volar-service-html";
 import { manifestService } from "../../services/manifest-service.js";
 import { configurationService } from "../../services/configuration-service.js";
 import * as html from "vscode-html-languageservice";
@@ -21,15 +21,9 @@ import { getValidation } from "./validation.js";
  * - Validation diagnostics
  */
 export function webComponentHtmlPlugin(): LanguageServicePlugin {
-  // Get the base HTML service from Volar
-  const baseHtmlService = createHtmlService();
-
   return {
-    ...baseHtmlService,
     capabilities: {
-      ...baseHtmlService.capabilities,
       completionProvider: {
-        ...baseHtmlService.capabilities?.completionProvider,
         triggerCharacters: [
           "<",
           " ",
@@ -55,9 +49,7 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
       },
     },
 
-    create(context: LanguageServiceContext) {
-      const baseService = baseHtmlService.create(context);
-
+    create(context: LanguageServiceContext): LanguageServicePluginInstance {
       // Helper function to check if we should provide enhanced functionality
       const shouldProvideEnhancedService = (document: any) => {
         return configurationService.shouldIncludeFile(document.uri);
@@ -79,55 +71,51 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
       });
 
       return {
-        ...baseService,
-
         /**
-         * Enhanced completion provider using Volar's HTML service with custom data
+         * Enhanced completion provider for HTML with web component support
          */
-        provideCompletionItems(document, position, context, token) {
+        provideCompletionItems(document, position) {
+          // Only provide custom completions if this file should be enhanced
+          // Return undefined (not null) to let other plugins handle it
           if (!shouldProvideEnhancedService(document)) {
-            return baseService.provideCompletionItems?.(
-              document,
-              position,
-              context,
-              token
-            );
+            return undefined;
           }
-          return getAutoCompleteSuggestions(document, position);
+
+          // Get custom web component completions
+          const customCompletions = getAutoCompleteSuggestions(document, position);
+
+          // Return completions or undefined to let other plugins handle it
+          return customCompletions || undefined;
         },
 
         /**
          * Enhanced hover with deprecation warnings and attribute information
          */
-        provideHover(document, position, token) {
-          if (!shouldProvideEnhancedService(document)) {
-            return baseService.provideHover?.(document, position, token);
-          }
-          return getHoverContent(document, position);
+        provideHover(document, position) {
+          return shouldProvideEnhancedService(document)
+            ? getHoverContent(document, position)
+            : null;
         },
 
         /**
          * Definition provider for custom elements using manifest locations
          */
-        provideDefinition(document, position, token) {
-          if (!shouldProvideEnhancedService(document)) {
-            return baseService.provideDefinition?.(document, position, token);
-          }
-          return getGoToDefinition(document, position);
+        provideDefinition(document, position) {
+          return shouldProvideEnhancedService(document)
+            ? getGoToDefinition(document, position)
+            : null;
         },
 
         /**
          * Enhanced diagnostics with deprecation and validation
          */
-        provideDiagnostics(document, token) {
-          if (!shouldProvideEnhancedService(document)) {
-            return baseService.provideDiagnostics?.(document, token) || [];
-          }
-          return getValidation(document, html.getLanguageService());
+        provideDiagnostics(document) {
+          return shouldProvideEnhancedService(document)
+            ? getValidation(document, html.getLanguageService())
+            : [];
         },
 
         dispose() {
-          baseService.dispose?.();
           manifestService.dispose();
         },
       };

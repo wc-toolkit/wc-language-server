@@ -65,8 +65,10 @@ export function webComponentCssPlugin(): LanguageServicePlugin {
          * - Component selectors
          */
         provideCompletionItems(document, position) {
+          // Only provide custom completions if this file should be enhanced
+          // Return undefined (not null) to let other plugins handle it
           if (!shouldProvideEnhancedService(document)) {
-            return null;
+            return undefined;
           }
 
           // Get enhanced completions for web components
@@ -75,11 +77,8 @@ export function webComponentCssPlugin(): LanguageServicePlugin {
             position
           );
 
-          if (customCompletions) {
-            return customCompletions;
-          }
-
-          return null;
+          // Return completions or undefined to let other plugins handle it
+          return customCompletions || undefined;
         },
 
         /**
