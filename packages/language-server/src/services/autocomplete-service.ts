@@ -36,9 +36,9 @@ export class AutocompleteService {
   public componentCache: Map<string, ComponentAutocompleteCache> = new Map();
   private config = configurationService.config;
   private typeSrc = this.config.typeSrc;
-  private loadedCssVars: string[] = [];
-  private loadedCssParts: string[] = [];
-  private loadedCssStates: string[] = [];
+  private loadedCssVars: Map<string, ExtendedCssCompletionItem> = new Map();
+  private loadedCssParts: Map<string, ExtendedCssCompletionItem> = new Map();
+  private loadedCssStates: Map<string, ExtendedCssCompletionItem> = new Map();
 
   dispose() {
     this.componentCache.clear();
@@ -177,9 +177,6 @@ export class AutocompleteService {
 
     const prefix = getAttributePrefix(attributeName);
     const attributeNameNormalized = getBaseAttributeName(attributeName);
-    console.log(
-      `[AUTOCOMPLETE] Getting attribute completion for <${tagName}> attribute "${attributeName}" (normalized: "${attributeNameNormalized}", prefix: "${prefix}")`
-    );
 
     if (!prefix) {
       return componentCache.attributes?.get(attributeName);
@@ -206,9 +203,6 @@ export class AutocompleteService {
     }
 
     if (prefix === "(") {
-      console.log(
-        `[AUTOCOMPLETE] Getting event completion for <${tagName}> event "${attributeNameNormalized}"`
-      );
       return componentCache.events?.get(attributeNameNormalized);
     }
 
@@ -233,6 +227,53 @@ export class AutocompleteService {
 
     const attributeNameNormalized = getBaseAttributeName(attributeName);
     return componentCache.attributeValues?.get(attributeNameNormalized) || [];
+  }
+
+  public getCssCompletions(): ExtendedCssCompletionItem[] {
+    const allCompletions: ExtendedCssCompletionItem[] = [];
+    const props = this.loadedCssVars
+      ? Array.from(this.loadedCssVars.values())
+      : [];
+    allCompletions.push(...props);
+    const vars = this.loadedCssVars
+      ? Array.from(this.loadedCssVars.values()).map((v) => {
+          return {
+            ...v,
+            insertText: `var(${v.label})`,
+            filterText: `var ${v.label}`,
+            label: `var(${v.label})`,
+            sortText: `1var(${v.label})`,
+          };
+        })
+      : [];
+    allCompletions.push(...vars);
+    const parts = this.loadedCssParts
+      ? Array.from(this.loadedCssParts.values())
+      : [];
+    allCompletions.push(...parts);
+    const states = this.loadedCssStates
+      ? Array.from(this.loadedCssStates.values())
+      : [];
+    allCompletions.push(...states);
+    return allCompletions;
+  }
+
+  getCssCustomPropertyCompletion(
+    propertyName: string
+  ): ExtendedCssCompletionItem | undefined {
+    return this.loadedCssVars.get(propertyName);
+  }
+
+  getCssPartCompletion(
+    partName: string
+  ): ExtendedCssCompletionItem | undefined {
+    return this.loadedCssParts.get(partName);
+  }
+
+  getCssStateCompletion(
+    stateName: string
+  ): ExtendedCssCompletionItem | undefined {
+    return this.loadedCssStates.get(stateName);
   }
 
   private loadTagCache(tagName: string, component: Component) {
@@ -358,13 +399,12 @@ export class AutocompleteService {
   private loadCssVariableCache(tagName: string, component: Component) {
     const cssVars = component.cssProperties || [];
     cssVars.forEach((cssVar) => {
-      if (this.loadedCssVars.includes(cssVar.name)) {
+      if (this.loadedCssVars.has(cssVar.name)) {
         return;
       }
-      this.loadedCssVars.push(cssVar.name);
       const completion: ExtendedCssCompletionItem = {
         label: cssVar.name,
-        sortText: `0${cssVar.name}`,
+        sortText: `0--${cssVar.name}`,
         kind: css.CompletionItemKind.Variable,
         insertText: `--${cssVar.name}`,
         detail: "CSS Variable",
@@ -375,6 +415,7 @@ export class AutocompleteService {
             ? cssVar.deprecated
             : "This CSS variable is deprecated.",
       };
+      this.loadedCssVars.set(cssVar.name, completion);
       this.componentCache
         .get(tagName)
         ?.cssVariables?.set(cssVar.name, completion);
@@ -384,15 +425,15 @@ export class AutocompleteService {
   private loadCssPartCache(tagName: string, component: Component) {
     const cssParts = component.cssParts || [];
     cssParts.forEach((cssPart) => {
-      if (this.loadedCssParts.includes(cssPart.name)) {
+      if (this.loadedCssParts.has(cssPart.name)) {
         return;
       }
-      this.loadedCssParts.push(cssPart.name);
       const completion: ExtendedCssCompletionItem = {
-        label: cssPart.name,
+        label: `part(${cssPart.name})`,
+        filterText: `part ${cssPart.name}`,
         sortText: `0${cssPart.name}`,
-        kind: css.CompletionItemKind.Variable,
-        insertText: cssPart.name,
+        kind: css.CompletionItemKind.Function,
+        insertText: `part(${cssPart.name})`,
         detail: "CSS Part",
         documentation: cssPart.description,
         deprecated: !!cssPart.deprecated,
@@ -401,6 +442,7 @@ export class AutocompleteService {
             ? cssPart.deprecated
             : "This CSS part is deprecated.",
       };
+      this.loadedCssParts.set(cssPart.name, completion);
       this.componentCache.get(tagName)?.cssParts?.set(cssPart.name, completion);
     });
   }
@@ -408,15 +450,14 @@ export class AutocompleteService {
   private loadCssStateCache(tagName: string, component: Component) {
     const cssStates = component.cssStates || [];
     cssStates.forEach((cssState) => {
-      if (this.loadedCssStates.includes(cssState.name)) {
+      if (this.loadedCssStates.has(cssState.name)) {
         return;
       }
-      this.loadedCssStates.push(cssState.name);
       const completion: ExtendedCssCompletionItem = {
-        label: cssState.name,
+        label: `state(${cssState.name})`,
         sortText: `0${cssState.name}`,
-        kind: css.CompletionItemKind.Variable,
-        insertText: cssState.name,
+        kind: css.CompletionItemKind.Function,
+        insertText: `state(${cssState.name})`,
         detail: "CSS State",
         documentation: cssState.description,
         deprecated: !!cssState.deprecated,
@@ -425,6 +466,7 @@ export class AutocompleteService {
             ? cssState.deprecated
             : "This CSS state is deprecated.",
       };
+      this.loadedCssStates.set(cssState.name, completion);
       this.componentCache
         .get(tagName)
         ?.cssStates?.set(cssState.name, completion);

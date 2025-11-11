@@ -12,7 +12,13 @@ export class SimpleGreeting extends LitElement {
   render() {
     return html`
       <h1>Lit Test</h1>
-      <sl-alert dep-attr></sl-alert>
+      <sl-alert :dep-attr=${"value"} variant="success"></sl-alert>
+      <sl-alert></sl-alert>
+      <sl-badge .variant=${"success"}></sl-badge>
+      <sl-input .defaultValue=${"Hello, World!"} help-text=${"Enter your greeting"} .disabled=${true}></sl-input>
+      <sl-alert .closable=${true}></sl-alert>
+      <sl-icon [label]="" library=${"icon-library"} [attr.src]="" [attr.name]="" name="" (sl-error)=${this.handleError}></sl-icon>
+      <sl-alert closable style=""></sl-alert>
     `;
   }
 }

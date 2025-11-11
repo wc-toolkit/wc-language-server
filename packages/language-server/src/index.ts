@@ -5,10 +5,10 @@ import {
   loadTsdkByPath,
   InitializeParams,
 } from "@volar/language-server/node.js";
-import { create as createCssService } from "volar-service-css";
 import { create as createEmmetService } from "volar-service-emmet";
 import { webComponentHtmlPlugin } from "./plugins/html/html-plugin.js";
-import { customElementsService } from "./services/custom-elements-service.js";
+import { webComponentCssPlugin } from "./plugins/css/css-plugin.js";
+import { manifestService } from "./services/manifest-service.js";
 
 /** Language Server Protocol connection instance for communication with the client */
 const connection = createConnection();
@@ -37,12 +37,16 @@ connection.onInitialize((params: InitializeParams) => {
     createTypeScriptProject(tsdk.typescript, tsdk.diagnosticMessages, () => ({
       languagePlugins: [],
     })),
-    [webComponentHtmlPlugin(), createCssService(), createEmmetService()]
+    [
+      webComponentCssPlugin(),
+      webComponentHtmlPlugin(),
+      createEmmetService()
+    ]
   );
 });
 
-connection.onRequest('wctools/getDocs', () => {
-  const docs = customElementsService.getAllDocs(); // Map<string,string>
+connection.onRequest("wctools/getDocs", () => {
+  const docs = manifestService.getAllDocs(); // Map<string,string>
   // Convert Map to plain object so it survives JSON serialization over LSP
   return Object.fromEntries(docs.entries());
 });

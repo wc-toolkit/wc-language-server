@@ -1,0 +1,12 @@
+.test::part() {
+}
+
+.test::part(banner):state(current) {
+  color: red;
+  color: var(--banner-height);
+  height: var(--secondary-opacity);
+  --checked-icon-color: blue;
+  --aside-width: var(--header-height);
+  --aside-width: var(--aside-width);
+  color: var(--aside-width) !important;
+}

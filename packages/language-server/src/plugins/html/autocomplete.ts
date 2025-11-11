@@ -47,10 +47,6 @@ function getCompletions(
   beforeText: string,
   completions: html.CompletionList
 ): html.CompletionList | null {
-  console.log(
-    `[AUTOCOMPLETE] beforeText (last 80 chars): "${beforeText.slice(-80)}"`
-  );
-
   // Tag completion: <my-elem|
   const tagMatch = beforeText.match(/<([a-zA-Z0-9-]*)$/);
   if (tagMatch) {

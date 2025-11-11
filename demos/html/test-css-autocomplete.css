@@ -1,0 +1,71 @@
+/* Test file for CSS autocomplete functionality */
+
+/* 1. CSS Custom Properties Autocomplete */
+/* Type '--' to see custom properties like --sl-alert-border-radius */
+sl-alert {
+  --sl-alert-border-radius: 0.5rem;
+  --sl-alert-padding: 1rem;
+  --sl-alert-color: #333;
+}
+
+/* 2. CSS ::part() Autocomplete */
+/* Type 'sl-alert::part(' to see parts like 'base', 'icon', 'message', 'close-button' */
+sl-alert::part(base) {
+  background: white;
+}
+
+sl-alert::part(message) {
+  font-weight: bold;
+  
+}
+
+sl-animated-image::part(control-box) {
+  border-radius: 8px;
+}
+
+/* 3. CSS :state() Autocomplete (for custom element states) */
+/* Type ':state(' to see available custom states */
+my-element:state(loading) {
+  opacity: 0.5;
+}
+
+/* 4. Component Selector Autocomplete */
+/* Type 'sl-' to see all Shoelace components */
+sl-button {
+  margin: 1rem;
+}
+
+/* 5. Combining selectors with parts */
+sl-dropdown::part(popup)::part(base) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 6. Custom properties with fallbacks */
+:root {
+  --my-theme-color: var(--sl-color-primary-500, blue);
+}
+
+/* 7. Multiple components */
+sl-button,
+sl-icon-button,
+sl-menu-item {
+  cursor: pointer;
+}
+
+/* 8. Nested with parts */
+.container sl-alert::part(message) {
+  font-weight: bold;
+}
+
+/* 9. State-based styling */
+sl-button:state(loading) {
+  pointer-events: none;
+}
+
+/* 10. Media queries with custom properties */
+@media (prefers-color-scheme: dark) {
+  sl-alert {
+    --sl-alert-background-color: #1e1e1e;
+    --sl-alert-color: #ffffff;
+  }
+}

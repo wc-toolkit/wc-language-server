@@ -1,11 +1,6 @@
 /** @type {import('@wc-toolkit/wctools').WCConfig} */
 export default {
-  // "manifestSrc": "custom-elements.json",
-  // "include": [
-  //   "src/**/*.html",
-  //   "src/**/*.js",
-  //   "src/**/*.ts"
-  // ],
+  "manifestSrc": "custom-elements.json",
   "exclude": [
     "node_modules/**",
     "dist/**",
