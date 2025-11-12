@@ -385,7 +385,11 @@ export function parseAttributesFromText(
           ? match[5]
           : match[6] !== undefined
             ? match[6]
-            : null;
+            : match[7] !== undefined
+              ? match[7]
+              : match[8] !== undefined
+                ? match[8]
+                : null;
 
     // Adjust match.index to be relative to the element start, as callers expect
     const adjustedMatch = match as RegExpExecArray;
