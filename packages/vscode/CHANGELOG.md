@@ -1,5 +1,14 @@
 # web-components-language-server
 
+## 0.0.22
+
+### Patch Changes
+
+- 04e9a15: Fixed language server restart functionality
+- 8fc266c: Added hover, autocomplete, and validation for properties and events in common template binding syntaxes (Angular, React, Vue, Lit, FAST, etc.).
+- 04e9a15: Added autocomplete and hover information for CSS variables, parts, and states
+- 8fc266c: Added API cache for better performance. This also adds access to other APIs besides just attributes.
+
 ## 0.0.21
 
 ### Patch Changes
