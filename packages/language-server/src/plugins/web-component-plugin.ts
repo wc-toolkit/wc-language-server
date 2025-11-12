@@ -4,12 +4,15 @@ import {
   LanguageServicePlugin,
   LanguageServicePluginInstance,
 } from "@volar/language-server";
-import { manifestService } from "../../services/manifest-service.js";
-import { configurationService } from "../../services/configuration-service.js";
+import { manifestService } from "../services/manifest-service.js";
+import { configurationService } from "../services/configuration-service.js";
 import * as html from "vscode-html-languageservice";
-import { getHoverContent } from "./hover.js";
-import { getGoToDefinition } from "./go-to-definition.js";
-import { getValidation } from "./validation.js";
+import { getHoverContent } from "./html/hover.js";
+import { getAutoCompleteSuggestions } from "./html/autocomplete.js";
+import { getGoToDefinition } from "./html/go-to-definition.js";
+import { getValidation } from "./html/validation.js";
+import { getCssAutoCompleteSuggestions } from "./css/css-autocomplete.js";
+import { getCssHoverContent } from "./css/css-hover.js";
 
 /**
  * Consolidated Web Components HTML service that leverages Volar's built-in HTML service
@@ -19,7 +22,7 @@ import { getValidation } from "./validation.js";
  * - Go-to-definition for custom elements
  * - Validation diagnostics
  */
-export function webComponentHtmlPlugin(): LanguageServicePlugin {
+export function webComponentPlugin(): LanguageServicePlugin {
   return {
     capabilities: {
       completionProvider: {
@@ -73,28 +76,61 @@ export function webComponentHtmlPlugin(): LanguageServicePlugin {
         /**
          * Enhanced completion provider for HTML with web component support
          */
-        // provideCompletionItems(document, position) {
-        //   // Only provide custom completions if this file should be enhanced
-        //   // Return undefined (not null) to let other plugins handle it
-        //   if (!shouldProvideEnhancedService(document)) {
-        //     return undefined;
-        //   }
+        async provideCompletionItems(document, position, completionContext, token) {
+          // Only provide custom completions if this file should be enhanced
+          // Return undefined (not null) to let other plugins handle it
+          if (!shouldProvideEnhancedService(document)) {
+            return undefined;
+          }
 
-        //   // Get custom web component completions
-        //   const customCompletions = getAutoCompleteSuggestions(document, position);
+          // Get base completions from other services (HTML, CSS, etc.)
+          const baseCompletions = await context.inject('provideCompletionItems', document, position, completionContext, token);
 
-        //   // Return completions or undefined to let other plugins handle it
-        //   return customCompletions || undefined;
-        // },
+          // Get custom web component completions
+          const htmlCompletions = getAutoCompleteSuggestions(
+            document,
+            position
+          );
+
+          const cssCompletions = getCssAutoCompleteSuggestions(
+            document,
+            position
+          );
+
+          // Merge all completions
+          const allItems = [
+            ...(baseCompletions?.items || []),
+            ...(htmlCompletions || []),
+            ...(cssCompletions || []),
+          ];
+
+          return allItems.length ? {
+            isIncomplete: baseCompletions?.isIncomplete || false,
+            items: allItems,
+          } : undefined;
+        },
 
         /**
          * Enhanced hover with deprecation warnings and attribute information
          */
         provideHover(document, position) {
-          return shouldProvideEnhancedService(document)
-            ? getHoverContent(document, position)
-            : null;
+          if (!shouldProvideEnhancedService(document)) {
+            return;
+          }
+
+          const htmlHover = getHoverContent(document, position);
+          if (htmlHover) {
+            return htmlHover;
+          }
+
+          const cssHover = getCssHoverContent(document, position);
+          if (cssHover) {
+            return cssHover;
+          }
+
+          return;
         },
+
 
         /**
          * Definition provider for custom elements using manifest locations

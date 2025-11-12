@@ -2,12 +2,12 @@
 // import { Component } from "@wc-toolkit/cem-utilities";
 import * as css from "vscode-css-languageservice";
 import { debug } from "../../utilities/logger.js";
-import { autocompleteService } from "../../services/autocomplete-service.js";
+import { autocompleteService, ExtendedCssCompletionItem } from "../../services/autocomplete-service.js";
 
 export function getCssAutoCompleteSuggestions(
   document: css.TextDocument,
   position: css.Position
-): css.CompletionList {
+): ExtendedCssCompletionItem[] | null {
   debug("css:autocomplete:getSuggestions:start", {
     uri: document.uri,
     line: position.line,
@@ -25,14 +25,6 @@ export function getCssAutoCompleteSuggestions(
 
   // Only return custom web component completions
   // Volar's built-in CSS service will handle standard CSS completions
-  const customCompletions = getCompletions();
 
-  return customCompletions;
-}
-
-function getCompletions(): css.CompletionList {
-  return {
-    isIncomplete: false,
-    items: autocompleteService.getCssCompletions(),
-  };
+  return autocompleteService.getCssCompletions();
 }

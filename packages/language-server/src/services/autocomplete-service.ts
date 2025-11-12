@@ -242,7 +242,7 @@ export class AutocompleteService {
             insertText: `var(${v.label})`,
             filterText: `var ${v.label}`,
             label: `var(${v.label})`,
-            sortText: `1var(${v.label})`,
+            sortText: `xxvar(${v.label})`,
           };
         })
       : [];
@@ -403,10 +403,10 @@ export class AutocompleteService {
         return;
       }
       const completion: ExtendedCssCompletionItem = {
-        label: cssVar.name,
-        sortText: `0--${cssVar.name}`,
+        label: `${cssVar.name}`,
+        sortText: `xx${cssVar.name}`,
         kind: css.CompletionItemKind.Variable,
-        insertText: `--${cssVar.name}`,
+        insertText: `${cssVar.name}`,
         detail: "CSS Variable",
         documentation: cssVar.description,
         deprecated: !!cssVar.deprecated,
@@ -431,7 +431,7 @@ export class AutocompleteService {
       const completion: ExtendedCssCompletionItem = {
         label: `part(${cssPart.name})`,
         filterText: `part ${cssPart.name}`,
-        sortText: `0${cssPart.name}`,
+        sortText: `xx${cssPart.name}`,
         kind: css.CompletionItemKind.Function,
         insertText: `part(${cssPart.name})`,
         detail: "CSS Part",
@@ -455,7 +455,7 @@ export class AutocompleteService {
       }
       const completion: ExtendedCssCompletionItem = {
         label: `state(${cssState.name})`,
-        sortText: `0${cssState.name}`,
+        sortText: `xx${cssState.name}`,
         kind: css.CompletionItemKind.Function,
         insertText: `state(${cssState.name})`,
         detail: "CSS State",

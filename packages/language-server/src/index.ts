@@ -8,9 +8,8 @@ import {
 import { create as createEmmetService } from "volar-service-emmet";
 import { create as createCssService } from "volar-service-css";
 import { create as createHtmlService } from "volar-service-html";
-import { webComponentHtmlPlugin } from "./plugins/html/html-plugin.js";
-import { webComponentCssPlugin } from "./plugins/css/css-plugin.js";
 import { manifestService } from "./services/manifest-service.js";
+import { webComponentPlugin } from "./plugins/web-component-plugin.js";
 
 /** Language Server Protocol connection instance for communication with the client */
 const connection = createConnection();
@@ -40,10 +39,10 @@ connection.onInitialize((params: InitializeParams) => {
       languagePlugins: [],
     })),
     [
+      // Try without base services first to see if webComponentPlugin gets called
+      webComponentPlugin(),
       createHtmlService(),
       createCssService(),
-      webComponentHtmlPlugin(),
-      webComponentCssPlugin(),
       createEmmetService()
     ]
   );

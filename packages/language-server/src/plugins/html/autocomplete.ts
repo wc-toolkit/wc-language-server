@@ -30,12 +30,7 @@ export function getAutoCompleteSuggestions(
 
 function getCompletions(
   beforeText: string
-): html.CompletionList | null {
-  const completions: html.CompletionList = {
-    isIncomplete: false,
-    items: [],
-  };
-
+): html.CompletionItem[] | null {
   // Tag completion: <my-elem|
   const tagMatch = beforeText.match(/<([a-zA-Z0-9-]*)$/);
   if (tagMatch) {
@@ -56,10 +51,9 @@ function getCompletions(
       lastChar !== "}"
     ) {
       debug("autocomplete:trigger:bareTag", { partial: bareTagMatch[1] });
-      addLintSnippets(completions);
+      const lintSnippets = getLintSnippets();
       const tagCompletions = getTagCompletions(true);
-      completions.items.push(...tagCompletions.items);
-      return completions;
+      return [...lintSnippets, ...tagCompletions];
     }
   }
 
@@ -99,13 +93,13 @@ function getCompletions(
     debug("autocomplete:trigger:directiveComment", {
       directive: wctoolsCommentMatch[1],
     });
-    return addLintRuleCompletions(completions);
+    return addLintRuleCompletions();
   }
 
   return null;
 }
 
-function addLintSnippets(completions: html.CompletionList) {
+function getLintSnippets() {
   // Offer full-comment snippets first so users can quickly insert an ignore directive
   const directives = [
     {
@@ -129,10 +123,10 @@ function addLintSnippets(completions: html.CompletionList) {
     sortText: "0" + d.name,
   }));
 
-  completions.items.push(...directiveCompletions);
+  return directiveCompletions;
 }
 
-function addLintRuleCompletions(completions: html.CompletionList) {
+function addLintRuleCompletions() {
   const rules = [
     { name: "unknownElement", description: "Element is not defined in CEM" },
     { name: "deprecatedElement", description: "Element is deprecated" },
@@ -166,53 +160,40 @@ function addLintRuleCompletions(completions: html.CompletionList) {
     insertText: r.name,
   }));
 
-  completions.items.push(...commentCompletions);
-  return {
-    isIncomplete: false,
-    items: commentCompletions,
-  };
+  return commentCompletions;
 }
 
 function getTagCompletions(
   includeOpeningBrackets: boolean = false
-): html.CompletionList {
+): html.CompletionItem[] {
   const customCompletions = autocompleteService.getTagCompletions(
     includeOpeningBrackets
   );
-  return {
-    isIncomplete: false,
-    items: customCompletions,
-  };
+  return customCompletions;
 }
 
 function getAttributeCompletions(
   tagName: string,
   attrPrefix?: BindingPrefix,
   beforeText?: string
-): html.CompletionList {
+): html.CompletionItem[] {
   const items = autocompleteService.getAttributeCompletions(
     tagName,
     attrPrefix,
     beforeText
   );
 
-  return {
-    isIncomplete: false,
-    items: items,
-  };
+  return items;
 }
 
 function getAttributeValueCompletions(
   tagName: string,
   attributeName: string
-): html.CompletionList {
+): html.CompletionItem[] {
   const attrValueCompletions = autocompleteService.getAttributeValueCompletions(
     tagName,
     attributeName
   );
 
-  return {
-    isIncomplete: false,
-    items: attrValueCompletions,
-  };
+  return attrValueCompletions;
 }

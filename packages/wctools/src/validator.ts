@@ -5,7 +5,7 @@ import { minimatch } from "minimatch";
 import { getLanguageService } from "vscode-html-languageservice";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Diagnostic } from "vscode-languageserver-types";
-import { getValidation } from "../../language-server/src/plugins/index.js";
+import { getValidation } from "../../language-server/src/plugins/html/validation.js";
 import { debug, warn } from "../../language-server/src/utilities/logger.js";
 import {
   configurationService,

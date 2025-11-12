@@ -6,7 +6,7 @@ import {
 } from "@volar/language-server";
 import { manifestService } from "../../services/manifest-service.js";
 import { configurationService } from "../../services/configuration-service.js";
-import { getCssAutoCompleteSuggestions } from "./css-autocomplete.js";
+// import { getCssAutoCompleteSuggestions } from "./css-autocomplete.js";
 import { getCssHoverContent } from "./css-hover.js";
 
 /**
@@ -64,22 +64,22 @@ export function webComponentCssPlugin(): LanguageServicePlugin {
          * - CSS custom states (:state())
          * - Component selectors
          */
-        provideCompletionItems(document, position) {
-          // Only provide custom completions if this file should be enhanced
-          // Return undefined (not null) to let other plugins handle it
-          if (!shouldProvideEnhancedService(document)) {
-            return undefined;
-          }
+        // provideCompletionItems(document, position) {
+        //   // Only provide custom completions if this file should be enhanced
+        //   // Return undefined (not null) to let other plugins handle it
+        //   if (!shouldProvideEnhancedService(document)) {
+        //     return undefined;
+        //   }
 
-          // Get enhanced completions for web components
-          const customCompletions = getCssAutoCompleteSuggestions(
-            document,
-            position
-          );
+        //   // Get enhanced completions for web components
+        //   const customCompletions = getCssAutoCompleteSuggestions(
+        //     document,
+        //     position
+        //   );
 
-          // Return completions or undefined to let other plugins handle it
-          return customCompletions || undefined;
-        },
+        //   // Return completions or undefined to let other plugins handle it
+        //   return customCompletions || undefined;
+        // },
 
         /**
          * Enhanced hover with information about:
