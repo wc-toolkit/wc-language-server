@@ -1,5 +1,12 @@
 # @wc-toolkit/wctools
 
+## 0.0.9
+
+### Patch Changes
+
+- 8fc266c: Added hover, autocomplete, and validation for properties and events in common template binding syntaxes (Angular, React, Vue, Lit, FAST, etc.).
+- 8fc266c: Added API cache for better performance. This also adds access to other APIs besides just attributes.
+
 ## 0.0.8
 
 ### Patch Changes

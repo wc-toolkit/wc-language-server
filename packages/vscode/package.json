@@ -1,6 +1,6 @@
 {
   "name": "web-components-language-server",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "icon": "assets/icon_alpha.png",
   "repository": {
     "type": "git",
