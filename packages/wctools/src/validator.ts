@@ -5,11 +5,11 @@ import { minimatch } from "minimatch";
 import { getLanguageService } from "vscode-html-languageservice";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Diagnostic } from "vscode-languageserver-types";
-import { getValidation } from "../../language-server/src/plugins/index.js";
+import { getValidation } from "../../language-server/src/plugins/html/validation.js";
 import { debug, warn } from "../../language-server/src/utilities/logger.js";
 import {
   configurationService,
-  customElementsService,
+  manifestService,
   WCConfig,
 } from "../../language-server/src/services/index.js";
 
@@ -29,7 +29,7 @@ export async function validateFiles(
   // Friendly runtime check: if both services are missing it's likely the
   // language-server package hasn't been built or isn't installed. Provide a
   // clear action for contributors and CI.
-  if (!configurationService && !customElementsService) {
+  if (!configurationService && !manifestService) {
     throw new Error(
       "Missing @wc-toolkit/language-server services. Please build the workspace (e.g. run `pnpm -w run build`) or ensure @wc-toolkit/language-server is installed and built before running the CLI.",
     );

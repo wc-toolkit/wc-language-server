@@ -2,13 +2,14 @@ import {
   createConnection,
   createServer,
   createTypeScriptProject,
-  loadTsdkByPath,
   InitializeParams,
+  loadTsdkByPath,
 } from "@volar/language-server/node.js";
-import { create as createCssService } from "volar-service-css";
 import { create as createEmmetService } from "volar-service-emmet";
-import { webComponentHtmlPlugin } from "./plugins/html/html-plugin.js";
-import { customElementsService } from "./services/custom-elements-service.js";
+import { create as createCssService } from "volar-service-css";
+import { create as createHtmlService } from "volar-service-html";
+import { manifestService } from "./services/manifest-service.js";
+import { webComponentPlugin } from "./plugins/web-component-plugin.js";
 
 /** Language Server Protocol connection instance for communication with the client */
 const connection = createConnection();
@@ -37,12 +38,18 @@ connection.onInitialize((params: InitializeParams) => {
     createTypeScriptProject(tsdk.typescript, tsdk.diagnosticMessages, () => ({
       languagePlugins: [],
     })),
-    [webComponentHtmlPlugin(), createCssService(), createEmmetService()]
+    [
+      // Try without base services first to see if webComponentPlugin gets called
+      webComponentPlugin(),
+      createHtmlService(),
+      createCssService(),
+      createEmmetService()
+    ]
   );
 });
 
-connection.onRequest('wctools/getDocs', () => {
-  const docs = customElementsService.getAllDocs(); // Map<string,string>
+connection.onRequest("wctools/getDocs", () => {
+  const docs = manifestService.getAllDocs(); // Map<string,string>
   // Convert Map to plain object so it survives JSON serialization over LSP
   return Object.fromEntries(docs.entries());
 });

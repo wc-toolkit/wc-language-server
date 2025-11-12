@@ -1,18 +1,12 @@
-import { getComponentDetailsTemplate } from "@wc-toolkit/cem-utilities";
-import {
-  AttributeInfo,
-  customElementsService,
-} from "../../services/custom-elements-service.js";
 import * as html from "vscode-html-languageservice";
-import { configurationService } from "../../services/configuration-service.js";
 import {
   ATTR_NAME_REGEX,
   ATTR_VALUE_REGEX,
   BindingPrefix,
   getAttributePrefix,
-  getBaseAttributeName,
 } from "./utilities.js";
 import { debug } from "../../utilities/logger.js";
+import { autocompleteService } from "../../services/autocomplete-service.js";
 
 export function getAutoCompleteSuggestions(
   document: html.TextDocument,
@@ -26,38 +20,22 @@ export function getAutoCompleteSuggestions(
   const text = document.getText();
   const offset = document.offsetAt(position);
   const beforeText = text.substring(0, offset);
-  const htmlLanguageService = html.getLanguageService();
 
-  const textDocument = html.TextDocument.create(
-    document.uri,
-    "html",
-    0,
-    document.getText()
-  );
-  const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
-
-  // Get default completions
-  const result = htmlLanguageService.doComplete(
-    textDocument,
-    position,
-    htmlDocument
-  );
-
-  // Add snippet completions for custom tags and attributes
-  const customCompletions = getCompletions(beforeText, result);
+  // Only return custom web component completions
+  // Volar's built-in HTML service will handle standard HTML completions
+  const customCompletions = getCompletions(beforeText);
 
   return customCompletions;
 }
 
 function getCompletions(
-  beforeText: string,
-  completions: html.CompletionList
-): html.CompletionList | null {
+  beforeText: string
+): html.CompletionItem[] | null {
   // Tag completion: <my-elem|
   const tagMatch = beforeText.match(/<([a-zA-Z0-9-]*)$/);
   if (tagMatch) {
     debug("autocomplete:trigger:tag", { partial: tagMatch[1] });
-    return getTagCompletions(completions);
+    return getTagCompletions();
   }
 
   // Tag name without opening '<': my-ele|
@@ -73,8 +51,9 @@ function getCompletions(
       lastChar !== "}"
     ) {
       debug("autocomplete:trigger:bareTag", { partial: bareTagMatch[1] });
-      addLintSnippets(completions);
-      return getTagCompletions(completions, true);
+      const lintSnippets = getLintSnippets();
+      const tagCompletions = getTagCompletions(true);
+      return [...lintSnippets, ...tagCompletions];
     }
   }
 
@@ -84,10 +63,10 @@ function getCompletions(
     const tagName = attrValueMatch[1];
     const attributeName = attrValueMatch[2];
     debug("autocomplete:trigger:attrValue", { tagName, attributeName });
-    return getAttributeValueCompletions(completions, tagName, attributeName);
+    return getAttributeValueCompletions(tagName, attributeName);
   }
 
-  // Attribute name completion: <my-elem | and with template-binding prefixes: .| :| [| ?|
+  // Attribute name completion: <my-elem | and with template-binding prefixes: .| :| [| ?| @|
   const attrNameMatch = beforeText.match(ATTR_NAME_REGEX);
   if (attrNameMatch) {
     const tagName = attrNameMatch[1];
@@ -98,7 +77,11 @@ function getCompletions(
       raw: rawAttr,
       prefix: attrPrefix,
     });
-    return getAttributeCompletions(completions, tagName, attrPrefix);
+    return getAttributeCompletions(
+      tagName,
+      attrPrefix,
+      beforeText
+    );
   }
 
   // wctools directive completions inside HTML comments, e.g.
@@ -110,13 +93,13 @@ function getCompletions(
     debug("autocomplete:trigger:directiveComment", {
       directive: wctoolsCommentMatch[1],
     });
-    return addLintRuleCompletions(completions);
+    return addLintRuleCompletions();
   }
 
   return null;
 }
 
-function addLintSnippets(completions: html.CompletionList) {
+function getLintSnippets() {
   // Offer full-comment snippets first so users can quickly insert an ignore directive
   const directives = [
     {
@@ -140,10 +123,10 @@ function addLintSnippets(completions: html.CompletionList) {
     sortText: "0" + d.name,
   }));
 
-  completions.items.push(...directiveCompletions);
+  return directiveCompletions;
 }
 
-function addLintRuleCompletions(completions: html.CompletionList) {
+function addLintRuleCompletions() {
   const rules = [
     { name: "unknownElement", description: "Element is not defined in CEM" },
     { name: "deprecatedElement", description: "Element is deprecated" },
@@ -177,168 +160,40 @@ function addLintRuleCompletions(completions: html.CompletionList) {
     insertText: r.name,
   }));
 
-  completions.items.push(...commentCompletions);
-  return {
-    isIncomplete: false,
-    items: commentCompletions,
-  };
+  return commentCompletions;
 }
 
 function getTagCompletions(
-  htmlCompletions: html.CompletionList,
   includeOpeningBrackets: boolean = false
-): html.CompletionList {
-  const customElements = customElementsService.getCustomElements();
-  debug("autocomplete:build:tagCompletions", customElements.length);
-
-  const customCompletions: html.CompletionItem[] = customElements.map(
-    (element) => {
-      const formattedTagName = configurationService.getFormattedTagName(
-        element.tagName!,
-        element.dependency as string
-      );
-      const tag = includeOpeningBrackets
-        ? `<${formattedTagName}>$0</${formattedTagName}>`
-        : `${formattedTagName}>$0</${formattedTagName}>`;
-      return {
-        label: formattedTagName,
-        kind: html.CompletionItemKind.Snippet,
-        documentation: {
-          kind: "markdown",
-          value: getComponentDetailsTemplate(element),
-        },
-        insertText: tag,
-        insertTextFormat: html.InsertTextFormat.Snippet,
-        detail: "Custom Element",
-        sortText: "0" + formattedTagName,
-        deprecated: !!element.deprecated,
-      };
-    }
+): html.CompletionItem[] {
+  const customCompletions = autocompleteService.getTagCompletions(
+    includeOpeningBrackets
   );
-
-  htmlCompletions.items.push(...customCompletions);
-  return htmlCompletions;
+  return customCompletions;
 }
 
 function getAttributeCompletions(
-  htmlCompletions: html.CompletionList,
   tagName: string,
-  attrPrefix?: BindingPrefix
-): html.CompletionList {
-  const element = customElementsService.getCustomElement(tagName);
-  if (!element) {
-    debug("autocomplete:attr:noElement", { tagName });
-    return htmlCompletions;
-  }
+  attrPrefix?: BindingPrefix,
+  beforeText?: string
+): html.CompletionItem[] {
+  const items = autocompleteService.getAttributeCompletions(
+    tagName,
+    attrPrefix,
+    beforeText
+  );
 
-  let attributes = getAttributeInfo(tagName);
-  const originalCount = attributes.length;
-  if (attrPrefix === "?") {
-    attributes = attributes.filter((a) => a.type === "boolean");
-    debug("autocomplete:attr:booleanFilter", {
-      tagName,
-      before: originalCount,
-      after: attributes.length,
-    });
-  } else {
-    debug("autocomplete:attr:list", {
-      tagName,
-      count: attributes.length,
-      prefix: attrPrefix,
-    });
-  }
-
-  const prefix = attrPrefix ?? "";
-  const suffix = attrPrefix === "[" ? "]" : "";
-  const items = attributes.map((attribute) => {
-    const baseName = attribute.name;
-    const label = `${prefix}${baseName}${suffix}`;
-    const insertText = getInsertText(
-      baseName,
-      attrPrefix,
-      !!attribute.options?.length,
-      attribute.type === "boolean"
-    );
-
-    return {
-      label, // shows user the prefixed form
-      filterText: label, // ensures typing '?' filters correctly
-      sortText: `0${label}`,
-      kind: html.CompletionItemKind.Property,
-      insertText,
-      insertTextFormat: html.InsertTextFormat.Snippet,
-      detail: attribute.type || "attribute",
-      documentation: attribute.description,
-      deprecated: !!attribute.deprecated,
-    } as html.CompletionItem;
-  });
-
-  htmlCompletions.items.push(...items);
-  return htmlCompletions;
-}
-
-function getInsertText(
-  label: string,
-  prefix: BindingPrefix | undefined,
-  hasValues?: boolean,
-  isBoolean?: boolean
-): string {
-  switch (prefix) {
-    case "?":
-      return `?${label}="\${0}"`;
-    case ".":
-      return `${label}="\${0}"`;
-    case ":":
-      return `${label}="\${0}"`;
-    case "[":
-      return `${label}]="\${0}"`;
-    default:
-      return hasValues
-        ? `${label}="$1"$0`
-        : isBoolean
-          ? label
-          : `${label}="$0"`;
-  }
+  return items;
 }
 
 function getAttributeValueCompletions(
-  htmlCompletions: html.CompletionList,
   tagName: string,
   attributeName: string
-): html.CompletionList {
-  const attributes = getAttributeInfo(tagName);
-  const baseName = getBaseAttributeName(attributeName);
-  const attribute = attributes.find((attr) => attr.name === baseName);
-
-  if (!attribute?.options?.length) {
-    debug("autocomplete:attrValue:none", { tagName, attribute: baseName });
-    return htmlCompletions;
-  }
-  debug("autocomplete:attrValue:options", {
+): html.CompletionItem[] {
+  const attrValueCompletions = autocompleteService.getAttributeValueCompletions(
     tagName,
-    attribute: baseName,
-    values: attribute.options,
-  });
-
-  const customCompletions: html.CompletionItem[] = attribute?.options.map(
-    (value) => ({
-      label: value,
-      kind: html.CompletionItemKind.Value,
-      documentation: {
-        kind: "markdown",
-        value: `Value for ${baseName} attribute`,
-      },
-      insertText: value,
-      sortText: "0" + value,
-    })
+    attributeName
   );
 
-  htmlCompletions.items.push(...customCompletions);
-  return htmlCompletions;
-}
-
-function getAttributeInfo(tagName: string): AttributeInfo[] {
-  return Array.from(customElementsService.attributeData?.entries())
-    .filter(([key]) => key.startsWith(`${tagName}:`))
-    .map(([, value]) => value);
+  return attrValueCompletions;
 }

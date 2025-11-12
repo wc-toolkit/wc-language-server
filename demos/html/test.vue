@@ -1,6 +1,7 @@
 <template>
   <div>
     <sl-alert countdown="ltr"></sl-alert>
+    
   </div>
 </template>
 
@@ -14,5 +15,6 @@ sl-alert {
   --sl-alert-font-size: 1rem;
   --sl-alert-color: #333;
   --sl-alert-background-color: #f8f9fa;
+  
 }
 </style>

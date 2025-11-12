@@ -38,8 +38,10 @@ export default defineConfig({
     "glob",
     "minimatch",
     "vscode-html-languageservice",
+    "vscode-css-languageservice",
     "vscode-languageserver-textdocument",
     "vscode-languageserver-types",
+    "@vscode/l10n",
   ],
 
   // Add shebang to CLI file only

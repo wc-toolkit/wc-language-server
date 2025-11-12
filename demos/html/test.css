@@ -1,0 +1,9 @@
+.test::part() {
+}
+
+.test::part(banner):state(current) {
+  color: red;
+  color: var(--banner-height);
+  height: var(--secondary-opacity);
+  
+}

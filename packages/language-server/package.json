@@ -33,6 +33,7 @@
     "volar-service-emmet": "volar-2.4",
     "volar-service-html": "volar-2.4",
     "volar-service-typescript": "volar-2.4",
+    "vscode-css-languageservice": "^6.3.8",
     "vscode-html-languageservice": "^5.3.1",
     "vscode-uri": "^3.0.8"
   },

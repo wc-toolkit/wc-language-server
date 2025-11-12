@@ -1,7 +1,7 @@
 import * as html from "vscode-html-languageservice";
-import { customElementsService } from "../../services/custom-elements-service.js";
+import { manifestService } from "../../services/manifest-service.js";
 import { Hover, NullableProviderResult } from "@volar/language-server";
-import { trimAttributeSpecials } from "./utilities.js";
+import { autocompleteService } from "../../services/autocomplete-service.js";
 
 export function getHoverContent(
   document: html.TextDocument,
@@ -18,7 +18,7 @@ export function getHoverContent(
   const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
   const offset = textDocument.offsetAt(position);
   const node = htmlDocument.findNodeAt(offset);
-  const element = customElementsService.getCustomElement(node.tag || "");
+  const element = manifestService.getCustomElement(node.tag || "");
 
   // Check for custom elements
   if (!node?.tag || !element) {
@@ -26,7 +26,7 @@ export function getHoverContent(
     return undefined;
   }
 
-  let hoverContent = customElementsService.getCustomElementDocs(node.tag || "");
+  let hoverContent = manifestService.getCustomElementDocs(node.tag || "");
 
   // Add deprecation warning for element
   if (element.deprecated) {
@@ -52,17 +52,13 @@ export function getHoverContent(
         cursorOffset >= tagOffset + attrStart &&
         cursorOffset <= tagOffset + attrEnd
       ) {
-        const normalizedAttrName = trimAttributeSpecials(attrName);
-        const attribute = customElementsService.getAttributeInfo(
-          node.tag,
-          normalizedAttrName,
-        );
+        const attribute = autocompleteService.getAttributeCompletion(node.tag, attrName);
 
         if (!attribute) {
           return undefined;
         }
 
-        let attrContent = `${attribute.description}\n\n**Type:** \`${attribute.type}\``;
+        let attrContent = `${attribute.documentation}\n\n**Type:** \`${attribute.detail}\``;
 
         if (attribute.deprecated) {
           const attrDeprecationMessage =
