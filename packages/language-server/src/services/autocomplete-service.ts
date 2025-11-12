@@ -403,10 +403,11 @@ export class AutocompleteService {
         return;
       }
       const completion: ExtendedCssCompletionItem = {
-        label: `${cssVar.name}`,
-        sortText: `xx${cssVar.name}`,
+        label: cssVar.name, // e.g., "--my-color"
+        sortText: `aa${cssVar.name}`, // Sort before var() versions
+        filterText: cssVar.name, // Ensure it matches when typing "--"
         kind: css.CompletionItemKind.Variable,
-        insertText: `${cssVar.name}`,
+        insertText: cssVar.name,
         detail: "CSS Variable",
         documentation: cssVar.description,
         deprecated: !!cssVar.deprecated,

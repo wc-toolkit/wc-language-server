@@ -1,9 +1,17 @@
 #!/usr/bin/env node
 /* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-require-imports */
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 if (process.argv.includes("--version")) {
-  const pkgJSON = require("../package.json");
+  const pkgJSON = JSON.parse(
+    readFileSync(join(__dirname, "../package.json"), "utf-8")
+  );
   console.log(`${pkgJSON["version"]}`);
 } else {
-  require("../dist/index.js");
+  await import("../dist/index.js");
 }
