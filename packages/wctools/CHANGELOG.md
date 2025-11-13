@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.10
+
+### Patch Changes
+
+- dd72902: Added some error logging
+
 ## 0.0.9
 
 ### Patch Changes

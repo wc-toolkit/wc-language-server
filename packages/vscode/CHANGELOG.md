@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.24
+
+### Patch Changes
+
+- dd72902: Added some error logging
+
 ## 0.0.23
 
 ### Patch Changes
