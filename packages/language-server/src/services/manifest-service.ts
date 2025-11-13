@@ -44,7 +44,11 @@ export class ManifestService {
 
   constructor() {
     debug("cem:init");
-    configurationService.loadConfig().then(() => this.loadManifests());;
+    configurationService.loadConfig()
+      .then(() => this.loadManifests())
+      .catch((err) => {
+        error("cem:init:failed", err);
+      });
   }
 
   public getAllDocs(): Map<string, string> {
