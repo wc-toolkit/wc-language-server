@@ -243,6 +243,7 @@ export class AutocompleteService {
             filterText: `var ${v.label}`,
             label: `var(${v.label})`,
             sortText: `xxvar(${v.label})`,
+            kind: css.CompletionItemKind.Variable,
           };
         })
       : [];
@@ -406,7 +407,7 @@ export class AutocompleteService {
         label: cssVar.name, // e.g., "--my-color"
         sortText: `aa${cssVar.name}`, // Sort before var() versions
         filterText: cssVar.name, // Ensure it matches when typing "--"
-        kind: css.CompletionItemKind.Variable,
+        kind: css.CompletionItemKind.Property,
         insertText: cssVar.name,
         detail: "CSS Variable",
         documentation: cssVar.description,
