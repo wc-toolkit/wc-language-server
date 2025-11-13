@@ -9,6 +9,8 @@ export class SimpleGreeting extends LitElement {
     }
   `;
 
+  someValue = 'test';
+
   render() {
     return html`
       <h1>Lit Test</h1>
@@ -18,7 +20,8 @@ export class SimpleGreeting extends LitElement {
       <sl-input .defaultValue=${"Hello, World!"} help-text=${"Enter your greeting"} .disabled=${true}></sl-input>
       <sl-alert .closable=${true}></sl-alert>
       <sl-icon [label]="" library=${"icon-library"} [attr.src]="" [attr.name]="" name="" (sl-error)=${this.handleError}></sl-icon>
-      <sl-alert closable style=""></sl-alert>
+      <sl-alert closable style="" variant=${this.someValue ? "something" : "test"}></sl-alert>
+      <sl-button variant="neutral"></sl-button>
     `;
   }
 }
