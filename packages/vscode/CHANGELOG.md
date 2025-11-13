@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.26
+
+### Patch Changes
+
+- 4222fb7: Cleaned up validation for attribute binding and interpolated values
+
 ## 0.0.25
 
 ### Patch Changes

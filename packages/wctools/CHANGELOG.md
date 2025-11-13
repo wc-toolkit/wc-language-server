@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.12
+
+### Patch Changes
+
+- 4222fb7: Cleaned up validation for attribute binding and interpolated values
+
 ## 0.0.11
 
 ### Patch Changes
