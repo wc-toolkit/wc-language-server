@@ -1,0 +1,6 @@
+{
+  "wctools.mcp.enabled": true,
+  "wctools.mcp.transport": "http",
+  "wctools.mcp.port": 3000,
+  "wctools.mcp.host": "localhost"
+}

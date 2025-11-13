@@ -669,7 +669,8 @@ function validateAttributeValue(
   if (
     !attrOptions ||
     attrOptions === "string" ||
-    attrOptions.includes("string & {}")
+    attrOptions.includes("string & {}") ||
+    attrOptions.includes("(string & {})")
   ) {
     return null;
   }

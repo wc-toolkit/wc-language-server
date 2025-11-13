@@ -89,10 +89,28 @@ export async function activate(context: vscode.ExtensionContext) {
       // Set initial docs (will be empty at first, but will be updated when loadDocs completes)
       mcpServer.setComponentDocs(componentDocs);
     } catch (error) {
-      log(`Failed to start MCP server: ${error}`);
-      vscode.window.showWarningMessage(
-        `Failed to start Web Components MCP server: ${error instanceof Error ? error.message : String(error)}`
-      );
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isPortInUse = errorMessage.includes("EADDRINUSE");
+      
+      log(`Failed to start MCP server: ${errorMessage}`);
+      
+      if (isPortInUse) {
+        vscode.window.showWarningMessage(
+          `MCP server port ${mcpPort} is already in use. Try changing wctools.mcp.port in settings or restart VS Code.`,
+          "Open Settings"
+        ).then(selection => {
+          if (selection === "Open Settings") {
+            vscode.commands.executeCommand("workbench.action.openSettings", "wctools.mcp.port");
+          }
+        });
+      } else {
+        vscode.window.showWarningMessage(
+          `Failed to start Web Components MCP server: ${errorMessage}`
+        );
+      }
+      
+      // Clear the server instance so we don't try to use it
+      mcpServer = undefined;
     }
   }
 
