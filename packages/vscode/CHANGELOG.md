@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.23
+
+### Patch Changes
+
+- 13e07ff: Fixed autocomplete
+
 ## 0.0.22
 
 ### Patch Changes
