@@ -42,6 +42,7 @@ export function webComponentPlugin(): LanguageServicePlugin {
           "(",
           ..."abcdefghijklmnopqrstuvwxyz".split(""),
         ],
+        resolveProvider: true,
       },
       hoverProvider: true,
       definitionProvider: true,
@@ -75,16 +76,16 @@ export function webComponentPlugin(): LanguageServicePlugin {
       return {
         /**
          * Enhanced completion provider for HTML with web component support
+         * 
+         * Note: This provider only returns custom web component completions.
+         * Volar automatically merges these with completions from other services
+         * (HTML, CSS, Emmet) at the LSP layer.
          */
-        async provideCompletionItems(document, position, completionContext, token) {
+        provideCompletionItems(document, position) {
           // Only provide custom completions if this file should be enhanced
-          // Return undefined (not null) to let other plugins handle it
           if (!shouldProvideEnhancedService(document)) {
             return undefined;
           }
-
-          // Get base completions from other services (HTML, CSS, etc.)
-          const baseCompletions = await context.inject('provideCompletionItems', document, position, completionContext, token);
 
           // Get custom web component completions
           const htmlCompletions = getAutoCompleteSuggestions(
@@ -97,17 +98,17 @@ export function webComponentPlugin(): LanguageServicePlugin {
             position
           );
 
-          // Merge all completions
+          // Combine our custom completions
           const allItems = [
-            ...(baseCompletions?.items || []),
             ...(htmlCompletions || []),
             ...(cssCompletions || []),
           ];
 
-          return allItems.length ? {
-            isIncomplete: baseCompletions?.isIncomplete || false,
+          // Return our completions - Volar will merge with other services
+          return {
+            isIncomplete: false,
             items: allItems,
-          } : undefined;
+          };
         },
 
         /**

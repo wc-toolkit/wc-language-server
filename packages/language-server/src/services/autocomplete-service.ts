@@ -243,6 +243,7 @@ export class AutocompleteService {
             filterText: `var ${v.label}`,
             label: `var(${v.label})`,
             sortText: `xxvar(${v.label})`,
+            kind: css.CompletionItemKind.Variable,
           };
         })
       : [];
@@ -403,10 +404,11 @@ export class AutocompleteService {
         return;
       }
       const completion: ExtendedCssCompletionItem = {
-        label: `${cssVar.name}`,
+        label: cssVar.name, // e.g., "--my-color"
         sortText: `xx${cssVar.name}`,
-        kind: css.CompletionItemKind.Variable,
-        insertText: `${cssVar.name}`,
+        filterText: cssVar.name, // Ensure it matches when typing "--"
+        kind: css.CompletionItemKind.Property,
+        insertText: cssVar.name,
         detail: "CSS Variable",
         documentation: cssVar.description,
         deprecated: !!cssVar.deprecated,

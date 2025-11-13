@@ -39,11 +39,12 @@ connection.onInitialize((params: InitializeParams) => {
       languagePlugins: [],
     })),
     [
-      // Try without base services first to see if webComponentPlugin gets called
+      // Order matters: base services first, then our custom plugin
+      // This ensures HTML/CSS/Emmet completions are available first
       webComponentPlugin(),
       createHtmlService(),
       createCssService(),
-      createEmmetService()
+      createEmmetService(),
     ]
   );
 });
