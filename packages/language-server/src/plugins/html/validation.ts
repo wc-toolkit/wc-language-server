@@ -328,6 +328,7 @@ export function parseAttributesFromText(
   start: number;
   end: number;
   match: RegExpExecArray;
+  isInterpolatedValue?: boolean;
 }> {
   // Find the first whitespace after the tag name (space, tab, newline).
   // This ensures attributes split across multiple lines are included.
@@ -345,11 +346,23 @@ export function parseAttributesFromText(
     closingIndex === -1 ? undefined : closingIndex
   );
 
+  // Find and record all interpolation ranges to skip them during parsing
+  // Patterns like ${...options}, {...options}, ${options}, or {options}
+  const interpolationRanges: Array<{ start: number; end: number }> = [];
+  const interpolationRegex = /\$?\{[^}]*\}/g;
+  let interpolationMatch: RegExpExecArray | null;
+  while ((interpolationMatch = interpolationRegex.exec(attrText)) !== null) {
+    interpolationRanges.push({
+      start: interpolationMatch.index,
+      end: interpolationMatch.index + interpolationMatch[0].length,
+    });
+  }
+
   // Support normal attrs (attr="v"), and bracket-binding ([attr]="v").
   // Also allows values to be captured within the same match, preventing inner quoted text
   // from being parsed as separate attributes.
   const attrRegex =
-    /(?:([.:?@[])?([a-zA-Z][a-zA-Z0-9.-]*)(\])?)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|\{([^}]*)\}|\$\{([^}]*)\}|([^\s"'>/]+)))?/g;
+    /(?:([.:?@[(])?([a-zA-Z][a-zA-Z0-9.-]*)(\]\))?)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|\{([^}]*)\}|\$\{([^}]*)\}|([^\s"'>/]+)))?/g;
 
   const attributes: Array<{
     name: string;
@@ -357,6 +370,7 @@ export function parseAttributesFromText(
     start: number;
     end: number;
     match: RegExpExecArray;
+    isInterpolatedValue?: boolean;
   }> = [];
 
   let match: RegExpExecArray | null;
@@ -367,6 +381,19 @@ export function parseAttributesFromText(
     // Skip the tag name if present (only applies if parser ever matches it)
     if (coreName === node.tag) continue;
 
+    const matchIndexInElement = firstSpace + match.index;
+    
+    // Skip if this match is inside an interpolation range
+    const matchIndex = match.index;
+    const isInsideInterpolation = interpolationRanges.some(
+      (range) => matchIndex >= range.start && matchIndex < range.end
+    );
+    if (isInsideInterpolation) {
+      continue;
+    }
+
+    const attrStart = node.start + matchIndexInElement;
+
     // Compose the raw attribute name including any binding prefix and trailing ']'
     const rawName = prefix
       ? prefix === "["
@@ -374,8 +401,6 @@ export function parseAttributesFromText(
         : `${prefix}${coreName}`
       : coreName;
 
-    const matchIndexInElement = firstSpace + match.index;
-    const attrStart = node.start + matchIndexInElement;
     const attrNameEnd = attrStart + rawName.length;
 
     const value =
@@ -391,6 +416,9 @@ export function parseAttributesFromText(
                 ? match[8]
                 : null;
 
+    // Track if this value came from a curly brace interpolation
+    const isInterpolatedValue = match[6] !== undefined || match[7] !== undefined;
+
     // Adjust match.index to be relative to the element start, as callers expect
     const adjustedMatch = match as RegExpExecArray;
     Object.defineProperty(adjustedMatch, "index", {
@@ -403,6 +431,7 @@ export function parseAttributesFromText(
       start: attrStart,
       end: attrNameEnd,
       match: adjustedMatch,
+      isInterpolatedValue,
     });
   }
 
@@ -419,6 +448,7 @@ function validateAttributeList(
     start: number;
     end: number;
     match: RegExpExecArray;
+    isInterpolatedValue?: boolean;
   }>,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
@@ -449,8 +479,7 @@ function validateAttributeList(
     if (node) {
       if (
         !BINDING_CHARACTERS.includes(attr.name.charAt(0)) &&
-        !attr.value?.startsWith("{") &&
-        !attr.value?.startsWith("${")
+        !attr.isInterpolatedValue
       ) {
         validateSingleAttributeValue(
           node,

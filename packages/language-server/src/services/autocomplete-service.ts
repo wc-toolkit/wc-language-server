@@ -319,7 +319,7 @@ export class AutocompleteService {
       this.componentCache.get(tagName)?.attributes?.set(attr.name, completion);
 
       const valueCompletions = attr.options
-        ?.filter((option) => option.includes("string & {}"))
+        ?.filter((option) => !option.includes("string & {}"))
         ?.map((option) => {
           const valueCompletion: ExtendedHtmlCompletionItem = {
             label: option, // shows user the option value
