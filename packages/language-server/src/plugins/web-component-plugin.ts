@@ -42,6 +42,7 @@ export function webComponentPlugin(): LanguageServicePlugin {
           "(",
           ..."abcdefghijklmnopqrstuvwxyz".split(""),
         ],
+        resolveProvider: true,
       },
       hoverProvider: true,
       definitionProvider: true,

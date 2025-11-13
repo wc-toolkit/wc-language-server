@@ -405,7 +405,7 @@ export class AutocompleteService {
       }
       const completion: ExtendedCssCompletionItem = {
         label: cssVar.name, // e.g., "--my-color"
-        sortText: `aa${cssVar.name}`, // Sort before var() versions
+        sortText: `xx${cssVar.name}`,
         filterText: cssVar.name, // Ensure it matches when typing "--"
         kind: css.CompletionItemKind.Property,
         insertText: cssVar.name,

@@ -41,10 +41,10 @@ connection.onInitialize((params: InitializeParams) => {
     [
       // Order matters: base services first, then our custom plugin
       // This ensures HTML/CSS/Emmet completions are available first
+      webComponentPlugin(),
       createHtmlService(),
       createCssService(),
       createEmmetService(),
-      webComponentPlugin(),
     ]
   );
 });
