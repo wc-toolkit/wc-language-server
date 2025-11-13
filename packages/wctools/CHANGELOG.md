@@ -1,5 +1,12 @@
 # @wc-toolkit/wctools
 
+## 0.0.11
+
+### Patch Changes
+
+- 09d2b46: Added fallback to `string` when attribute type is a TypeScript generic
+- 09d2b46: Skipped validation for attributes with flexible string inputs (`string & {}`) and excluded them from the list of options
+
 ## 0.0.10
 
 ### Patch Changes

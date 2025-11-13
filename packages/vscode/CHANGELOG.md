@@ -1,5 +1,14 @@
 # web-components-language-server
 
+## 0.0.25
+
+### Patch Changes
+
+- 09d2b46: Added fallback to `string` when attribute type is a TypeScript generic
+- 09d2b46: Added logic to keep MCP server alive to prevent timeouts
+- 09d2b46: Skipped validation for attributes with flexible string inputs (`string & {}`) and excluded them from the list of options
+- 09d2b46: Added error logs for MCP server
+
 ## 0.0.24
 
 ### Patch Changes
