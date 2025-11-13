@@ -1,0 +1,98 @@
+<idea-plugin>
+    <id>com.wc-toolkit.web-components</id>
+    <name>Web Components Language Server</name>
+    <vendor email="support@wc-toolkit.com" url="https://github.com/wc-toolkit/wc-language-server">wc-toolkit</vendor>
+
+    <description><![CDATA[
+    <p>Editor tools for working with web components / custom elements.</p>
+    <br/>
+    <p>Features:</p>
+    <ul>
+      <li>Autocomplete for web component attributes, properties, events, and slots</li>
+      <li>Hover documentation for custom elements</li>
+      <li>Validation and diagnostics for web component usage</li>
+      <li>Support for Custom Elements Manifest (CEM)</li>
+      <li>CSS part and custom property completion</li>
+    </ul>
+    ]]></description>
+
+    <change-notes><![CDATA[
+    <h3>0.0.23</h3>
+    <ul>
+      <li>Initial JetBrains plugin release</li>
+      <li>Language Server Protocol integration</li>
+      <li>Web component autocomplete and validation</li>
+    </ul>
+    ]]></change-notes>
+
+    <!-- Product and plugin compatibility requirements -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>JavaScript</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Application services -->
+        <applicationService 
+            serviceImplementation="com.wctoolkit.services.WCLanguageServerService"/>
+        
+        <!-- Project services -->
+        <projectService 
+            serviceImplementation="com.wctoolkit.services.ConfigWatcherService"/>
+        
+        <projectService
+            serviceImplementation="com.wctoolkit.services.ManifestLoaderService"/>
+
+        <!-- Settings / Configuration -->
+        <projectConfigurable
+            parentId="tools"
+            instance="com.wctoolkit.settings.WCToolsConfigurable"
+            id="com.wctoolkit.settings.WCToolsConfigurable"
+            displayName="Web Components"
+            nonDefaultProject="true"/>
+
+        <projectService
+            serviceImplementation="com.wctoolkit.settings.WCToolsSettings"/>
+
+        <!-- Notification group -->
+        <notificationGroup id="Web Components" displayType="BALLOON"/>
+
+        <!-- Startup activity to initialize language server -->
+        <postStartupActivity 
+            implementation="com.wctoolkit.startup.WCLanguageServerStartupActivity"/>
+    </extensions>
+
+    <actions>
+        <!-- Restart language server action -->
+        <action 
+            id="wctools.RestartLanguageServer"
+            class="com.wctoolkit.actions.RestartLanguageServerAction"
+            text="Restart Web Components Language Server"
+            description="Restart the Web Components language server">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+
+        <!-- Check loaded documentation action -->
+        <action
+            id="wctools.CheckDocs"
+            class="com.wctoolkit.actions.CheckDocsAction"
+            text="Check Web Component Documentation"
+            description="Show loaded web component documentation">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <!-- Plugin status check - also in Help menu for visibility -->
+        <action
+            id="wctools.PluginStatus"
+            class="com.wctoolkit.actions.CheckDocsAction"
+            text="Web Components Plugin Status"
+            description="Check if Web Components plugin is running">
+            <add-to-group group-id="HelpMenu" anchor="last"/>
+        </action>
+    </actions>
+
+    <applicationListeners>
+        <listener 
+            class="com.wctoolkit.listeners.ProjectCloseListener"
+            topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </applicationListeners>
+</idea-plugin>

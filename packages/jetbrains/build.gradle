@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '2.1.0'
+    id 'org.jetbrains.intellij.platform' version '2.2.0'
+}
+
+group = 'com.wc-toolkit'
+version = '0.0.23'
+
+repositories {
+    mavenCentral()
+    
+    intellijPlatform {
+        defaultRepositories()
+    }
+}
+
+// Configure Gradle IntelliJ Plugin
+intellijPlatform {
+    pluginConfiguration {
+        version = '0.0.23'
+        ideaVersion {
+            sinceBuild = '232'
+            untilBuild = '241.*'
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
+dependencies {
+    // IntelliJ Platform Gradle Plugin dependencies
+    intellijPlatform {
+        webstorm('2023.2.5')
+        pluginVerifier()
+        zipSigner()
+    }
+    
+    // LSP4J for Language Server Protocol support
+    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.21.1'
+    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.21.1'
+    
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+}

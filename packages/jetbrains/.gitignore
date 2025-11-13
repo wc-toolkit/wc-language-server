@@ -1,0 +1,36 @@
+# .gitignore for JetBrains Plugin
+
+# Gradle
+.gradle/
+build/
+!gradle-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Plugin build artifacts
+*.jar
+*.zip
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~
+
+# Kotlin
+*.kt.class

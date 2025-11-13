@@ -1,0 +1,29 @@
+{
+  "name": "@wc-toolkit/jetbrains",
+  "version": "0.0.23",
+  "description": "JetBrains plugin for Web Components Language Server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wc-toolkit/wc-language-server.git",
+    "directory": "packages/jetbrains"
+  },
+  "keywords": [
+    "web-components",
+    "custom-elements",
+    "jetbrains",
+    "intellij",
+    "webstorm",
+    "phpstorm",
+    "language-server",
+    "lsp"
+  ],
+  "author": "wc-toolkit",
+  "license": "MIT",
+  "scripts": {
+    "build": "./gradlew buildPlugin",
+    "test": "./gradlew test",
+    "run": "./gradlew runIde",
+    "publish": "./gradlew publishPlugin"
+  },
+  "devDependencies": {}
+}
