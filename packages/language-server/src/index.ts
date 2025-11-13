@@ -11,6 +11,15 @@ import { create as createHtmlService } from "volar-service-html";
 import { manifestService } from "./services/manifest-service.js";
 import { webComponentPlugin } from "./plugins/web-component-plugin.js";
 
+// Add global error handlers to prevent server crashes
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
+});
+
 /** Language Server Protocol connection instance for communication with the client */
 const connection = createConnection();
 
