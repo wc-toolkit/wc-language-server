@@ -1,4 +1,5 @@
 export default function TodoList() {
+  const test = {};
   return (
     <>
       <h1>Hedy Lamarr's Todos</h1>
@@ -12,7 +13,7 @@ export default function TodoList() {
         <li>Rehearse a movie scene</li>
         <li>Improve the spectrum technology</li>
       </ul>
-      <sl-alert closable="" variant="dangerd"></sl-alert>
+      <sl-alert closable variant={test ? "something" : "test"}></sl-alert>
     </>
   );
 }

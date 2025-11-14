@@ -41,6 +41,7 @@ export class WebComponentMCPServer {
   private componentDocs: Record<string, string> = {};
   private options: MCPServerOptions;
   private httpServer?: http.Server;
+  private keepAliveIntervals: Map<http.ServerResponse, NodeJS.Timeout> = new Map();
 
   constructor(options: MCPServerOptions = {}) {
     this.options = {
@@ -354,6 +355,28 @@ export class WebComponentMCPServer {
       Connection: "keep-alive",
     });
 
+    // Send keep-alive comments every 15 seconds to prevent timeout
+    const keepAliveInterval = setInterval(() => {
+      if (!res.writableEnded) {
+        res.write(": keep-alive\n\n");
+      } else {
+        clearInterval(keepAliveInterval);
+        this.keepAliveIntervals.delete(res);
+      }
+    }, 15000);
+
+    this.keepAliveIntervals.set(res, keepAliveInterval);
+
+    // Clean up when connection closes
+    res.on("close", () => {
+      log("SSE connection closed");
+      const interval = this.keepAliveIntervals.get(res);
+      if (interval) {
+        clearInterval(interval);
+        this.keepAliveIntervals.delete(res);
+      }
+    });
+
     const transport = new SSEServerTransport("/message", res);
     await this.server.connect(transport);
   }
@@ -422,6 +445,8 @@ export class WebComponentMCPServer {
     if (url.pathname === "/health" && req.method === "GET") {
       this.handleHealthCheck(res);
     } else if (url.pathname === "/sse" && req.method === "GET") {
+      // SSE connections should not timeout
+      req.socket.setTimeout(0);
       await this.handleSseConnection(res);
     } else if (url.pathname === "/message" && req.method === "POST") {
       this.handleMessageRequest(req, res);
@@ -442,12 +467,48 @@ export class WebComponentMCPServer {
       });
     });
 
-    this.httpServer.listen(this.options.port, this.options.host, () => {
-      log(
-        `MCP server started with HTTP/SSE transport on http://${this.options.host}:${this.options.port}`
-      );
-      log(
-        `Connect using: http://${this.options.host}:${this.options.port}/sse`
+    // Set longer timeout for SSE connections (0 = no timeout)
+    this.httpServer.setTimeout(0);
+    this.httpServer.keepAliveTimeout = 0;
+
+    return new Promise<void>((resolve, reject) => {
+      // Add error handler for EADDRINUSE and other errors
+      const errorHandler = (error: NodeJS.ErrnoException) => {
+        if (error.code === "EADDRINUSE") {
+          log(
+            `Port ${this.options.port} is already in use. MCP server could not start.`
+          );
+          log(
+            `Try changing the port in settings (wctools.mcp.port) or restart VS Code.`
+          );
+        } else {
+          log(`MCP HTTP server error: ${error.message}`);
+        }
+        reject(error);
+      };
+
+      this.httpServer!.once("error", errorHandler);
+
+      this.httpServer!.listen(
+        this.options.port,
+        this.options.host,
+        () => {
+          // Remove the error handler since we're now listening successfully
+          this.httpServer!.removeListener("error", errorHandler);
+          
+          // Add a persistent error handler for runtime errors
+          this.httpServer!.on("error", (error: NodeJS.ErrnoException) => {
+            log(`MCP HTTP server runtime error: ${error.message}`);
+          });
+
+          log(
+            `MCP server started with HTTP/SSE transport on http://${this.options.host}:${this.options.port}`
+          );
+          log(
+            `Connect using: http://${this.options.host}:${this.options.port}/sse`
+          );
+          resolve();
+        }
       );
     });
   }
@@ -456,12 +517,40 @@ export class WebComponentMCPServer {
    * Closes the MCP server
    */
   public async close(): Promise<void> {
+    // Clear all keep-alive intervals
+    for (const [res, interval] of this.keepAliveIntervals.entries()) {
+      clearInterval(interval);
+      if (!res.writableEnded) {
+        res.end();
+      }
+    }
+    this.keepAliveIntervals.clear();
+
     if (this.httpServer) {
-      await new Promise<void>((resolve) => {
-        this.httpServer?.close(() => resolve());
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          log("MCP server close timeout, forcing shutdown");
+          resolve();
+        }, 5000);
+
+        this.httpServer?.close((err) => {
+          clearTimeout(timeout);
+          if (err) {
+            log(`Error closing MCP server: ${err.message}`);
+            reject(err);
+          } else {
+            log("MCP HTTP server closed");
+            resolve();
+          }
+        });
+
+        // Destroy all active connections immediately
+        this.httpServer?.closeAllConnections?.();
       });
+      this.httpServer = undefined;
     }
     await this.server.close();
+    log("MCP server closed");
   }
 }
 

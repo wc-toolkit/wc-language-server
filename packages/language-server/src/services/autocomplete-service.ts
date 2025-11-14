@@ -318,18 +318,20 @@ export class AutocompleteService {
       };
       this.componentCache.get(tagName)?.attributes?.set(attr.name, completion);
 
-      const valueCompletions = attr.options?.map((option) => {
-        const valueCompletion: ExtendedHtmlCompletionItem = {
-          label: option, // shows user the option value
-          filterText: option, // ensures typing filters correctly
-          sortText: `0${option}`,
-          kind: html.CompletionItemKind.Value,
-          insertText: option,
-          detail: `Attribute value for ${attr.name}`,
-          deprecationMessage: "",
-        };
-        return valueCompletion;
-      });
+      const valueCompletions = attr.options
+        ?.filter((option) => !option.includes("string & {}"))
+        ?.map((option) => {
+          const valueCompletion: ExtendedHtmlCompletionItem = {
+            label: option, // shows user the option value
+            filterText: option, // ensures typing filters correctly
+            sortText: `0${option}`,
+            kind: html.CompletionItemKind.Value,
+            insertText: option,
+            detail: `Attribute value for ${attr.name}`,
+            deprecationMessage: "",
+          };
+          return valueCompletion;
+        });
       if (valueCompletions?.length) {
         this.componentCache
           .get(tagName)

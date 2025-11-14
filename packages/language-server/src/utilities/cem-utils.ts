@@ -59,6 +59,12 @@ export function parseAttributeValueOptions(
     return value;
   }
 
+  const GENERIC_CHECK = /\b[A-Za-z_]\w*\s*<[^<>]*?>/g;
+
+  if(value?.match(GENERIC_CHECK)) {
+    return "string";
+  }
+
   // Handle non-union types
   if (!value?.includes("|")) {
     return "string";
