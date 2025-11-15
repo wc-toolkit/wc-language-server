@@ -22,7 +22,7 @@
   "scripts": {
     "build": "./gradlew buildPlugin",
     "test": "./gradlew test",
-    "run": "./gradlew runIde",
+    "dev": "./gradlew runIde",
     "publish": "./gradlew publishPlugin"
   },
   "devDependencies": {}

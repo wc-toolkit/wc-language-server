@@ -51,6 +51,11 @@ export class ManifestService {
       });
   }
 
+  public setWorkspaceRoot(root: string): void {
+    this.workspaceRoot = root;
+    debug("cem:workspace:set", { workspaceRoot: root });
+  }
+
   public getAllDocs(): Map<string, string> {
     return this.customElementsDocs;
   }

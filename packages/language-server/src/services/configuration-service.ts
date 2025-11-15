@@ -23,6 +23,11 @@ export class ConfigurationService extends BaseConfigurationManager {
     void this.loadConfig();
   }
 
+  public setWorkspaceRoot(root: string): void {
+    this.workspaceRoot = root;
+    debug("config:workspace:set", { workspaceRoot: root });
+  }
+
   public async loadConfig(): Promise<void> {
     try {
       debug("config:load:start", { workspaceRoot: this.workspaceRoot });

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as html from "vscode-html-languageservice";
 import * as css from "vscode-css-languageservice";
+import { CompletionItemKind, InsertTextFormat } from "vscode-languageserver";
 import {
   Component,
   getComponentDetailsTemplate,
@@ -243,7 +244,7 @@ export class AutocompleteService {
             filterText: `var ${v.label}`,
             label: `var(${v.label})`,
             sortText: `xxvar(${v.label})`,
-            kind: css.CompletionItemKind.Variable,
+            kind: CompletionItemKind.Variable,
           };
         })
       : [];
@@ -280,13 +281,13 @@ export class AutocompleteService {
   private loadTagCache(tagName: string, component: Component) {
     const completion: html.CompletionItem = {
       label: tagName,
-      kind: html.CompletionItemKind.Snippet,
+      kind: CompletionItemKind.Property, // Use CompletionItemKind instead of vscode-languageserver
       documentation: {
         kind: "markdown",
         value: getComponentDetailsTemplate(component),
       },
       insertText: `<${tagName}>$0</${tagName}>`,
-      insertTextFormat: html.InsertTextFormat.Snippet,
+      insertTextFormat: InsertTextFormat.Snippet,
       detail: "Custom Element",
       sortText: "0" + tagName,
       deprecated: !!component.deprecated,
@@ -301,13 +302,13 @@ export class AutocompleteService {
         label: attr.name, // shows user the prefixed form
         filterText: attr.name, // ensures typing '?' filters correctly
         sortText: `0${attr.name}`, // ensures these show above custom attributes
-        kind: html.CompletionItemKind.Property,
+        kind: CompletionItemKind.Property,
         insertText: this.getInsertTextFormat(
           attr,
           !!attr.options?.length,
           attr.type === "boolean"
         ),
-        insertTextFormat: html.InsertTextFormat.Snippet,
+        insertTextFormat: InsertTextFormat.Snippet,
         detail: attr.type || "string",
         documentation: attr.description,
         deprecated: !!attr.deprecated,
@@ -325,7 +326,7 @@ export class AutocompleteService {
             label: option, // shows user the option value
             filterText: option, // ensures typing filters correctly
             sortText: `0${option}`,
-            kind: html.CompletionItemKind.Value,
+            kind: CompletionItemKind.Value,
             insertText: option,
             detail: `Attribute value for ${attr.name}`,
             deprecationMessage: "",
@@ -359,9 +360,9 @@ export class AutocompleteService {
       const completion: ExtendedHtmlCompletionItem = {
         label: prop.name,
         sortText: `0${prop.name}`,
-        kind: html.CompletionItemKind.Property,
+        kind: CompletionItemKind.Property,
         insertText: `${prop.name}="$0"`,
-        insertTextFormat: html.InsertTextFormat.Snippet,
+        insertTextFormat: InsertTextFormat.Snippet,
         detail:
           (prop[this.typeSrc || "parsedType"] as any)?.text ||
           prop.type?.text ||
@@ -384,9 +385,9 @@ export class AutocompleteService {
       const completion: ExtendedHtmlCompletionItem = {
         label: event.name,
         sortText: `0${event.name}`,
-        kind: html.CompletionItemKind.Event,
+        kind: CompletionItemKind.Event,
         insertText: `${event.name}="$0"`,
-        insertTextFormat: html.InsertTextFormat.Snippet,
+        insertTextFormat: InsertTextFormat.Snippet,
         detail: event.type?.text || "Event",
         documentation: event.description,
         deprecated: !!event.deprecated,
@@ -409,7 +410,7 @@ export class AutocompleteService {
         label: cssVar.name, // e.g., "--my-color"
         sortText: `xx${cssVar.name}`,
         filterText: cssVar.name, // Ensure it matches when typing "--"
-        kind: css.CompletionItemKind.Property,
+        kind: CompletionItemKind.Property,
         insertText: cssVar.name,
         detail: "CSS Variable",
         documentation: cssVar.description,
@@ -436,7 +437,7 @@ export class AutocompleteService {
         label: `part(${cssPart.name})`,
         filterText: `part ${cssPart.name}`,
         sortText: `xx${cssPart.name}`,
-        kind: css.CompletionItemKind.Function,
+        kind: CompletionItemKind.Function,
         insertText: `part(${cssPart.name})`,
         detail: "CSS Part",
         documentation: cssPart.description,
@@ -460,7 +461,7 @@ export class AutocompleteService {
       const completion: ExtendedCssCompletionItem = {
         label: `state(${cssState.name})`,
         sortText: `xx${cssState.name}`,
-        kind: css.CompletionItemKind.Function,
+        kind: CompletionItemKind.Function,
         insertText: `state(${cssState.name})`,
         detail: "CSS State",
         documentation: cssState.description,

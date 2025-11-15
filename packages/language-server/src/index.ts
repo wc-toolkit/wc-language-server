@@ -9,6 +9,7 @@ import { create as createEmmetService } from "volar-service-emmet";
 import { create as createCssService } from "volar-service-css";
 import { create as createHtmlService } from "volar-service-html";
 import { manifestService } from "./services/manifest-service.js";
+import { configurationService } from "./services/configuration-service.js";
 import { webComponentPlugin } from "./plugins/web-component-plugin.js";
 
 // Add global error handlers to prevent server crashes
@@ -42,7 +43,22 @@ connection.onInitialize((params: InitializeParams) => {
     params.initializationOptions?.typescript?.tsdk || "typescript/lib";
   const tsdk = loadTsdkByPath(tsdkPath, params.locale);
 
-  return server.initialize(
+  // Set workspace root from initialization params
+  if (params.rootUri) {
+    const workspaceRoot = params.rootUri.replace(/^file:\/\//, "");
+    console.log("[LS] Setting workspace root to:", workspaceRoot);
+    
+    // Set workspace root and reload configuration/manifests
+    configurationService.setWorkspaceRoot(workspaceRoot);
+    manifestService.setWorkspaceRoot(workspaceRoot);
+    
+    // Reload with the correct workspace root
+    void configurationService.loadConfig().then(() => {
+      manifestService.reload();
+    });
+  }
+
+  const result = server.initialize(
     params,
     createTypeScriptProject(tsdk.typescript, tsdk.diagnosticMessages, () => ({
       languagePlugins: [],
@@ -56,12 +72,43 @@ connection.onInitialize((params: InitializeParams) => {
       createEmmetService(),
     ]
   );
+  
+  // Add executeCommandProvider to capabilities
+  if (result && typeof result === 'object' && 'capabilities' in result) {
+    const serverResult = result as { capabilities: Record<string, unknown> };
+    if (!serverResult.capabilities.executeCommandProvider) {
+      serverResult.capabilities.executeCommandProvider = {
+        commands: ["wctools.getDocs"]
+      };
+      console.log("[LS] Added executeCommandProvider capability");
+    }
+  }
+  
+  return result;
 });
 
+// Register workspace/executeCommand handler for getting docs
+connection.onExecuteCommand(async (params) => {
+  console.log(`[LS] executeCommand received: ${params.command}`);
+  
+  if (params.command === "wctools.getDocs") {
+    console.log("[LS] Getting component docs...");
+    const docs = manifestService.getAllDocs(); // Map<string,string>
+    const result = Object.fromEntries(docs.entries());
+    console.log(`[LS] Returning ${Object.keys(result).length} component docs`);
+    return result;
+  }
+  
+  return null;
+});
+
+// Also keep the custom request handler for VS Code compatibility
 connection.onRequest("wctools/getDocs", () => {
+  console.log("[LS] wctools/getDocs custom request received");
   const docs = manifestService.getAllDocs(); // Map<string,string>
-  // Convert Map to plain object so it survives JSON serialization over LSP
-  return Object.fromEntries(docs.entries());
+  const result = Object.fromEntries(docs.entries());
+  console.log(`[LS] Returning ${Object.keys(result).length} component docs`);
+  return result;
 });
 
 /**

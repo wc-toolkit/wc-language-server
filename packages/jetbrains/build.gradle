@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'org.jetbrains.kotlin.jvm' version '2.1.0'
-    id 'org.jetbrains.intellij.platform' version '2.2.0'
+    id 'org.jetbrains.intellij.platform' version '2.1.0'
 }
 
 group = 'com.wc-toolkit'
@@ -43,6 +43,7 @@ dependencies {
         webstorm('2023.2.5')
         pluginVerifier()
         zipSigner()
+        instrumentationTools()
     }
     
     // LSP4J for Language Server Protocol support

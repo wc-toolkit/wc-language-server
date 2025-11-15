@@ -42,6 +42,16 @@
         <projectService
             serviceImplementation="com.wctoolkit.services.ManifestLoaderService"/>
 
+        <!-- Completion provider for web components -->
+        <completion.contributor
+            language="HTML"
+            implementationClass="com.wctoolkit.providers.WCCompletionContributor"/>
+        
+        <!-- Documentation provider for web components -->
+        <lang.documentationProvider
+            language="HTML"
+            implementationClass="com.wctoolkit.providers.WCDocumentationProvider"/>
+
         <!-- Settings / Configuration -->
         <projectConfigurable
             parentId="tools"
@@ -77,6 +87,24 @@
             class="com.wctoolkit.actions.CheckDocsAction"
             text="Check Web Component Documentation"
             description="Show loaded web component documentation">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <!-- Manually load documentation action -->
+        <action
+            id="wctools.LoadDocs"
+            class="com.wctoolkit.actions.LoadDocsAction"
+            text="Load Web Component Documentation"
+            description="Manually trigger loading of web component documentation">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <!-- Test language server connection -->
+        <action
+            id="wctools.TestLanguageServer"
+            class="com.wctoolkit.actions.TestLanguageServerAction"
+            text="Test Language Server Connection"
+            description="Test if the language server is responding">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
         

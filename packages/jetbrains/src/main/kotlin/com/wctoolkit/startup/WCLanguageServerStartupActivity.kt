@@ -17,13 +17,17 @@ class WCLanguageServerStartupActivity : StartupActivity {
         val configWatcherService = ConfigWatcherService.getInstance(project)
         val manifestLoaderService = ManifestLoaderService.getInstance(project)
         
+        // Register callback BEFORE starting the server
+        languageServerService.onInitialized {
+            Thread {
+                Thread.sleep(500) // Small delay to let the server fully settle
+                manifestLoaderService.loadDocs()
+            }.start()
+        }
+        
         // Start the language server in background
         Thread {
             languageServerService.startLanguageServer()
-            
-            // Load component documentation after a brief delay
-            Thread.sleep(2000)
-            manifestLoaderService.loadDocs()
         }.start()
     }
 }

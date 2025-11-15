@@ -49,6 +49,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/wctools
 
+  packages/jetbrains: {}
+
   packages/language-server:
     dependencies:
       '@volar/language-core':
@@ -87,6 +89,9 @@ importers:
       vscode-html-languageservice:
         specifier: ^5.3.1
         version: 5.5.2
+      vscode-languageserver:
+        specifier: ^9.0.1
+        version: 9.0.1
       vscode-uri:
         specifier: ^3.0.8
         version: 3.1.0

@@ -5,13 +5,16 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.diagnostic.Logger
+import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.Launcher
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
 import org.eclipse.lsp4j.launch.LSPLauncher
 import org.eclipse.lsp4j.services.LanguageClient
 import org.eclipse.lsp4j.services.LanguageServer
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
 
 /**
@@ -24,7 +27,13 @@ class WCLanguageServerService(private val project: Project) {
     
     private var process: Process? = null
     private var languageServer: LanguageServer? = null
+    private var launcher: Launcher<LanguageServer>? = null
     private var connection: Future<Void>? = null
+    private var isInitialized: Boolean = false
+    private val onInitializedCallbacks: MutableList<() -> Unit> = mutableListOf()
+    
+    // Store the remote proxy for custom requests
+    private var remoteProxy: Any? = null
     
     companion object {
         fun getInstance(project: Project): WCLanguageServerService {
@@ -71,25 +80,49 @@ class WCLanguageServerService(private val project: Project) {
                 "--stdio"
             )
             
-            // Set working directory to project root
-            processBuilder.directory(File(project.basePath ?: "."))
-            processBuilder.redirectErrorStream(true)
+            // For monorepo setups with pnpm, we need to run from workspace root
+            // where node_modules/.pnpm has all the dependencies
+            val serverFile = File(serverPath)
+            val workingDir = if (serverPath.contains("/packages/language-server/")) {
+                // Go up from packages/language-server to workspace root
+                serverFile.parentFile.parentFile.parentFile
+            } else {
+                // For non-monorepo installs, use project root
+                File(project.basePath ?: ".")
+            }
+            
+            logger.info("Setting working directory to: ${workingDir.absolutePath}")
+            processBuilder.directory(workingDir)
+            
+            // Don't redirect error stream - we want to capture it separately
+            // processBuilder.redirectErrorStream(true)
             
             process = processBuilder.start()
+            
+            // Capture language server stderr for debugging
+            Thread {
+                process?.errorStream?.bufferedReader()?.use { reader ->
+                    reader.lineSequence().forEach { line ->
+                        logger.info("[LS stderr] $line")
+                    }
+                }
+            }.start()
             
             // Create LSP connection
             val inputStream: InputStream = process!!.inputStream
             val outputStream: OutputStream = process!!.outputStream
             
             val client = WCLanguageClient(project)
-            val launcher: Launcher<LanguageServer> = LSPLauncher.createClientLauncher(
+            val newLauncher: Launcher<LanguageServer> = LSPLauncher.createClientLauncher(
                 client,
                 inputStream,
                 outputStream
             )
             
-            languageServer = launcher.remoteProxy
-            connection = launcher.startListening()
+            launcher = newLauncher
+            languageServer = newLauncher.remoteProxy
+            remoteProxy = newLauncher.remoteProxy
+            connection = newLauncher.startListening()
             
             // Initialize the language server
             initializeLanguageServer()
@@ -112,8 +145,12 @@ class WCLanguageServerService(private val project: Project) {
             process?.destroy()
             
             languageServer = null
+            launcher = null
+            remoteProxy = null
             connection = null
             process = null
+            isInitialized = false
+            onInitializedCallbacks.clear()
             
             logger.info("Language server stopped")
         } catch (e: Exception) {
@@ -135,6 +172,70 @@ class WCLanguageServerService(private val project: Project) {
      * Get the language server instance
      */
     fun getLanguageServer(): LanguageServer? = languageServer
+    
+    /**
+     * Check if the language server is initialized and ready
+     */
+    fun isInitialized(): Boolean = isInitialized
+    
+    /**
+     * Register a callback to be invoked when the language server is initialized
+     */
+    fun onInitialized(callback: () -> Unit) {
+        if (isInitialized) {
+            callback()
+        } else {
+            onInitializedCallbacks.add(callback)
+        }
+    }
+    
+    /**
+     * Send a custom request to the language server
+     */
+    fun <T> sendCustomRequest(method: String, params: Any?, resultType: Class<T>): CompletableFuture<T>? {
+        return try {
+            if (remoteProxy == null) {
+                logger.warn("Cannot send custom request: remote proxy is null")
+                return null
+            }
+            
+            logger.info("Sending custom request: $method")
+            logger.info("Remote proxy class: ${remoteProxy?.javaClass?.name}")
+            
+            // Try to find the request method through reflection
+            // LSP4J proxies implement the request() method from the Endpoint interface
+            val requestMethod = try {
+                remoteProxy?.javaClass?.getMethod("request", String::class.java, Any::class.java)
+            } catch (e: NoSuchMethodException) {
+                logger.warn("No request method found on proxy class")
+                null
+            }
+            
+            if (requestMethod != null) {
+                logger.info("Found request method, invoking...")
+                val result = requestMethod.invoke(remoteProxy, method, params)
+                logger.info("Request invoked, result: ${result?.javaClass?.name}")
+                
+                @Suppress("UNCHECKED_CAST")
+                return result as? CompletableFuture<T>
+            }
+            
+            // Fallback: try casting to Endpoint
+            val endpoint = remoteProxy as? org.eclipse.lsp4j.jsonrpc.Endpoint
+            if (endpoint != null) {
+                logger.info("Using Endpoint interface")
+                val result = endpoint.request(method, params)
+                @Suppress("UNCHECKED_CAST")
+                return result as? CompletableFuture<T>
+            }
+            
+            logger.error("Could not find a way to send custom request")
+            null
+        } catch (e: Exception) {
+            logger.error("Failed to send custom request '$method'", e)
+            null
+        }
+    }
     
     /**
      * Check if the language server is running
@@ -201,7 +302,42 @@ class WCLanguageServerService(private val project: Project) {
      * Initialize the language server with proper configuration
      */
     private fun initializeLanguageServer() {
-        // TODO: Send initialize request with workspace configuration
-        // This will be implemented when we add full LSP4J integration
+        try {
+            val basePath = project.basePath ?: "."
+            
+            logger.info("Initializing language server with basePath: $basePath")
+            
+            // Create initialization params
+            val initParams = InitializeParams().apply {
+                processId = ProcessHandle.current().pid().toInt()
+                rootUri = "file://$basePath"
+                capabilities = ClientCapabilities().apply {
+                    workspace = WorkspaceClientCapabilities()
+                    textDocument = TextDocumentClientCapabilities()
+                }
+            }
+            
+            logger.info("Sending initialize request with rootUri: ${initParams.rootUri}")
+            
+            // Send initialize request
+            val initResult = languageServer?.initialize(initParams)?.get()
+            logger.info("Language server initialized with capabilities: ${initResult?.capabilities}")
+            
+            // Send initialized notification
+            languageServer?.initialized(InitializedParams())
+            
+            // Mark as initialized and run callbacks
+            isInitialized = true
+            logger.info("Language server initialization complete")
+            
+            // Execute all pending callbacks
+            val callbacks = onInitializedCallbacks.toList()
+            onInitializedCallbacks.clear()
+            callbacks.forEach { it() }
+            logger.info("Executed ${callbacks.size} initialization callbacks")
+        } catch (e: Exception) {
+            logger.error("Failed to initialize language server", e)
+            isInitialized = false
+        }
     }
 }
