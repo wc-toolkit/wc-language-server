@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.29
+
+### Patch Changes
+
+- 4a65f65: Fixed validation timing for async manifests
+
 ## 0.0.28
 
 ### Patch Changes
