@@ -32,14 +32,14 @@ function getCompletions(
   beforeText: string
 ): html.CompletionItem[] | null {
   // Tag completion: <my-elem|
-  const tagMatch = beforeText.match(/<([a-zA-Z0-9-]*)$/);
+  const tagMatch = beforeText.match(/<([a-zA-Z0-9_.-]*)$/);
   if (tagMatch) {
     debug("autocomplete:trigger:tag", { partial: tagMatch[1] });
     return getTagCompletions();
   }
 
   // Tag name without opening '<': my-ele|
-  const bareTagMatch = beforeText.match(/(?:^|\s)([a-zA-Z0-9-]+)$/);
+  const bareTagMatch = beforeText.match(/(?:^|\s)([a-zA-Z][a-zA-Z0-9_.-]*)$/);
   if (bareTagMatch) {
     // Only trigger if not inside quotes or angle brackets
     const lastChar = beforeText[beforeText.length - 1];
