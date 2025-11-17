@@ -235,7 +235,7 @@ export function isDiagnosticIgnored(
       const afterCommentOffset = m.index + m[0].length;
       const afterCommentText = text.substring(afterCommentOffset);
       const nextElementMatch = afterCommentText.match(
-        /<[a-zA-Z][a-zA-Z0-9-]*[\s>]/
+        /<[a-zA-Z][a-zA-Z0-9_.-]*[\s>]/
       );
 
       if (nextElementMatch) {
