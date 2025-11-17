@@ -1,5 +1,15 @@
 # @wc-toolkit/wctools
 
+## 0.0.13
+
+### Patch Changes
+
+- c4ddd1a: Fixed format configs are intialized in
+- c4ddd1a: Added component cache independant of autocomplete data
+- a066f8f: Separated component cache from autocomplete cache
+- a066f8f: Lazy-load autocomplete cache to prevent conflicts in CLI tools and non-vscode environments
+- c4ddd1a: Fixed validation when loading external manifests
+
 ## 0.0.12
 
 ### Patch Changes
