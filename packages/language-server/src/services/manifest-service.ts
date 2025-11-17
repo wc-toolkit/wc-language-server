@@ -11,7 +11,7 @@ import {
 } from "@wc-toolkit/cem-utilities";
 import { parseAttributeValueOptions } from "../utilities/cem-utils.js";
 import { readFileSync } from "fs";
-import { autocompleteService } from "./autocomplete-service.js";
+import { componentService } from "./component-service.js";
 
 
 export type AttributeInfo = {
@@ -113,7 +113,7 @@ export class ManifestService {
         `### \`<${tagName}>\`\n\n---\n\n${getComponentDetailsTemplate(element, { altType })}`
       );
       this.setAttributeOptions(tagName, element, depName);
-      autocompleteService.loadCache(tagName, element);
+      componentService.loadCache(tagName, element, depName || "Global");
     });
     debug("cem:parse:complete", {
       dep: depName || "local",
@@ -211,7 +211,7 @@ export class ManifestService {
     this.attributeData.clear();
     this.manifestPath = null;
     this.manifestContent = "";
-    autocompleteService.dispose();
+    // autocompleteService.dispose();
   }
 
   public async reload(): Promise<void> {

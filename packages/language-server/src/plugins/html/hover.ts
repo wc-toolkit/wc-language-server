@@ -1,17 +1,17 @@
 import * as html from "vscode-html-languageservice";
 import { manifestService } from "../../services/manifest-service.js";
 import { Hover, NullableProviderResult } from "@volar/language-server";
-import { autocompleteService } from "../../services/autocomplete-service.js";
+import { componentService } from "../../services/component-service.js";
 
 export function getHoverContent(
   document: html.TextDocument,
-  position: html.Position,
+  position: html.Position
 ): NullableProviderResult<Hover> {
   const textDocument = html.TextDocument.create(
     document.uri,
     "html",
     0,
-    document.getText(),
+    document.getText()
   );
 
   const htmlLanguageService = html.getLanguageService();
@@ -52,13 +52,17 @@ export function getHoverContent(
         cursorOffset >= tagOffset + attrStart &&
         cursorOffset <= tagOffset + attrEnd
       ) {
-        const attribute = autocompleteService.getAttributeCompletion(node.tag, attrName);
+        console.log("Hovering over attribute:", attrName);
+        const attribute = componentService.getAttributeByPrefix(
+          node.tag,
+          attrName
+        );
 
         if (!attribute) {
           return undefined;
         }
 
-        let attrContent = `${attribute.documentation}\n\n**Type:** \`${attribute.detail}\``;
+        let attrContent = `${attribute.description}\n\n**Type:** \`${attribute.detail}\``;
 
         if (attribute.deprecated) {
           const attrDeprecationMessage =

@@ -1,50 +1,51 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as html from "vscode-html-languageservice";
 import * as css from "vscode-css-languageservice";
-import {
-  Component,
-  getComponentDetailsTemplate,
-  getComponentEventsWithType,
-  getComponentPublicProperties,
-} from "@wc-toolkit/cem-utilities";
-import { AttributeInfo, manifestService } from "./manifest-service.js";
-import { configurationService } from "./configuration-service.js";
+import { manifestService } from "./manifest-service.js";
 import {
   getAttributePrefix,
   getBaseAttributeName,
 } from "../plugins/html/utilities.js";
+import {
+  ComponentCache,
+  ComponentMetadata,
+  componentService,
+  TagMetadata,
+} from "./component-service.js";
 
 export type TagAutocompleteCache = Map<string, html.CompletionItem>;
-export type ExtendedHtmlCompletionItem = html.CompletionItem & {
-  deprecationMessage: string;
-};
-export type ExtendedCssCompletionItem = css.CompletionItem & {
-  deprecationMessage: string;
-};
 export type ComponentAutocompleteCache = {
-  attributes?: Map<string, ExtendedHtmlCompletionItem>;
-  attributeValues?: Map<string, ExtendedHtmlCompletionItem[]>;
-  properties?: Map<string, ExtendedHtmlCompletionItem>;
-  events?: Map<string, ExtendedHtmlCompletionItem>;
-  cssVariables?: Map<string, ExtendedCssCompletionItem>;
-  cssParts?: Map<string, ExtendedCssCompletionItem>;
-  cssStates?: Map<string, ExtendedCssCompletionItem>;
+  attributes?: Map<string, html.CompletionItem>;
+  attributeValues?: Map<string, html.CompletionItem[]>;
+  properties?: Map<string, html.CompletionItem>;
+  events?: Map<string, html.CompletionItem>;
+  cssVariables?: Map<string, css.CompletionItem>;
+  cssParts?: Map<string, css.CompletionItem>;
+  cssStates?: Map<string, css.CompletionItem>;
 };
 
 export class AutocompleteService {
   public tagCache: TagAutocompleteCache = new Map();
   public componentCache: Map<string, ComponentAutocompleteCache> = new Map();
-  private config = configurationService.config;
-  private typeSrc = this.config.typeSrc;
-  private loadedCssVars: Map<string, ExtendedCssCompletionItem> = new Map();
-  private loadedCssParts: Map<string, ExtendedCssCompletionItem> = new Map();
-  private loadedCssStates: Map<string, ExtendedCssCompletionItem> = new Map();
+  private loadedCssVars: Map<string, css.CompletionItem> = new Map();
+  private loadedCssParts: Map<string, css.CompletionItem> = new Map();
+  private loadedCssStates: Map<string, css.CompletionItem> = new Map();
+  private isCacheLoaded: boolean = false;
 
   dispose() {
     this.componentCache.clear();
+    this.tagCache.clear();
+    this.loadedCssVars.clear();
+    this.loadedCssParts.clear();
+    this.loadedCssStates.clear();
+    this.isCacheLoaded = false;
   }
 
-  loadCache(tagName: string, component: Component) {
+  loadCache(tagName: string, componentMeta?: ComponentCache) {
+    if (!tagName || !componentMeta) {
+      return;
+    }
+
     const cache: ComponentAutocompleteCache = {
       attributes: new Map(),
       attributeValues: new Map(),
@@ -55,18 +56,19 @@ export class AutocompleteService {
       cssStates: new Map(),
     };
     this.componentCache.set(tagName || "unknown", cache);
-    this.loadTagCache(tagName, component);
-    this.loadAttributeCache(tagName);
-    this.loadPropertyCache(tagName, component);
-    this.loadEventCache(tagName, component);
-    this.loadCssVariableCache(tagName, component);
-    this.loadCssPartCache(tagName, component);
-    this.loadCssStateCache(tagName, component);
+    this.loadTagCache(tagName, componentMeta.tag);
+    this.loadAttributeCache(tagName, componentMeta.attributes);
+    this.loadPropertyCache(tagName, componentMeta.properties);
+    this.loadEventCache(tagName, componentMeta.events);
+    this.loadCssVariableCache(componentMeta.cssVariables);
+    this.loadCssPartCache(componentMeta.cssParts);
+    this.loadCssStateCache(componentMeta.cssStates);
   }
 
   getTagCompletions(
     includeOpeningBrackets: boolean = false
   ): html.CompletionItem[] {
+    this.checkCache();
     if (!includeOpeningBrackets) {
       return Array.from(this.tagCache.values()).map((item) => {
         return {
@@ -83,7 +85,8 @@ export class AutocompleteService {
     tagName: string,
     attrPrefix?: string,
     beforeText?: string
-  ): ExtendedHtmlCompletionItem[] {
+  ): html.CompletionItem[] {
+    this.checkCache();
     const componentCache = this.componentCache.get(tagName);
     if (!componentCache) {
       return [];
@@ -169,7 +172,8 @@ export class AutocompleteService {
   getAttributeCompletion(
     tagName: string,
     attributeName: string
-  ): ExtendedHtmlCompletionItem | undefined {
+  ): html.CompletionItem | undefined {
+    this.checkCache();
     const componentCache = this.componentCache.get(tagName);
     if (!componentCache) {
       return undefined;
@@ -219,7 +223,8 @@ export class AutocompleteService {
   public getAttributeValueCompletions(
     tagName: string,
     attributeName: string
-  ): ExtendedHtmlCompletionItem[] {
+  ): html.CompletionItem[] {
+    this.checkCache();
     const componentCache = this.componentCache.get(tagName);
     if (!componentCache) {
       return [];
@@ -229,8 +234,9 @@ export class AutocompleteService {
     return componentCache.attributeValues?.get(attributeNameNormalized) || [];
   }
 
-  public getCssCompletions(): ExtendedCssCompletionItem[] {
-    const allCompletions: ExtendedCssCompletionItem[] = [];
+  public getCssCompletions(): css.CompletionItem[] {
+    this.checkCache();
+    const allCompletions: css.CompletionItem[] = [];
     const props = this.loadedCssVars
       ? Array.from(this.loadedCssVars.values())
       : [];
@@ -261,226 +267,164 @@ export class AutocompleteService {
 
   getCssCustomPropertyCompletion(
     propertyName: string
-  ): ExtendedCssCompletionItem | undefined {
+  ): css.CompletionItem | undefined {
     return this.loadedCssVars.get(propertyName);
   }
 
-  getCssPartCompletion(
-    partName: string
-  ): ExtendedCssCompletionItem | undefined {
+  getCssPartCompletion(partName: string): css.CompletionItem | undefined {
     return this.loadedCssParts.get(partName);
   }
 
-  getCssStateCompletion(
-    stateName: string
-  ): ExtendedCssCompletionItem | undefined {
+  getCssStateCompletion(stateName: string): css.CompletionItem | undefined {
     return this.loadedCssStates.get(stateName);
   }
 
-  private loadTagCache(tagName: string, component: Component) {
+  private checkCache() {
+    if (!this.isCacheLoaded) {
+      componentService.componentCache.forEach((value, tagName) =>
+        this.loadCache(tagName, value)
+      );
+      this.isCacheLoaded = true;
+    }
+  }
+
+  private loadTagCache(tagName: string, tagCache: TagMetadata) {
     const completion: html.CompletionItem = {
-      label: tagName,
+      ...tagCache,
       kind: html.CompletionItemKind.Snippet,
       documentation: {
         kind: "markdown",
-        value: getComponentDetailsTemplate(component),
+        value: tagCache.description,
       },
-      insertText: `<${tagName}>$0</${tagName}>`,
       insertTextFormat: html.InsertTextFormat.Snippet,
-      detail: "Custom Element",
-      sortText: "0" + tagName,
-      deprecated: !!component.deprecated,
     };
     this.tagCache.set(tagName, completion);
   }
 
-  private loadAttributeCache(tagName: string) {
-    const attrs = this.getAttributeInfo(tagName);
-    attrs.forEach((attr) => {
-      const completion: ExtendedHtmlCompletionItem = {
-        label: attr.name, // shows user the prefixed form
-        filterText: attr.name, // ensures typing '?' filters correctly
-        sortText: `0${attr.name}`, // ensures these show above custom attributes
+  private loadAttributeCache(
+    tagName: string,
+    attributes?: Map<string, ComponentMetadata>
+  ) {
+    attributes?.forEach((attr) => {
+      const completion: html.CompletionItem = {
+        ...attr,
         kind: html.CompletionItemKind.Property,
-        insertText: this.getInsertTextFormat(
-          attr,
-          !!attr.options?.length,
-          attr.type === "boolean"
-        ),
         insertTextFormat: html.InsertTextFormat.Snippet,
-        detail: attr.type || "string",
-        documentation: attr.description,
-        deprecated: !!attr.deprecated,
-        deprecationMessage:
-          typeof attr.deprecated === "string"
-            ? attr.deprecated
-            : "This attribute is deprecated.",
+        documentation: {
+          kind: "markdown",
+          value: attr.description,
+        },
       };
-      this.componentCache.get(tagName)?.attributes?.set(attr.name, completion);
+      this.componentCache.get(tagName)?.attributes?.set(attr.label, completion);
 
       const valueCompletions = attr.options
         ?.filter((option) => !option.includes("string & {}"))
         ?.map((option) => {
-          const valueCompletion: ExtendedHtmlCompletionItem = {
+          const valueCompletion: html.CompletionItem = {
             label: option, // shows user the option value
             filterText: option, // ensures typing filters correctly
             sortText: `0${option}`,
             kind: html.CompletionItemKind.Value,
             insertText: option,
-            detail: `Attribute value for ${attr.name}`,
-            deprecationMessage: "",
+            detail: `Attribute value for ${attr.label}`,
           };
           return valueCompletion;
         });
       if (valueCompletions?.length) {
         this.componentCache
           .get(tagName)
-          ?.attributeValues?.set(attr.name, valueCompletions);
+          ?.attributeValues?.set(attr.label, valueCompletions);
       }
     });
   }
 
-  private getInsertTextFormat(
-    attr: AttributeInfo,
-    hasValues?: boolean,
-    isBoolean?: boolean
-  ): string {
-    return hasValues
-      ? `${attr.name}="$1"$0`
-      : isBoolean
-        ? `${attr.name}`
-        : `${attr.name}="$0"`;
-  }
-
-  private loadPropertyCache(tagName: string, component: Component) {
-    const props = getComponentPublicProperties(component);
-
-    props.forEach((prop) => {
-      const completion: ExtendedHtmlCompletionItem = {
-        label: prop.name,
-        sortText: `0${prop.name}`,
+  private loadPropertyCache(
+    tagName: string,
+    properties?: Map<string, ComponentMetadata>
+  ) {
+    properties?.forEach((prop) => {
+      const completion: html.CompletionItem = {
+        ...prop,
         kind: html.CompletionItemKind.Property,
-        insertText: `${prop.name}="$0"`,
         insertTextFormat: html.InsertTextFormat.Snippet,
-        detail:
-          (prop[this.typeSrc || "parsedType"] as any)?.text ||
-          prop.type?.text ||
-          "any",
-        documentation: prop.description,
-        deprecated: !!prop.deprecated,
-        deprecationMessage:
-          typeof prop.deprecationMessage === "string"
-            ? prop.deprecationMessage
-            : "This property is deprecated.",
+        documentation: {
+          kind: "markdown",
+          value: prop.description || "No description available.",
+        },
       };
-      this.componentCache.get(tagName)?.properties?.set(prop.name, completion);
+      this.componentCache.get(tagName)?.properties?.set(prop.label, completion);
     });
   }
 
-  private loadEventCache(tagName: string, component: Component) {
-    const events = getComponentEventsWithType(component);
-
-    events.forEach((event) => {
-      const completion: ExtendedHtmlCompletionItem = {
-        label: event.name,
-        sortText: `0${event.name}`,
+  private loadEventCache(
+    tagName: string,
+    events?: Map<string, ComponentMetadata>
+  ) {
+    events?.forEach((event) => {
+      const completion: html.CompletionItem = {
+        ...event,
         kind: html.CompletionItemKind.Event,
-        insertText: `${event.name}="$0"`,
         insertTextFormat: html.InsertTextFormat.Snippet,
-        detail: event.type?.text || "Event",
-        documentation: event.description,
-        deprecated: !!event.deprecated,
-        deprecationMessage:
-          typeof event.deprecated === "string"
-            ? event.deprecated
-            : "This event is deprecated.",
+        documentation: {
+          kind: "markdown",
+          value: event.description || "No description available.",
+        },
       };
-      this.componentCache.get(tagName)?.events?.set(event.name, completion);
+      this.componentCache.get(tagName)?.events?.set(event.label, completion);
     });
   }
 
-  private loadCssVariableCache(tagName: string, component: Component) {
-    const cssVars = component.cssProperties || [];
-    cssVars.forEach((cssVar) => {
-      if (this.loadedCssVars.has(cssVar.name)) {
+  private loadCssVariableCache(cssVariables?: Map<string, ComponentMetadata>) {
+    cssVariables?.forEach((cssVar) => {
+      if (this.loadedCssVars.has(cssVar.label)) {
         return;
       }
-      const completion: ExtendedCssCompletionItem = {
-        label: cssVar.name, // e.g., "--my-color"
-        sortText: `xx${cssVar.name}`,
-        filterText: cssVar.name, // Ensure it matches when typing "--"
+      const completion: css.CompletionItem = {
+        ...cssVar,
         kind: css.CompletionItemKind.Property,
-        insertText: cssVar.name,
-        detail: "CSS Variable",
-        documentation: cssVar.description,
-        deprecated: !!cssVar.deprecated,
-        deprecationMessage:
-          typeof cssVar.deprecated === "string"
-            ? cssVar.deprecated
-            : "This CSS variable is deprecated.",
+        documentation: {
+          kind: "markdown",
+          value: cssVar.description,
+        },
       };
-      this.loadedCssVars.set(cssVar.name, completion);
-      this.componentCache
-        .get(tagName)
-        ?.cssVariables?.set(cssVar.name, completion);
+      this.loadedCssVars.set(cssVar.label, completion);
     });
   }
 
-  private loadCssPartCache(tagName: string, component: Component) {
-    const cssParts = component.cssParts || [];
-    cssParts.forEach((cssPart) => {
-      if (this.loadedCssParts.has(cssPart.name)) {
+  private loadCssPartCache(parts?: Map<string, ComponentMetadata>) {
+    parts?.forEach((cssPart) => {
+      if (this.loadedCssParts.has(cssPart.label)) {
         return;
       }
-      const completion: ExtendedCssCompletionItem = {
-        label: `part(${cssPart.name})`,
-        filterText: `part ${cssPart.name}`,
-        sortText: `xx${cssPart.name}`,
+      const completion: css.CompletionItem = {
+        ...cssPart,
+        label: `part(${cssPart.label})`,
         kind: css.CompletionItemKind.Function,
-        insertText: `part(${cssPart.name})`,
-        detail: "CSS Part",
-        documentation: cssPart.description,
-        deprecated: !!cssPart.deprecated,
-        deprecationMessage:
-          typeof cssPart.deprecated === "string"
-            ? cssPart.deprecated
-            : "This CSS part is deprecated.",
+        documentation: {
+          kind: "markdown",
+          value: cssPart.description,
+        },
       };
-      this.loadedCssParts.set(cssPart.name, completion);
-      this.componentCache.get(tagName)?.cssParts?.set(cssPart.name, completion);
+      this.loadedCssParts.set(cssPart.label, completion);
     });
   }
 
-  private loadCssStateCache(tagName: string, component: Component) {
-    const cssStates = component.cssStates || [];
-    cssStates.forEach((cssState) => {
-      if (this.loadedCssStates.has(cssState.name)) {
+  private loadCssStateCache(states?: Map<string, ComponentMetadata>) {
+    states?.forEach((cssState) => {
+      if (this.loadedCssStates.has(cssState.label)) {
         return;
       }
-      const completion: ExtendedCssCompletionItem = {
-        label: `state(${cssState.name})`,
-        sortText: `xx${cssState.name}`,
+      const completion: css.CompletionItem = {
+        ...cssState,
+        label: `state(${cssState.label})`,
         kind: css.CompletionItemKind.Function,
-        insertText: `state(${cssState.name})`,
-        detail: "CSS State",
-        documentation: cssState.description,
-        deprecated: !!cssState.deprecated,
-        deprecationMessage:
-          typeof cssState.deprecated === "string"
-            ? cssState.deprecated
-            : "This CSS state is deprecated.",
+        documentation: {
+          kind: "markdown",
+          value: cssState.description,
+        },
       };
-      this.loadedCssStates.set(cssState.name, completion);
-      this.componentCache
-        .get(tagName)
-        ?.cssStates?.set(cssState.name, completion);
+      this.loadedCssStates.set(cssState.label, completion);
     });
-  }
-
-  private getAttributeInfo(tagName: string): AttributeInfo[] {
-    return Array.from(manifestService.attributeData?.entries())
-      .filter(([key]) => key.startsWith(`${tagName}:`))
-      .map(([, value]) => value);
   }
 }
 

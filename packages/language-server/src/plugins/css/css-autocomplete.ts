@@ -2,12 +2,12 @@
 // import { Component } from "@wc-toolkit/cem-utilities";
 import * as css from "vscode-css-languageservice";
 import { debug } from "../../utilities/logger.js";
-import { autocompleteService, ExtendedCssCompletionItem } from "../../services/autocomplete-service.js";
+import { autocompleteService } from "../../services/autocomplete-service.js";
 
 export function getCssAutoCompleteSuggestions(
   document: css.TextDocument,
   position: css.Position
-): ExtendedCssCompletionItem[] | null {
+): css.CompletionItem[] | null {
   debug("css:autocomplete:getSuggestions:start", {
     uri: document.uri,
     line: position.line,
