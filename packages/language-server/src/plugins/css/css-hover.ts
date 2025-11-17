@@ -1,9 +1,6 @@
-import {
-  autocompleteService,
-  ExtendedCssCompletionItem,
-} from "../../services/autocomplete-service.js";
 import * as css from "vscode-css-languageservice";
 import { NullableProviderResult } from "@volar/language-server";
+import { ComponentMetadata, componentService } from "../../services/component-service.js";
 
 export function getCssHoverContent(
   document: css.TextDocument,
@@ -20,11 +17,14 @@ export function getCssHoverContent(
 
   // Check for custom CSS properties (--property-name)
   if (word.startsWith("--")) {
-    const property = autocompleteService.getCssCustomPropertyCompletion(word);
+    const property = componentService.getCssVariableCache(word);
     if (property) {
       const description = getDescription(property);
       return {
-        contents: description,
+        contents: {
+          kind: "markdown",
+          value: description,
+        },
         range: {
           start: document.positionAt(wordRange.start),
           end: document.positionAt(wordRange.end),
@@ -40,11 +40,14 @@ export function getCssHoverContent(
 
   if (partMatch && isPositionInRange(offset, wordRange, partMatch[1])) {
     const partName = partMatch[1].trim();
-    const customPart = autocompleteService.getCssPartCompletion(partName);
+    const customPart = componentService.getCssPartCache(partName);
     if (customPart) {
       const description = getDescription(customPart);
       return {
-        contents: description,
+        contents: {
+          kind: "markdown",
+          value: description,
+        },
         range: {
           start: document.positionAt(wordRange.start),
           end: document.positionAt(wordRange.end),
@@ -60,11 +63,14 @@ export function getCssHoverContent(
 
   if (stateMatch && isPositionInRange(offset, wordRange, stateMatch[1])) {
     const stateName = stateMatch[1].trim();
-    const customState = autocompleteService.getCssStateCompletion(stateName);
+    const customState = componentService.getCssStateCache(stateName);
     if (customState) {
       const description = getDescription(customState);
       return {
-        contents: description,
+        contents: {
+          kind: "markdown",
+          value: description,
+        },
         range: {
           start: document.positionAt(wordRange.start),
           end: document.positionAt(wordRange.end),
@@ -104,8 +110,8 @@ function getWordRangeAtPosition(
   return { start, end };
 }
 
-function getDescription(completion: ExtendedCssCompletionItem) {
-  let attrContent = `${completion.documentation}\n\n**Type:** \`${completion.detail}\``;
+function getDescription(completion: ComponentMetadata) {
+  let attrContent = `${completion.description}\n\n**Type:** \`${completion.detail}\``;
 
   if (completion.deprecated) {
     const attrDeprecationMessage =

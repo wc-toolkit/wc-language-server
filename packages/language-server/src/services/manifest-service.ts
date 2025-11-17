@@ -9,10 +9,8 @@ import {
   getAllComponents,
   getComponentDetailsTemplate,
 } from "@wc-toolkit/cem-utilities";
-import { parseAttributeValueOptions } from "../utilities/cem-utils.js";
 import { readFileSync } from "fs";
-import { autocompleteService } from "./autocomplete-service.js";
-
+import { componentService } from "./component-service.js";
 
 export type AttributeInfo = {
   name: string;
@@ -39,16 +37,26 @@ export class ManifestService {
   private workspaceRoot: string = process.cwd();
   private dependencyCustomElements = new Map<string, Component>();
   private packageJsonPath: string = "";
-
-  public attributeData: Map<AttributeKey, AttributeInfo> = new Map();
+  private manifestsLoadedPromise: Promise<void> | null = null;
 
   constructor() {
     debug("cem:init");
-    configurationService.loadConfig()
+    this.manifestsLoadedPromise = configurationService
+      .loadConfig()
       .then(() => this.loadManifests())
       .catch((err) => {
         error("cem:init:failed", err);
       });
+  }
+
+  /**
+   * Wait for all manifests (including external URLs) to finish loading.
+   * Call this before performing validation to ensure all custom elements are available.
+   */
+  public async waitForManifestsLoaded(): Promise<void> {
+    if (this.manifestsLoadedPromise) {
+      await this.manifestsLoadedPromise;
+    }
   }
 
   public getAllDocs(): Map<string, string> {
@@ -59,14 +67,14 @@ export class ManifestService {
     return this.customElementsDocs.get(tagName) || "";
   }
 
-  private loadGlobalManifest() {
+  private async loadGlobalManifest(): Promise<void> {
     const cemPath = configurationService.config?.manifestSrc;
     const { isUrl } = this.isPathOrUrl(cemPath);
 
     try {
       debug("cem:global:start", { manifestSrc: cemPath });
       if (isUrl) {
-        this.loadManifestFromUrl(cemPath!);
+        await this.loadManifestFromUrl(cemPath!);
       } else {
         this.loadManifestFromFile(this.workspaceRoot, cemPath);
       }
@@ -101,43 +109,12 @@ export class ManifestService {
         tagName,
         `### \`<${tagName}>\`\n\n---\n\n${getComponentDetailsTemplate(element, { altType })}`
       );
-      this.setAttributeOptions(tagName, element, depName);
-      autocompleteService.loadCache(tagName, element);
+      componentService.loadCache(tagName, element, depName || "Global");
     });
     debug("cem:parse:complete", {
       dep: depName || "local",
       totalElements:
         this.customElements.size + this.dependencyCustomElements.size,
-      attributesIndexed: this.attributeData.size,
-    });
-  }
-
-  private setAttributeOptions(
-    tagName: string,
-    component: Component,
-    depName?: string
-  ) {
-    let added = 0;
-    component.attributes?.forEach((attr) => {
-      const typeSrc =
-        configurationService.config.libraries?.[`${depName}`]?.typeSrc ||
-        configurationService.config.typeSrc;
-      const options = parseAttributeValueOptions(attr, typeSrc);
-      this.attributeOptions.set(`${tagName}:${attr.name}`, options);
-      this.attributeData.set(`${tagName}:${attr.name}`, {
-        name: attr.name,
-        description: attr.description,
-        deprecated: attr.deprecated,
-        type: Array.isArray(options) ? options.join(" | ") : options,
-        options: Array.isArray(options) ? options : undefined,
-      });
-      added++;
-    });
-    debug("cem:attributes:set", {
-      tag: tagName,
-      dep: depName || "local",
-      added,
-      totalAttributeEntries: this.attributeData.size,
     });
   }
 
@@ -179,13 +156,6 @@ export class ManifestService {
     return options || null;
   }
 
-  public getAttributeInfo(
-    tagName: string,
-    attributeName: string
-  ): AttributeInfo | null {
-    return this.attributeData.get(`${tagName}:${attributeName}`) || null;
-  }
-
   public findPositionInManifest(searchText: string): number {
     const position = this.manifestContent.indexOf(searchText);
     return position >= 0 ? position : 0;
@@ -197,35 +167,34 @@ export class ManifestService {
     this.customElementsDocs.clear();
     this.dependencyCustomElements.clear();
     this.attributeOptions.clear();
-    this.attributeData.clear();
     this.manifestPath = null;
     this.manifestContent = "";
-    autocompleteService.dispose();
+    // autocompleteService.dispose();
   }
 
-  public reload() {
+  public async reload(): Promise<void> {
     debug("cem:reload:start");
     this.dispose();
-    this.loadManifests();
+    this.manifestsLoadedPromise = this.loadManifests();
+    await this.manifestsLoadedPromise;
     debug("cem:reload:complete", {
       localElements: this.customElements.size,
       dependencyElements: this.dependencyCustomElements.size,
     });
   }
 
-  private loadManifests() {
+  private async loadManifests(): Promise<void> {
     debug("cem:load:start");
     this.packageJsonPath = path.join(this.workspaceRoot, "package.json");
     try {
-      this.loadGlobalManifest();
-      this.loadConfigManifests();
+      await this.loadGlobalManifest();
+      await this.loadConfigManifests();
       this.loadDependencyManifests();
       debug("cem:load:complete", {
         localElements: this.customElements.size,
         dependencyElements: this.dependencyCustomElements.size,
         totalElements:
           this.customElements.size + this.dependencyCustomElements.size,
-        attributes: this.attributeData.size,
       });
     } catch (error) {
       debug("cem:load:error", error);
@@ -233,7 +202,7 @@ export class ManifestService {
     }
   }
 
-  private loadConfigManifests() {
+  private async loadConfigManifests(): Promise<void> {
     debug("cem:config:start");
     if (configurationService.config.manifestSrc) {
       debug("cem:config:primary", {
@@ -252,6 +221,7 @@ export class ManifestService {
       return;
     }
 
+    const promises: Promise<void>[] = [];
     for (const [name, libConfig] of Object.entries(libraryConfigs)) {
       debug("cem:config:library", {
         library: name,
@@ -263,7 +233,7 @@ export class ManifestService {
 
       const { isUrl, isFilePath } = this.isPathOrUrl(libConfig.manifestSrc);
       if (isUrl) {
-        this.loadManifestFromUrl(libConfig.manifestSrc, name);
+        promises.push(this.loadManifestFromUrl(libConfig.manifestSrc, name));
       } else if (isFilePath) {
         // For file paths, pass the workspace root as the base path for relative paths
         const basePath = path.isAbsolute(libConfig.manifestSrc)
@@ -279,6 +249,7 @@ export class ManifestService {
         );
       }
     }
+    await Promise.all(promises);
     debug("cem:config:done");
   }
 
@@ -415,22 +386,23 @@ export class ManifestService {
     }
   }
 
-  private loadManifestFromUrl(url: string, depName?: string) {
+  private async loadManifestFromUrl(
+    url: string,
+    depName?: string
+  ): Promise<void> {
     debug("cem:url:fetch", { url, dep: depName || "local" });
-    fetch(url)
-      .then((response) => {
-        if (!response.ok) {
-          debug("cem:url:fetchFailed", { url, status: response.status });
-          throw new Error(`Failed to fetch ${url}`);
-        }
-        return response.json().then((manifest) => {
-          debug("cem:url:fetched", { url, dep: depName || "local" });
-          this.parseManifest(manifest, depName);
-        });
-      })
-      .catch((err) => {
-        error(`Error loading manifest from ${url}:`, err as any);
-      });
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        debug("cem:url:fetchFailed", { url, status: response.status });
+        throw new Error(`Failed to fetch ${url}`);
+      }
+      const manifest = await response.json();
+      debug("cem:url:fetched", { url, dep: depName || "local" });
+      this.parseManifest(manifest, depName);
+    } catch (err) {
+      error(`Error loading manifest from ${url}:`, err as any);
+    }
   }
 
   private isPathOrUrl(str?: string): { isUrl: boolean; isFilePath: boolean } {

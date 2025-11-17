@@ -59,6 +59,10 @@ export async function validateFiles(
   );
 
   configurationService.updateConfig(resolvedConfig);
+  
+  // Wait for all manifests (including external URLs) to finish loading
+  await manifestService.waitForManifestsLoaded();
+  
   // Initialize services with configuration
 
   // Find files to validate

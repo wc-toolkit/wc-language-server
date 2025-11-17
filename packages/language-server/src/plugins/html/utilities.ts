@@ -22,7 +22,7 @@ export function getBaseAttributeName(attr: string): string {
   const typed = getAttributePrefix(attr);
   let normalizedName = attr.replace(TYPED_PREFIX_REGEX, "");
   if (typed === "[") {
-    normalizedName = normalizedName.replace(TRAILING_BINDING_BRACKET_REGEX, "");
+    normalizedName = normalizedName.replace(TRAILING_BINDING_BRACKET_REGEX, "").replace('attr.', "");
   }
   if (typed === "(") {
     normalizedName = normalizedName.replace(TRAILING_BINDING_BRACE_REGEX, "");

@@ -8,9 +8,9 @@ import {
 } from "../../services/configuration-service.js";
 import { BINDING_CHARACTERS } from "./utilities.js";
 import {
-  autocompleteService,
-  ExtendedHtmlCompletionItem,
-} from "../../services/autocomplete-service.js";
+  ComponentMetadata,
+  componentService,
+} from "../../services/component-service.js";
 
 // Compatible document interface that matches both vscode-languageserver-textdocument and html.TextDocument
 interface DocumentLike {
@@ -382,7 +382,7 @@ export function parseAttributesFromText(
     if (coreName === node.tag) continue;
 
     const matchIndexInElement = firstSpace + match.index;
-    
+
     // Skip if this match is inside an interpolation range
     const matchIndex = match.index;
     const isInsideInterpolation = interpolationRanges.some(
@@ -395,11 +395,12 @@ export function parseAttributesFromText(
     const attrStart = node.start + matchIndexInElement;
 
     // Compose the raw attribute name including any binding prefix and trailing ']'
-    const rawName = prefix
-      ? prefix === "["
-        ? `[${coreName}]`
-        : `${prefix}${coreName}`
-      : coreName;
+    const rawName = !prefix
+      ? coreName
+      : {
+          "[": `[${coreName}]`,
+          "(": `(${coreName})`,
+        }[prefix] || `${prefix}${coreName}`;
 
     const attrNameEnd = attrStart + rawName.length;
 
@@ -417,7 +418,8 @@ export function parseAttributesFromText(
                 : null;
 
     // Track if this value came from a curly brace interpolation
-    const isInterpolatedValue = match[6] !== undefined || match[7] !== undefined;
+    const isInterpolatedValue =
+      match[6] !== undefined || match[7] !== undefined;
 
     // Adjust match.index to be relative to the element start, as callers expect
     const adjustedMatch = match as RegExpExecArray;
@@ -458,7 +460,7 @@ function validateAttributeList(
   const seenAttrs = new Set<string>();
 
   for (const attr of attributes) {
-    const attribute = autocompleteService.getAttributeCompletion(
+    const attribute = componentService.getAttributeByPrefix(
       node?.tag || "",
       attr.name
     );
@@ -504,16 +506,17 @@ function validateAttributeList(
       );
 
       // Check for unknown attributes on known elements
-      validateUnknownAttribute(
-        attribute,
-        document,
-        diagnostics,
-        attr.name,
-        node.tag!,
-        attr.start,
-        attr.end,
-        packageName
-      );
+      if (!attribute) {
+        validateUnknownAttribute(
+          document,
+          diagnostics,
+          attr.name,
+          node.tag!,
+          attr.start,
+          attr.end,
+          packageName
+        );
+      }
     }
   }
 }
@@ -607,7 +610,7 @@ function validateSingleAttributeValue(
  * Validates and reports deprecated attributes.
  */
 function validateAttributeDeprecation(
-  attribute: ExtendedHtmlCompletionItem | undefined,
+  attribute: ComponentMetadata | undefined,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
   attrStart: number,
@@ -642,7 +645,6 @@ function validateAttributeDeprecation(
  * Validates and reports unknown attributes on known elements.
  */
 function validateUnknownAttribute(
-  attribute: ExtendedHtmlCompletionItem | undefined,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
   attrName: string,
@@ -652,7 +654,6 @@ function validateUnknownAttribute(
   packageName?: string
 ): void {
   if (
-    attribute ||
     COMMON_ATTRIBUTES.includes(attrName) ||
     attrName.startsWith("data-") ||
     attrName.startsWith("aria-")
@@ -689,23 +690,26 @@ function validateAttributeValue(
   error: string;
   type: DiagnosticSeverityOptions;
 } | null {
-  const attrOptions = manifestService.getAttributeValueOptions(
-    tagName,
-    attributeName
-  );
+  const attr = componentService.getAttributeCache(tagName, attributeName);
+
+  if (!attr) {
+    return null; // Unknown attribute, skip validation
+  }
+
+  const attrType = attr.type;
 
   // No validation possible or needed
   if (
-    !attrOptions ||
-    attrOptions === "string" ||
-    attrOptions.includes("string & {}") ||
-    attrOptions.includes("(string & {})")
+    !attrType ||
+    attrType === "string" ||
+    attrType.includes("string & {}") ||
+    attrType.includes("(string & {})")
   ) {
     return null;
   }
 
   // Boolean attributes shouldn't have values
-  if (attrOptions === "boolean" && value !== null) {
+  if (attrType === "boolean" && value !== null) {
     return {
       error: `The attribute "${attributeName}" is boolean and should not have a value.`,
       type: "invalidBoolean",
@@ -725,7 +729,7 @@ function validateAttributeValue(
   }
 
   // Number validation
-  if (attrOptions === "number" && isNaN(Number(cleanValue))) {
+  if (attrType === "number" && isNaN(Number(cleanValue))) {
     return {
       error: `The value for "${attributeName}" must be a valid number.`,
       type: "invalidNumber",
@@ -733,7 +737,7 @@ function validateAttributeValue(
   }
 
   // Enum validation
-  if (Array.isArray(attrOptions) && !attrOptions.includes(cleanValue)) {
+  if (Array.isArray(attr.options) && !attr.options.includes(cleanValue)) {
     return {
       error: `"${cleanValue}" is not a valid value for "${attributeName}".`,
       type: "invalidAttributeValue",
