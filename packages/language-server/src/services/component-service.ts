@@ -195,7 +195,7 @@ export class ComponentService {
     const metadata: TagMetadata = {
       label: tagName,
       description: component.summary || "No description available.",
-      insertText: tagName,
+      insertText: `<${tagName}>$0</${tagName}>`,
       package: packageName || "Global",
       sortText: "0" + tagName,
       deprecated: !!component.deprecated,
