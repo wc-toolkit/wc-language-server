@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.30
+
+### Patch Changes
+
+- fb7755e: Fixed autocomplete for tags with `_` and `.` in them
+
 ## 0.0.29
 
 ### Patch Changes
