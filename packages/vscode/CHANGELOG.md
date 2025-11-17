@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.28
+
+### Patch Changes
+
+- 6b81e8f: Fixed tag completions
+
 ## 0.0.27
 
 ### Patch Changes
