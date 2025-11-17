@@ -145,10 +145,15 @@ export function webComponentPlugin(): LanguageServicePlugin {
         /**
          * Enhanced diagnostics with deprecation and validation
          */
-        provideDiagnostics(document) {
-          return shouldProvideEnhancedService(document)
-            ? getValidation(document, html.getLanguageService())
-            : [];
+        async provideDiagnostics(document) {
+          if (!shouldProvideEnhancedService(document)) {
+            return [];
+          }
+          
+          // Wait for manifests to be loaded before validating
+          await manifestService.waitForManifestsLoaded();
+          
+          return getValidation(document, html.getLanguageService());
         },
 
         dispose() {
