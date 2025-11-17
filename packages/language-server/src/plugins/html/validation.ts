@@ -1,13 +1,13 @@
 import * as html from "vscode-html-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
-import { removeQuotes, Component } from "@wc-toolkit/cem-utilities";
-import { manifestService } from "../../services/manifest-service.js";
+import { removeQuotes } from "@wc-toolkit/cem-utilities";
 import {
   configurationService,
   DiagnosticSeverityOptions,
 } from "../../services/configuration-service.js";
 import { BINDING_CHARACTERS } from "./utilities.js";
 import {
+  ComponentCache,
   ComponentMetadata,
   componentService,
 } from "../../services/component-service.js";
@@ -88,7 +88,7 @@ export function validateSingleNode(
     return; // Only validate custom elements
   }
 
-  const element = manifestService.getCustomElement(node.tag);
+  const element = componentService.getComponentCache(node.tag);
 
   // Handle unknown custom elements
   if (!element) {
@@ -100,7 +100,7 @@ export function validateSingleNode(
   validateElementDeprecation(node, document, diagnostics, element);
 
   // Parse and validate all raw attributes (handles duplicates and validation)
-  validateRawAttributes(node, document, diagnostics, element.package as string);
+  validateRawAttributes(node, document, diagnostics, element.tag.package);
 }
 
 /**
@@ -134,27 +134,25 @@ function validateElementDeprecation(
   node: html.Node,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
-  element: Component
+  element: ComponentCache
 ): void {
   const elementDeprecationSeverity = getSeverityLevel(
     "deprecatedElement",
-    element.package as string
+    element.tag.package
   );
 
-  if (elementDeprecationSeverity) {
-    const elementDeprecation = checkElementDeprecation(node.tag!);
-    if (elementDeprecation) {
-      const elementRange = findElementTagRange(document, node);
-      if (elementRange) {
-        const ruleName = "deprecatedElement";
-        if (!isDiagnosticIgnored(document, ruleName, elementRange)) {
-          diagnostics.push({
-            severity: elementDeprecationSeverity,
-            range: elementRange,
-            message: elementDeprecation.error,
-            source: "wc-toolkit",
-          });
-        }
+  if (elementDeprecationSeverity && element.tag.deprecated) {
+    const elementRange = findElementTagRange(document, node);
+    if (elementRange) {
+      const ruleName = "deprecatedElement";
+      if (!isDiagnosticIgnored(document, ruleName, elementRange)) {
+        diagnostics.push({
+          severity: elementDeprecationSeverity,
+          range: elementRange,
+          message:
+            element.tag.deprecationMessage || `${node.tag} is deprecated.`,
+          source: "wc-toolkit",
+        });
       }
     }
   }
@@ -800,22 +798,5 @@ function findElementTagRange(
   return {
     start: document.positionAt(tagStart),
     end: document.positionAt(tagEnd),
-  };
-}
-
-/**
- * Checks if an element is deprecated.
- */
-function checkElementDeprecation(tagName: string): { error: string } | null {
-  const element = manifestService.getCustomElement(tagName);
-  if (!element?.deprecated) return null;
-
-  const deprecationMessage =
-    typeof element.deprecated === "string"
-      ? element.deprecated
-      : `The element "${tagName}" is deprecated.`;
-
-  return {
-    error: deprecationMessage,
   };
 }
