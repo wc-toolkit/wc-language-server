@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.14
+
+### Patch Changes
+
+- 4a65f65: Fixed validation timing for async manifests
+
 ## 0.0.13
 
 ### Patch Changes
