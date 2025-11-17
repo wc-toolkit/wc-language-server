@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as html from "vscode-html-languageservice";
 import * as css from "vscode-css-languageservice";
-import { manifestService } from "./manifest-service.js";
 import {
   getAttributePrefix,
   getBaseAttributeName,
@@ -101,16 +100,14 @@ export class AutocompleteService {
     if (attrPrefix === "?") {
       attributes = attributes
         .filter((attr) => {
-          const attrInfo = manifestService.getAttributeInfo(
-            tagName,
-            attr.label
-          );
-          return attrInfo?.type === "boolean";
+          const attrInfo = componentCache.attributes?.get(attr.label);
+          return (attrInfo as any)?.type === "boolean";
         })
         .map((attr) => {
           return {
             ...attr,
             insertText: `${attr.label}="$1"$0`,
+            filterText: attr.label,
           };
         });
     }

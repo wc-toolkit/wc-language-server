@@ -52,7 +52,6 @@ export function getHoverContent(
         cursorOffset >= tagOffset + attrStart &&
         cursorOffset <= tagOffset + attrEnd
       ) {
-        console.log("Hovering over attribute:", attrName);
         const attribute = componentService.getAttributeByPrefix(
           node.tag,
           attrName

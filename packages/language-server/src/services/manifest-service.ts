@@ -9,10 +9,8 @@ import {
   getAllComponents,
   getComponentDetailsTemplate,
 } from "@wc-toolkit/cem-utilities";
-import { parseAttributeValueOptions } from "../utilities/cem-utils.js";
 import { readFileSync } from "fs";
 import { componentService } from "./component-service.js";
-
 
 export type AttributeInfo = {
   name: string;
@@ -41,11 +39,10 @@ export class ManifestService {
   private packageJsonPath: string = "";
   private manifestsLoadedPromise: Promise<void> | null = null;
 
-  public attributeData: Map<AttributeKey, AttributeInfo> = new Map();
-
   constructor() {
     debug("cem:init");
-    this.manifestsLoadedPromise = configurationService.loadConfig()
+    this.manifestsLoadedPromise = configurationService
+      .loadConfig()
       .then(() => this.loadManifests())
       .catch((err) => {
         error("cem:init:failed", err);
@@ -112,43 +109,12 @@ export class ManifestService {
         tagName,
         `### \`<${tagName}>\`\n\n---\n\n${getComponentDetailsTemplate(element, { altType })}`
       );
-      this.setAttributeOptions(tagName, element, depName);
       componentService.loadCache(tagName, element, depName || "Global");
     });
     debug("cem:parse:complete", {
       dep: depName || "local",
       totalElements:
         this.customElements.size + this.dependencyCustomElements.size,
-      attributesIndexed: this.attributeData.size,
-    });
-  }
-
-  private setAttributeOptions(
-    tagName: string,
-    component: Component,
-    depName?: string
-  ) {
-    let added = 0;
-    component.attributes?.forEach((attr) => {
-      const typeSrc =
-        configurationService.config.libraries?.[`${depName}`]?.typeSrc ||
-        configurationService.config.typeSrc;
-      const options = parseAttributeValueOptions(attr, typeSrc);
-      this.attributeOptions.set(`${tagName}:${attr.name}`, options);
-      this.attributeData.set(`${tagName}:${attr.name}`, {
-        name: attr.name,
-        description: attr.description,
-        deprecated: attr.deprecated,
-        type: Array.isArray(options) ? options.join(" | ") : options,
-        options: Array.isArray(options) ? options : undefined,
-      });
-      added++;
-    });
-    debug("cem:attributes:set", {
-      tag: tagName,
-      dep: depName || "local",
-      added,
-      totalAttributeEntries: this.attributeData.size,
     });
   }
 
@@ -190,13 +156,6 @@ export class ManifestService {
     return options || null;
   }
 
-  public getAttributeInfo(
-    tagName: string,
-    attributeName: string
-  ): AttributeInfo | null {
-    return this.attributeData.get(`${tagName}:${attributeName}`) || null;
-  }
-
   public findPositionInManifest(searchText: string): number {
     const position = this.manifestContent.indexOf(searchText);
     return position >= 0 ? position : 0;
@@ -208,7 +167,6 @@ export class ManifestService {
     this.customElementsDocs.clear();
     this.dependencyCustomElements.clear();
     this.attributeOptions.clear();
-    this.attributeData.clear();
     this.manifestPath = null;
     this.manifestContent = "";
     // autocompleteService.dispose();
@@ -237,7 +195,6 @@ export class ManifestService {
         dependencyElements: this.dependencyCustomElements.size,
         totalElements:
           this.customElements.size + this.dependencyCustomElements.size,
-        attributes: this.attributeData.size,
       });
     } catch (error) {
       debug("cem:load:error", error);
@@ -429,7 +386,10 @@ export class ManifestService {
     }
   }
 
-  private async loadManifestFromUrl(url: string, depName?: string): Promise<void> {
+  private async loadManifestFromUrl(
+    url: string,
+    depName?: string
+  ): Promise<void> {
     debug("cem:url:fetch", { url, dep: depName || "local" });
     try {
       const response = await fetch(url);
