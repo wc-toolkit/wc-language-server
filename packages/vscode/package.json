@@ -1,6 +1,6 @@
 {
   "name": "web-components-language-server",
-  "version": "0.0.30",
+  "version": "0.0.31",
   "icon": "assets/icon_alpha.png",
   "repository": {
     "type": "git",
@@ -108,7 +108,8 @@
     "build": "node scripts/build -- --minify",
     "watch": "npm run build -- --watch",
     "prepare": "npm run build && vsce package --pre-release",
-    "manual-deploy": "npm run build && vsce publish"
+    "manual-deploy": "npm run build && vsce publish",
+    "revert": "vsce publish patch"
   },
   "dependencies": {},
   "devDependencies": {
