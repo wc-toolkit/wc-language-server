@@ -8,8 +8,8 @@
     <name>Web Components Language Server</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor email="support@wc-toolkit.dev" url="https://github.com/wc-toolkit/wc-language-server">wc-toolkit</vendor>
-
+    <vendor url="https://github.com/wc-toolkit/wc-language-server">WC Toolkit</vendor>
+    
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->

@@ -50,7 +50,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("242")
-        untilBuild.set("243.*")
+        untilBuild.set("") // Empty means "all future versions"
     }
 
     signPlugin {
