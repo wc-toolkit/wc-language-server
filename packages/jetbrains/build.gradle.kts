@@ -5,7 +5,12 @@ plugins {
 }
 
 group = "com.wc-toolkit"
-version = "0.0.1"
+
+// Read version from package.json
+val packageJson = file("package.json").readText()
+val versionRegex = """"version"\s*:\s*"([^"]+)"""".toRegex()
+val packageVersion = versionRegex.find(packageJson)?.groupValues?.get(1) ?: "0.0.1"
+version = packageVersion
 
 repositories {
     mavenCentral()
