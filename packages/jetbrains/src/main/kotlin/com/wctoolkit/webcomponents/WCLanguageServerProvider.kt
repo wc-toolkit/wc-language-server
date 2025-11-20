@@ -22,24 +22,9 @@ class WCLanguageServerProvider : LspServerSupportProvider {
         file: VirtualFile,
         serverStarter: LspServerSupportProvider.LspServerStarter
     ) {
-        // Start the server if the file type is relevant
-        if (isRelevantFile(file)) {
-            println("File is relevant, starting server for: ${file.name}")
-            serverStarter.ensureServerStarted(WCLanguageServerDescriptor(project))
-        } else {
-            println("File is NOT relevant: ${file.name}, extension: ${file.extension}")
-        }
-    }
-
-    private fun isRelevantFile(file: VirtualFile): Boolean {
-        val extension = file.extension?.lowercase() ?: return false
-        return extension in listOf(
-            "html", "htm", "xhtml",
-            "vue", "svelte",
-            "jsx", "tsx",
-            "astro", "mdx",
-            "cshtml", "twig"
-        )
+        // Start the server for any file
+        println("Starting server for: ${file.name}")
+        serverStarter.ensureServerStarted(WCLanguageServerDescriptor(project))
     }
 }
 
@@ -49,15 +34,8 @@ class WCLanguageServerProvider : LspServerSupportProvider {
 class WCLanguageServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "Web Components") {
     
     override fun isSupportedFile(file: VirtualFile): Boolean {
-        val extension = file.extension?.lowercase() ?: return false
-        val isSupported = extension in listOf(
-            "html", "htm", "xhtml",
-            "vue", "svelte",
-            "jsx", "tsx",
-            "astro", "mdx",
-            "cshtml", "twig"
-        )
-        return isSupported
+        // Support all file types
+        return true
     }
 
     override fun createCommandLine(): GeneralCommandLine {

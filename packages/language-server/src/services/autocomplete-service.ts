@@ -330,7 +330,7 @@ export class AutocompleteService {
             sortText: `0000-${option}`,
             kind: CompletionItemKind.Value,
             insertText: option,
-            detail: `Attribute value for ${attr.label}`,
+            detail: `Option for \`${attr.label}\``,
           };
           return valueCompletion;
         });

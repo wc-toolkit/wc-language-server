@@ -14,10 +14,6 @@ export function getCssAutoCompleteSuggestions(
     line: position.line,
     character: position.character,
   });
-
-  // return autocompleteService.getCssCompletions();
-
-
   const text = document.getText();
   const offset = document.offsetAt(position);
   const beforeText = text.substring(0, offset);
@@ -100,19 +96,42 @@ export function isInStyleTag(beforeText: string): boolean {
  */
 export function isInCssTemplateLiteral(beforeText: string): boolean {
   // Inside css tag template literal: css`...|...`
-  // Looks for the nearest backtick and checks if it's preceded by 'css'
-  const lastBacktick = beforeText.lastIndexOf("`");
-  if (lastBacktick !== -1) {
-    const beforeBacktick = beforeText.slice(0, lastBacktick);
-    if (/css\s*`\s*$/m.test(beforeBacktick)) {
-      return true;
+  // Count backticks to determine if we're inside a template literal
+  let backtickCount = 0;
+  let lastCssPosition = -1;
+  
+  // Find all backticks and the last 'css' keyword
+  for (let i = 0; i < beforeText.length; i++) {
+    if (beforeText[i] === "`") {
+      backtickCount++;
+    }
+    // Check for 'css' keyword followed by whitespace/backtick
+    if (i >= 2 && beforeText.substring(i - 2, i + 1) === "css") {
+      const nextChar = beforeText[i + 1];
+      if (!nextChar || /\s/.test(nextChar) || nextChar === "`") {
+        lastCssPosition = i + 1;
+      }
     }
   }
+  
+  // If odd number of backticks and we found a 'css' keyword, check if it's recent
+  if (backtickCount % 2 === 1 && lastCssPosition !== -1) {
+    // Check if there's a 'css' keyword right before the last unclosed backtick
+    const textAfterCss = beforeText.slice(lastCssPosition);
+    const backtickAfterCss = textAfterCss.indexOf("`");
+    
+    // If the backtick right after 'css' is the last unclosed one, we're inside
+    if (backtickAfterCss !== -1) {
+      const remainingText = textAfterCss.slice(backtickAfterCss + 1);
+      const hasAnotherBacktick = remainingText.includes("`");
+      return !hasAnotherBacktick;
+    }
+  }
+  
   return false;
 }
 
 export function isStyleLanguage(languageId: string): boolean {
-  console.log("Checking isStyleLanguage for", languageId);
   return ["css", "scss", "sass", "less", "stylus"].includes(languageId);
 }
 
