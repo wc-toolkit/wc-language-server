@@ -63,3 +63,20 @@ jobs:
           packagePath: ./packages/vscode
           registryUrl: https://marketplace.visualstudio.com
           extensionFile: ${{ steps.publishToOpenVSX.outputs.vsixPath }}
+      - name: Setup Java for JetBrains Plugin
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Build JetBrains Plugin
+        run: |
+          cd packages/jetbrains
+          chmod +x gradlew
+          ./gradlew buildPlugin
+      - name: Publish JetBrains Plugin
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
+        run: |
+          cd packages/jetbrains
+          ./gradlew publishPlugin

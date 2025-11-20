@@ -12,6 +12,8 @@ if (process.argv.includes("--version")) {
     readFileSync(join(__dirname, "../package.json"), "utf-8")
   );
   console.log(`${pkgJSON["version"]}`);
-} else {
-  await import("../dist/index.js");
+  process.exit(0);
 }
+
+// Import the language server (process.argv is already set correctly for it to detect --stdio)
+await import("../dist/index.js");

@@ -1,0 +1,23 @@
+{
+  "name": "@wc-toolkit/jetbrains-plugin",
+  "version": "0.0.1",
+  "description": "JetBrains plugin for Web Components Language Server",
+  "private": true,
+  "scripts": {
+    "build": "export JAVA_HOME=$(/usr/libexec/java_home -v 17) && ./gradlew buildPlugin --no-configuration-cache",
+    "clean": "export JAVA_HOME=$(/usr/libexec/java_home -v 17) && ./gradlew clean",
+    "dev": "export JAVA_HOME=$(/usr/libexec/java_home -v 17) && ./gradlew runIde",
+    "test": "export JAVA_HOME=$(/usr/libexec/java_home -v 17) && ./gradlew test",
+    "verify": "export JAVA_HOME=$(/usr/libexec/java_home -v 17) && ./gradlew verifyPlugin"
+  },
+  "keywords": [
+    "jetbrains",
+    "webstorm",
+    "intellij",
+    "web-components",
+    "custom-elements",
+    "language-server"
+  ],
+  "author": "wc-toolkit",
+  "license": "MIT"
+}

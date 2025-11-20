@@ -7,16 +7,9 @@ export function getHoverContent(
   document: html.TextDocument,
   position: html.Position
 ): NullableProviderResult<Hover> {
-  const textDocument = html.TextDocument.create(
-    document.uri,
-    "html",
-    0,
-    document.getText()
-  );
-
   const htmlLanguageService = html.getLanguageService();
-  const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
-  const offset = textDocument.offsetAt(position);
+  const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
+  const offset = document.offsetAt(position);
   const node = htmlDocument.findNodeAt(offset);
   const element = manifestService.getCustomElement(node.tag || "");
 

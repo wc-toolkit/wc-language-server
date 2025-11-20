@@ -15,8 +15,9 @@ This project provides a language server and editor extensions for using Web Comp
 ## Monorepo Structure
 
 - `packages/language-server`: Core language server implementation
-- `packages/vscode`: VSCode extension client
-- `packages/cem-utilities`: Utilities for parsing custom element manifests
+- `packages/vscode`: VS Code extension client
+- `packages/jetbrains`: JetBrains plugin (WebStorm, IntelliJ IDEA)
+- `packages/wctools`: CLI utilities for parsing custom element manifests
 
 ## Getting Started
 
@@ -98,6 +99,19 @@ If you'd like a separate npm script name for the Node runner, add a `test:node` 
   ```sh
   pnpm vscode:release
   ```
+
+### JetBrains (WebStorm, IntelliJ IDEA)
+
+- To build the plugin:
+  ```sh
+  pnpm jetbrains:build
+  ```
+- The plugin ZIP will be created in `packages/jetbrains/build/distributions/`
+- To test locally in WebStorm:
+  ```sh
+  pnpm jetbrains:run
+  ```
+- For detailed testing instructions, see [`packages/jetbrains/TESTING.md`](packages/jetbrains/TESTING.md)
 
 ## Configuration
 

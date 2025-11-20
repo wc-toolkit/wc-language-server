@@ -49,6 +49,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/wctools
 
+  packages/jetbrains: {}
+
   packages/language-server:
     dependencies:
       '@volar/language-core':
