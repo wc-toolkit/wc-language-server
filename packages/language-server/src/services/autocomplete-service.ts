@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as html from "vscode-html-languageservice";
 import * as css from "vscode-css-languageservice";
+import { CompletionItemKind, InsertTextFormat } from "vscode-languageserver-types";
 import {
   getAttributePrefix,
   getBaseAttributeName,
@@ -83,7 +84,6 @@ export class AutocompleteService {
   getAttributeCompletions(
     tagName: string,
     attrPrefix?: string,
-    beforeText?: string
   ): html.CompletionItem[] {
     this.checkCache();
     const componentCache = this.componentCache.get(tagName);
@@ -93,7 +93,7 @@ export class AutocompleteService {
 
     let attributes = Array.from(componentCache.attributes?.values() || []);
 
-    if (!attrPrefix && beforeText) {
+    if (!attrPrefix) {
       return attributes;
     }
 
@@ -243,10 +243,10 @@ export class AutocompleteService {
           return {
             ...v,
             insertText: `var(${v.label})`,
-            filterText: `var ${v.label}`,
+            filterText: `var(${v.label})`,
             label: `var(${v.label})`,
-            sortText: `xxvar(${v.label})`,
-            kind: css.CompletionItemKind.Variable,
+            sortText: `zz3var(${v.label})`,
+            kind: CompletionItemKind.Property,
           };
         })
       : [];
@@ -260,6 +260,13 @@ export class AutocompleteService {
       : [];
     allCompletions.push(...states);
     return allCompletions;
+  }
+
+  getCssVariableCompletions(): css.CompletionItem[] {
+    this.checkCache();
+    return this.loadedCssVars
+      ? Array.from(this.loadedCssVars.values())
+      : [];
   }
 
   getCssCustomPropertyCompletion(
@@ -288,12 +295,12 @@ export class AutocompleteService {
   private loadTagCache(tagName: string, tagCache: TagMetadata) {
     const completion: html.CompletionItem = {
       ...tagCache,
-      kind: html.CompletionItemKind.Snippet,
+      kind: CompletionItemKind.Snippet,
       documentation: {
         kind: "markdown",
         value: tagCache.description,
       },
-      insertTextFormat: html.InsertTextFormat.Snippet,
+      insertTextFormat: InsertTextFormat.Snippet,
     };
     this.tagCache.set(tagName, completion);
   }
@@ -305,8 +312,8 @@ export class AutocompleteService {
     attributes?.forEach((attr) => {
       const completion: html.CompletionItem = {
         ...attr,
-        kind: html.CompletionItemKind.Property,
-        insertTextFormat: html.InsertTextFormat.Snippet,
+        kind: CompletionItemKind.Property,
+        insertTextFormat: InsertTextFormat.Snippet,
         documentation: {
           kind: "markdown",
           value: attr.description,
@@ -320,8 +327,8 @@ export class AutocompleteService {
           const valueCompletion: html.CompletionItem = {
             label: option, // shows user the option value
             filterText: option, // ensures typing filters correctly
-            sortText: `0${option}`,
-            kind: html.CompletionItemKind.Value,
+            sortText: `0000-${option}`,
+            kind: CompletionItemKind.Value,
             insertText: option,
             detail: `Attribute value for ${attr.label}`,
           };
@@ -342,8 +349,8 @@ export class AutocompleteService {
     properties?.forEach((prop) => {
       const completion: html.CompletionItem = {
         ...prop,
-        kind: html.CompletionItemKind.Property,
-        insertTextFormat: html.InsertTextFormat.Snippet,
+        kind: CompletionItemKind.Property,
+        insertTextFormat: InsertTextFormat.Snippet,
         documentation: {
           kind: "markdown",
           value: prop.description || "No description available.",
@@ -360,8 +367,8 @@ export class AutocompleteService {
     events?.forEach((event) => {
       const completion: html.CompletionItem = {
         ...event,
-        kind: html.CompletionItemKind.Event,
-        insertTextFormat: html.InsertTextFormat.Snippet,
+        kind: CompletionItemKind.Event,
+        insertTextFormat: InsertTextFormat.Snippet,
         documentation: {
           kind: "markdown",
           value: event.description || "No description available.",
@@ -378,7 +385,7 @@ export class AutocompleteService {
       }
       const completion: css.CompletionItem = {
         ...cssVar,
-        kind: css.CompletionItemKind.Property,
+        kind: CompletionItemKind.Property,
         documentation: {
           kind: "markdown",
           value: cssVar.description,
@@ -395,8 +402,7 @@ export class AutocompleteService {
       }
       const completion: css.CompletionItem = {
         ...cssPart,
-        label: `part(${cssPart.label})`,
-        kind: css.CompletionItemKind.Function,
+        kind: CompletionItemKind.Function,
         documentation: {
           kind: "markdown",
           value: cssPart.description,
@@ -413,8 +419,7 @@ export class AutocompleteService {
       }
       const completion: css.CompletionItem = {
         ...cssState,
-        label: `state(${cssState.label})`,
-        kind: css.CompletionItemKind.Function,
+        kind: CompletionItemKind.Function,
         documentation: {
           kind: "markdown",
           value: cssState.description,

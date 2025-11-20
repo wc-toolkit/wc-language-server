@@ -1,0 +1,105 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>com.wc-toolkit.web-components-language-server</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>Web Components Language Server</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor email="support@wc-toolkit.dev" url="https://github.com/wc-toolkit/wc-language-server">wc-toolkit</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+    <h2>Web Components Language Server for JetBrains IDEs</h2>
+    <p>Advanced editor support for working with Web Components and custom elements in WebStorm, IntelliJ IDEA, and other JetBrains IDEs.</p>
+    
+    <h3>Features</h3>
+    <ul>
+      <li>HTML diagnostics for custom elements and attributes</li>
+      <li>Attribute type validation (boolean, number, enum, string)</li>
+      <li>Deprecated element and attribute warnings</li>
+      <li>Duplicate attribute detection</li>
+      <li>Intelligent autocomplete for custom elements</li>
+      <li>Hover documentation for components and attributes</li>
+      <li>Go-to-definition for component usage</li>
+      <li>CSS custom property autocomplete and validation</li>
+      <li>Configurable diagnostics severity</li>
+      <li>Works with any Web Components library that provides a Custom Elements Manifest</li>
+      <li>Model Context Protocol (MCP) server for AI agent integration</li>
+    </ul>
+    
+    <h3>Configuration</h3>
+    <p>Create a <code>wc.config.js</code> file in your project root to customize behavior.</p>
+    
+    <h3>Requirements</h3>
+    <ul>
+      <li>Node.js installed and available in PATH</li>
+      <li>Custom Elements Manifest (<code>custom-elements.json</code>) in your project</li>
+    </ul>
+  ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>JavaScript</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Language Server Protocol support -->
+        <platform.lsp.serverSupportProvider implementation="com.wctoolkit.webcomponents.WCLanguageServerProvider"/>
+        
+        <!-- Project-level service for managing the language server lifecycle -->
+        <projectService serviceImplementation="com.wctoolkit.webcomponents.WCLanguageServerService"/>
+        
+        <!-- Application-level settings -->
+        <applicationConfigurable 
+            parentId="tools" 
+            instance="com.wctoolkit.webcomponents.settings.WCSettingsConfigurable" 
+            id="com.wctoolkit.webcomponents.settings.WCSettingsConfigurable"
+            displayName="Web Components Language Server"/>
+        
+        <applicationService 
+            serviceImplementation="com.wctoolkit.webcomponents.settings.WCSettings"/>
+        
+        <!-- File watchers for auto-restart -->
+        <projectService serviceImplementation="com.wctoolkit.webcomponents.WCFileWatcherService"/>
+        
+        <!-- MCP Server integration -->
+        <projectService serviceImplementation="com.wctoolkit.webcomponents.mcp.MCPServerService"/>
+        
+        <!-- Suppress built-in HTML unknown tag warnings for custom elements -->
+        <lang.inspectionSuppressor language="HTML" 
+            implementationClass="com.wctoolkit.webcomponents.inspections.CustomElementInspectionSuppressor"/>
+        
+        <!-- Notification group -->
+        <notificationGroup id="Web Components Language Server" displayType="BALLOON"/>
+    </extensions>
+
+    <actions>
+        <!-- Restart Language Server action -->
+        <action id="WCLanguageServer.Restart" 
+                class="com.wctoolkit.webcomponents.actions.RestartLanguageServerAction"
+                text="Restart Web Components Language Server"
+                description="Restart the Web Components Language Server">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        
+        <!-- Check MCP Server status -->
+        <action id="WCLanguageServer.CheckMCPStatus" 
+                class="com.wctoolkit.webcomponents.actions.CheckMCPStatusAction"
+                text="Check Web Components MCP Server Status"
+                description="Check the status of the Model Context Protocol server">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+    
+    <projectListeners>
+        <listener class="com.wctoolkit.webcomponents.WCProjectListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </projectListeners>
+</idea-plugin>

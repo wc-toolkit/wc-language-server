@@ -219,7 +219,7 @@ export class ComponentService {
         label: attr.name,
         description: attr.description || "No description available.",
         filterText: attr.name, // ensures typing '?' filters correctly
-        sortText: `0${attr.name}`, // ensures these show above custom attributes
+        sortText: `0000-${attr.name}`, // ensures these show above custom attributes
         insertText: this.getInsertTextFormat(
           attr.name,
           hasOptions,
@@ -230,7 +230,7 @@ export class ComponentService {
           attr.deprecated,
           "This attribute is deprecated."
         ),
-        detail: `Type: ${displayType}`,
+        detail: displayType,
         type: displayType,
         options: hasOptions ? attrType : undefined,
       };
@@ -246,14 +246,14 @@ export class ComponentService {
         label: prop.name,
         description: prop.description || "No description available.",
         filterText: prop.name,
-        sortText: `0${prop.name}`, // ensures these show below attributes
+        sortText: `0000-${prop.name}`, // ensures these show below attributes
         insertText: `${prop.name}="$0"`,
         deprecated: !!prop.deprecated,
         deprecationMessage: this.getDeprecatedMessage(
           prop.deprecated,
           "This property is deprecated."
         ),
-        detail: `Type: ${displayType}`,
+        detail: displayType,
         type: displayType,
       };
       this.componentCache.get(tagName)!.properties?.set(prop.name, metadata);
@@ -267,14 +267,14 @@ export class ComponentService {
         label: event.name,
         description: event.description || "No description available.",
         filterText: event.name,
-        sortText: `0${event.name}`,
+        sortText: `0000-${event.name}`,
         insertText: event.name,
         deprecated: !!event.deprecated,
         deprecationMessage: this.getDeprecatedMessage(
           event.deprecated,
           "This event is deprecated."
         ),
-        detail: `Type: ${displayType}`,
+        detail: displayType,
         type: displayType,
       };
       this.componentCache.get(tagName)!.events?.set(event.name, metadata);
@@ -287,7 +287,7 @@ export class ComponentService {
         label: cssVar.name,
         description: cssVar.description || "No description available.",
         filterText: cssVar.name,
-        sortText: `xx${cssVar.name}`,
+        sortText: cssVar.name,
         insertText: cssVar.name,
         deprecated: !!cssVar.deprecated,
         deprecationMessage: this.getDeprecatedMessage(
@@ -307,10 +307,10 @@ export class ComponentService {
   private loadCssPartCache(tagName: string, component: Component) {
     component.cssParts?.forEach((cssPart) => {
       const metadata: ComponentMetadata = {
-        label: cssPart.name,
+        label: `part(${cssPart.name})`,
+        filterText: `part(${cssPart.name})`,
+        sortText: `zz1${cssPart.name}`,
         description: cssPart.description || "No description available.",
-        filterText: cssPart.name,
-        sortText: `xx${cssPart.name}`,
         insertText: `part(${cssPart.name})`,
         deprecated: !!cssPart.deprecated,
         deprecationMessage: this.getDeprecatedMessage(
@@ -328,10 +328,10 @@ export class ComponentService {
   private loadCssStateCache(tagName: string, component: Component) {
     component.cssStates?.forEach((cssState) => {
       const metadata: ComponentMetadata = {
-        label: cssState.name,
+        label: `state(${cssState.name})`,
         description: cssState.description || "No description available.",
-        filterText: cssState.name,
-        sortText: `xx${cssState.name}`,
+        filterText: `state(${cssState.name})`,
+        sortText: `zz2state(${cssState.name})`,
         insertText: `state(${cssState.name})`,
         deprecated: !!cssState.deprecated,
         deprecationMessage: this.getDeprecatedMessage(

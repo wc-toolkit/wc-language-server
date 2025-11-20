@@ -1,4 +1,5 @@
 import * as html from "vscode-html-languageservice";
+import { CompletionItemKind, InsertTextFormat } from "vscode-languageserver-types";
 import {
   ATTR_NAME_REGEX,
   ATTR_VALUE_REGEX,
@@ -8,6 +9,7 @@ import {
 import { debug } from "../../utilities/logger.js";
 import { autocompleteService } from "../../services/autocomplete-service.js";
 
+// --- CSS context detection helper ---
 export function getAutoCompleteSuggestions(
   document: html.TextDocument,
   position: html.Position
@@ -76,11 +78,11 @@ function getCompletions(
       tagName,
       raw: rawAttr,
       prefix: attrPrefix,
+      beforeTextEnd: beforeText.slice(-50),
     });
     return getAttributeCompletions(
       tagName,
       attrPrefix,
-      beforeText
     );
   }
 
@@ -116,10 +118,10 @@ function getLintSnippets() {
 
   const directiveCompletions: html.CompletionItem[] = directives.map((d) => ({
     label: d.name,
-    kind: html.CompletionItemKind.Snippet,
+    kind: CompletionItemKind.Snippet,
     detail: d.detail,
     insertText: d.snippet,
-    insertTextFormat: html.InsertTextFormat.Snippet,
+    insertTextFormat: InsertTextFormat.Snippet,
     sortText: "0" + d.name,
   }));
 
@@ -155,7 +157,7 @@ function addLintRuleCompletions() {
 
   const commentCompletions: html.CompletionItem[] = rules.map((r) => ({
     label: r.name,
-    kind: html.CompletionItemKind.Text,
+    kind: CompletionItemKind.Text,
     detail: r.description,
     insertText: r.name,
   }));
@@ -175,12 +177,10 @@ function getTagCompletions(
 function getAttributeCompletions(
   tagName: string,
   attrPrefix?: BindingPrefix,
-  beforeText?: string
 ): html.CompletionItem[] {
   const items = autocompleteService.getAttributeCompletions(
     tagName,
     attrPrefix,
-    beforeText
   );
 
   return items;
