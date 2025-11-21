@@ -2,6 +2,7 @@
   "name": "web-components-language-server",
   "version": "0.0.31",
   "icon": "assets/icon_alpha.png",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/wc-toolkit/wc-language-server.git",

@@ -3,6 +3,7 @@
   "version": "0.0.7",
   "type": "module",
   "main": "dist/index.js",
+  "private": true,
   "exports": {
     ".": "./dist/*",
     "./services": "./dist/services/index.js",
