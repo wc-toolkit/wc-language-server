@@ -4,12 +4,15 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
+import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.wctoolkit.webcomponents.settings.WCSettings
 import java.io.File
+import java.nio.file.Path
 
 /**
  * Service for managing the Model Context Protocol (MCP) server
@@ -95,14 +98,20 @@ class MCPServerService(private val project: Project) {
         val nodePath = findNodeExecutable()
             ?: throw IllegalStateException("Node.js not found. Please install Node.js or configure the path in settings.")
         
-        // Get the MCP server script path from plugin resources
-        val pluginPath = this::class.java.protectionDomain.codeSource.location.path
-        val pluginDir = File(pluginPath).parentFile
+        // Get the plugin directory using IntelliJ's plugin API
+        val pluginId = PluginId.getId("com.wc-toolkit.web-components-language-server")
+        val pluginDescriptor = PluginManagerCore.getPlugin(pluginId)
+            ?: throw IllegalStateException("Plugin descriptor not found for ID: com.wc-toolkit.web-components-language-server")
+        
+        val pluginPath: Path = pluginDescriptor.pluginPath
+        val pluginDir = pluginPath.toFile()
         val mcpServerScript = File(pluginDir, "vscode/mcp-server.js")
         
         if (!mcpServerScript.exists()) {
+            val vscodeDir = File(pluginDir, "vscode")
             throw IllegalStateException(
                 "MCP server script not found at: ${mcpServerScript.absolutePath}\n" +
+                "Plugin directory: ${pluginDir.absolutePath}\n" +
                 "Please ensure the plugin is properly installed."
             )
         }

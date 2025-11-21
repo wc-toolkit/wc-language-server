@@ -39,7 +39,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build
         run: pnpm lint && pnpm build
-      - name: Create Release Pull Request and Publish
+      - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
         with:
@@ -50,13 +50,16 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           OPENVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}
           VSCODE_MARKETPLACE: ${{ secrets.VSCODE_MARKETPLACE }}
+      # Only run the following steps if packages were actually published
       - name: Publish to Open VSX Registry
+        if: steps.changesets.outputs.published == 'true'
         uses: HaaLeo/publish-vscode-extension@v2
         id: publishToOpenVSX
         with:
           pat: ${{ secrets.OPENVSX_TOKEN }}
           packagePath: ./packages/vscode
       - name: Publish to Visual Studio Marketplace
+        if: steps.changesets.outputs.published == 'true'
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ secrets.VSCODE_MARKETPLACE }}
@@ -64,11 +67,13 @@ jobs:
           registryUrl: https://marketplace.visualstudio.com
           extensionFile: ${{ steps.publishToOpenVSX.outputs.vsixPath }}
       - name: Setup Java for JetBrains Plugin
+        if: steps.changesets.outputs.published == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
       - name: Build JetBrains Plugin
+        if: steps.changesets.outputs.published == 'true'
         run: |
           cd packages/jetbrains
           chmod +x gradlew

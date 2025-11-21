@@ -1,6 +1,6 @@
 # Web Components Language Server - JetBrains Plugin
 
-Advanced editor support for working with Web Components and custom elements in WebStorm, IntelliJ IDEA, and other JetBrains IDEs.
+Advanced editor support for using Web Components and custom elements in WebStorm, IntelliJ IDEA, and other JetBrains IDEs.
 
 ## Features
 
@@ -19,8 +19,7 @@ Advanced editor support for working with Web Components and custom elements in W
 
 - **JetBrains IDE**: WebStorm 2024.2+ or IntelliJ IDEA 2024.2+ (with JavaScript plugin)
 - **Node.js**: Version 16 or higher installed and available in PATH
-- **Custom Elements Manifest**: A `custom-elements.json` file in your project
-
+- **Custom Elements Manifest**: A component library with a `custom-elements.json` ([Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest)) file
 ## Installation
 
 1. Open your JetBrains IDE (WebStorm, IntelliJ IDEA, etc.)
@@ -43,11 +42,11 @@ Once installed, the plugin automatically provides enhanced editor support for pr
 Open an HTML file and type:
 
 ```html
-<sl-button variant="primary">Click me</sl-button>
+<wa-button variant="primary">Click me</wa-button>
 ```
 
 You'll get:
-- **Autocomplete**: Type `<sl-` and press `Ctrl+Space` to see all Shoelace components
+- **Autocomplete**: Type `<wa-` and press `Ctrl+Space` to see all Shoelace components
 - **Attribute suggestions**: Type `variant="` to see available options (`primary`, `success`, `neutral`, etc.)
 - **Hover documentation**: Hover over `sl-button` to see component documentation
 - **Validation**: Misspell an attribute to see helpful error messages
