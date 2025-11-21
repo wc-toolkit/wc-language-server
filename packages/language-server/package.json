@@ -20,7 +20,8 @@
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch",
     "test:unit": "node --test ./test/no-package-json.test.mjs",
-    "clean": "rimraf dist && rimraf tsconfig.tsbuildinfo"
+    "clean": "rimraf dist && rimraf tsconfig.tsbuildinfo",
+    "release": "pnpm run build && npm publish --access=public"
   },
   "dependencies": {
     "@volar/language-core": "~2.4.0",

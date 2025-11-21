@@ -16,7 +16,7 @@
     "jetbrains:build": "cd ./packages/jetbrains && ./gradlew buildPlugin",
     "jetbrains:run": "cd ./packages/jetbrains && ./gradlew runIde",
     "jetbrains:test": "cd ./packages/jetbrains && ./gradlew test",
-    "release": "pnpm -r run release",
+    "release": "changeset publish",
     "clean": "git clean -fdX",
     "format": "prettier . --write",
     "lint": "eslint",
