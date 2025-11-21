@@ -15,7 +15,7 @@
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
     <h2>Web Components Language Server for JetBrains IDEs</h2>
-    <p>Advanced editor support for working with Web Components and custom elements in WebStorm, IntelliJ IDEA, and other JetBrains IDEs.</p>
+    <p>Advanced editor support for using Web Components and custom elements in WebStorm, IntelliJ IDEA, and other JetBrains IDEs.</p>
     
     <h3>Features</h3>
     <ul>
