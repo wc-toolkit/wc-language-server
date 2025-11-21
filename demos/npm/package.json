@@ -3,6 +3,7 @@
   "version": "1.0.1",
   "main": "index.js",
   "type": "module",
+  "private": true,
   "scripts": {
     "lint": "wctools validate",
     "lint:debug": "wctools validate --debug",
