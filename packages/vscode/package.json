@@ -109,7 +109,8 @@
     "watch": "npm run build -- --watch",
     "prepare": "npm run build && vsce package --pre-release",
     "manual-deploy": "npm run build && vsce publish",
-    "revert": "vsce publish patch"
+    "revert": "vsce publish patch",
+    "release": "echo 'VSCode extension published separately via GitHub Actions'"
   },
   "dependencies": {},
   "devDependencies": {
