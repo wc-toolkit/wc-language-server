@@ -51,35 +51,115 @@ jobs:
           OPENVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}
           VSCODE_MARKETPLACE: ${{ secrets.VSCODE_MARKETPLACE }}
       # Only run the following steps if packages were actually published
-      - name: Publish to Open VSX Registry
+      - name: Get VSCode Extension Version
         if: steps.changesets.outputs.published == 'true'
+        id: vscode_version
+        run: |
+          VERSION=$(node -p "require('./packages/vscode/package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "VSCode extension version: $VERSION"
+      
+      - name: Check if version exists on Open VSX
+        if: steps.changesets.outputs.published == 'true'
+        id: check_openvsx
+        continue-on-error: true
+        run: |
+          RESPONSE=$(curl -s "https://open-vsx.org/api/wc-toolkit/web-components-language-server/${{ steps.vscode_version.outputs.version }}")
+          if echo "$RESPONSE" | grep -q "error"; then
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Version does not exist on Open VSX"
+          else
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Version already exists on Open VSX, skipping publish"
+          fi
+      
+      - name: Publish to Open VSX Registry
+        if: steps.changesets.outputs.published == 'true' && steps.check_openvsx.outputs.exists == 'false'
         uses: HaaLeo/publish-vscode-extension@v2
         id: publishToOpenVSX
         with:
           pat: ${{ secrets.OPENVSX_TOKEN }}
           packagePath: ./packages/vscode
-      - name: Publish to Visual Studio Marketplace
+      
+      - name: Check if version exists on VS Marketplace
         if: steps.changesets.outputs.published == 'true'
+        id: check_marketplace
+        continue-on-error: true
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json;api-version=3.0-preview.1" \
+            -d '{
+              "filters": [{
+                "criteria": [
+                  {"filterType": 7, "value": "wc-toolkit.web-components-language-server"}
+                ]
+              }],
+              "flags": 914
+            }' \
+            https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery)
+          
+          if echo "$RESPONSE" | grep -q '"versions":\['; then
+            CURRENT_VERSION=$(echo "$RESPONSE" | grep -o '"version":"${{ steps.vscode_version.outputs.version }}"' || echo "")
+            if [ -z "$CURRENT_VERSION" ]; then
+              echo "exists=false" >> $GITHUB_OUTPUT
+              echo "Version does not exist on VS Marketplace"
+            else
+              echo "exists=true" >> $GITHUB_OUTPUT
+              echo "Version already exists on VS Marketplace, skipping publish"
+            fi
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Extension not found on VS Marketplace, will publish"
+          fi
+      
+      - name: Publish to Visual Studio Marketplace
+        if: steps.changesets.outputs.published == 'true' && steps.check_marketplace.outputs.exists == 'false'
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ secrets.VSCODE_MARKETPLACE }}
           packagePath: ./packages/vscode
           registryUrl: https://marketplace.visualstudio.com
           extensionFile: ${{ steps.publishToOpenVSX.outputs.vsixPath }}
-      - name: Setup Java for JetBrains Plugin
+      
+      - name: Get JetBrains Plugin Version
         if: steps.changesets.outputs.published == 'true'
+        id: jetbrains_version
+        run: |
+          VERSION=$(node -p "require('./packages/jetbrains/package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "JetBrains plugin version: $VERSION"
+      
+      - name: Check if version exists on JetBrains Marketplace
+        if: steps.changesets.outputs.published == 'true'
+        id: check_jetbrains
+        continue-on-error: true
+        run: |
+          RESPONSE=$(curl -s "https://plugins.jetbrains.com/api/plugins/26224/updates?version=${{ steps.jetbrains_version.outputs.version }}")
+          if echo "$RESPONSE" | grep -q '"version":"${{ steps.jetbrains_version.outputs.version }}"'; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Version already exists on JetBrains Marketplace, skipping publish"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Version does not exist on JetBrains Marketplace"
+          fi
+      
+      - name: Setup Java for JetBrains Plugin
+        if: steps.changesets.outputs.published == 'true' && steps.check_jetbrains.outputs.exists == 'false'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+      
       - name: Build JetBrains Plugin
-        if: steps.changesets.outputs.published == 'true'
+        if: steps.changesets.outputs.published == 'true' && steps.check_jetbrains.outputs.exists == 'false'
         run: |
           cd packages/jetbrains
           chmod +x gradlew
           ./gradlew buildPlugin
+      
       - name: Publish JetBrains Plugin
-        if: steps.changesets.outputs.published == 'true'
+        if: steps.changesets.outputs.published == 'true' && steps.check_jetbrains.outputs.exists == 'false'
         env:
           PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
         run: |
