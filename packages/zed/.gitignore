@@ -1,0 +1,12 @@
+.DS_Store
+target/
+Cargo.lock
+node_modules/
+*.log
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+extension.wasm
+language-server/

@@ -17,6 +17,7 @@ This project provides a language server and editor extensions for using Web Comp
 - `packages/language-server`: Core language server implementation
 - `packages/vscode`: VS Code extension client
 - `packages/jetbrains`: JetBrains plugin (WebStorm, IntelliJ IDEA)
+- `packages/zed`: Zed IDE extension
 - `packages/wctools`: CLI utilities for parsing custom element manifests
 
 ## Getting Started
@@ -112,6 +113,19 @@ If you'd like a separate npm script name for the Node runner, add a `test:node` 
   pnpm jetbrains:run
   ```
 - For detailed testing instructions, see [`packages/jetbrains/TESTING.md`](packages/jetbrains/TESTING.md)
+
+### Zed IDE
+
+- To build the extension:
+  ```sh
+  cd packages/zed
+  ./build.sh
+  ```
+- To install as a dev extension:
+  1. Open Zed
+  2. Press `cmd-shift-p` and run "zed: install dev extension"
+  3. Select the `packages/zed` directory
+- For detailed development instructions, see [`packages/zed/DEVELOPMENT.md`](packages/zed/DEVELOPMENT.md)
 
 ## Configuration
 

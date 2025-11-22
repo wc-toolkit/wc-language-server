@@ -1,0 +1,15 @@
+id = "web-components"
+name = "Web Components Language Server"
+version = "0.0.1"
+schema_version = 1
+authors = ["wc-toolkit <https://github.com/wc-toolkit>"]
+description = "Editor tools for working with web components / custom elements"
+repository = "https://github.com/wc-toolkit/wc-language-server"
+
+[lib]
+kind = "Rust"
+
+[language_servers.web-components-language-server]
+name = "Web Components Language Server"
+language = "HTML"
+languages = []

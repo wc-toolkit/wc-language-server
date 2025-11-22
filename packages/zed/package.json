@@ -1,0 +1,26 @@
+{
+  "name": "@wc-toolkit/zed-extension",
+  "version": "0.0.1",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wc-toolkit/wc-language-server.git",
+    "directory": "packages/zed"
+  },
+  "description": "Zed extension for Web Components Language Server",
+  "author": "wc-toolkit",
+  "license": "MIT",
+  "scripts": {
+    "build:wasm": "cargo build --target wasm32-wasip1 --release && cp target/wasm32-wasip1/release/web_components.wasm extension.wasm",
+    "bundle:ls": "mkdir -p language-server && cp -r ../language-server/bin ../language-server/dist ../language-server/package.json language-server/ && cd language-server && npm install --omit=dev",
+    "build": "npm run build:wasm && npm run bundle:ls",
+    "watch": "cargo watch -s 'cargo build --target wasm32-wasip1 --release && cp target/wasm32-wasip1/release/web_components.wasm extension.wasm'",
+    "prepare": "npm run build",
+    "dev:install": "mkdir -p ~/Library/Application\\ Support/Zed/extensions/installed && ln -sf \"$(pwd)\" ~/Library/Application\\ Support/Zed/extensions/installed/web-components",
+    "dev:uninstall": "rm -f ~/Library/Application\\ Support/Zed/extensions/installed/web-components",
+    "dev:reload": "killall -USR1 Zed 2>/dev/null || true",
+    "dev:open": "open -a Zed ../../demos/html",
+    "dev": "npm run build && npm run dev:install && npm run dev:reload && npm run dev:open",
+    "logs": "code ~/Library/Logs/Zed/Zed.log"
+  }
+}

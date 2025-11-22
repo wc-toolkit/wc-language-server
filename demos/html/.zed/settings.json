@@ -1,0 +1,21 @@
+{
+  "lsp": {
+    "web-components-language-server": {
+      "binary": {
+        "path": "/Users/burtonsmith/Library/Application Support/Zed/node/node-v24.11.0-darwin-arm64/bin/node",
+        "arguments": [
+          "/Users/burtonsmith/Documents/Projects/wc-toolkit/wc-language-server2/packages/language-server/bin/wc-language-server.js",
+          "--stdio"
+        ]
+      }
+    }
+  },
+  "languages": {
+    "HTML": {
+      "language_servers": [
+        "web-components-language-server",
+        "vscode-html-language-server"
+      ]
+    }
+  }
+}
