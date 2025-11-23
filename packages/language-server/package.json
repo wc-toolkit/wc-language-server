@@ -18,7 +18,8 @@
     "wc-language-server": "./bin/wc-language-server.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && pnpm run bundle:single",
+    "bundle:single": "node ./scripts/build-single-file.mjs",
     "watch": "tsc -p tsconfig.json --watch",
     "test:unit": "node --test ./test/no-package-json.test.mjs",
     "clean": "rimraf dist && rimraf tsconfig.tsbuildinfo",
@@ -40,6 +41,7 @@
     "vscode-uri": "^3.0.8"
   },
   "devDependencies": {
+    "esbuild": "^0.27.0",
     "vscode-languageserver-types": "^3.17.5"
   }
 }

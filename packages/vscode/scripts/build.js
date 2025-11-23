@@ -1,10 +1,62 @@
 /* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-require-imports */
+const { copyFileSync, existsSync, mkdirSync } = require("fs");
+const { spawnSync } = require("child_process");
+const path = require("path");
+
+const repoRoot = path.resolve(__dirname, "..", "..", "..");
+const bundleSource = path.resolve(
+  repoRoot,
+  "packages/language-server/dist/wc-language-server.bundle.cjs"
+);
+const serverTarget = path.resolve(__dirname, "../dist/server.js");
+const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const skipServerBuild = process.argv.includes("--skip-server-build");
+const forceServerBuild = process.argv.includes("--force-server-build");
+
+function runLanguageServerBuild() {
+  console.log("[vscode] building language server bundle...");
+  const result = spawnSync(
+    pnpmCmd,
+    ["--filter", "@wc-toolkit/language-server", "run", "build"],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+    }
+  );
+
+  if (result.status !== 0) {
+    throw new Error(
+      "[vscode] Failed to build the language server bundle. See logs above."
+    );
+  }
+}
+
+function ensureLanguageServerBundle() {
+  if (!skipServerBuild && (forceServerBuild || !existsSync(bundleSource))) {
+    runLanguageServerBuild();
+  }
+
+  if (!existsSync(bundleSource)) {
+    throw new Error(
+      `[vscode] Missing language server bundle at ${bundleSource}. ` +
+        "Run 'pnpm --filter @wc-toolkit/language-server run build' first."
+    );
+  }
+}
+
+function copyBundleIntoExtension() {
+  mkdirSync(path.dirname(serverTarget), { recursive: true });
+  copyFileSync(bundleSource, serverTarget);
+  console.log("[vscode] Copied language server bundle ->", serverTarget);
+}
+
+ensureLanguageServerBundle();
+
 require("esbuild")
   .context({
     entryPoints: {
       client: "./src/extension.ts",
-      server: "../language-server/src/index.ts",
       "mcp-server": "./src/mcp-server.ts",
     },
     sourcemap: true,
@@ -39,12 +91,30 @@ require("esbuild")
     ],
   })
   .then(async (ctx) => {
+    const copyAfterBuild = (error) => {
+      const hasErrors = Array.isArray(error) ? error.length > 0 : Boolean(error);
+      if (hasErrors) {
+        console.error("[vscode] esbuild failed, skipping bundle copy", error);
+        return;
+      }
+      try {
+        copyBundleIntoExtension();
+      } catch (copyError) {
+        console.error("[vscode] Failed to copy language server bundle", copyError);
+      }
+    };
+
     console.log("building...");
     if (process.argv.includes("--watch")) {
-      await ctx.watch();
+      await ctx.watch({
+        onRebuild(error) {
+          copyAfterBuild(error);
+        },
+      });
       console.log("watching...");
     } else {
-      await ctx.rebuild();
+      const result = await ctx.rebuild();
+      copyAfterBuild(result.errors && result.errors.length ? result.errors : null);
       await ctx.dispose();
       console.log("finished.");
     }

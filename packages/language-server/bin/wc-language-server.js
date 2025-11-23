@@ -16,4 +16,9 @@ if (process.argv.includes("--version")) {
 }
 
 // Import the language server (process.argv is already set correctly for it to detect --stdio)
-await import("../dist/index.js");
+try {
+  await import("../dist/wc-language-server.bundle.cjs");
+} catch (error) {
+  console.warn("[language-server] Falling back to unbundled build", error);
+  await import("../dist/index.js");
+}
