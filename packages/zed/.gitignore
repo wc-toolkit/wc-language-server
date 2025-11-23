@@ -1,0 +1,5 @@
+target/
+node_modules/
+extension.wasm
+Cargo.lock
+language-server/

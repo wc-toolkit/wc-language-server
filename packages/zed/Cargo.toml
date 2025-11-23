@@ -1,0 +1,11 @@
+[package]
+name = "wc_zed_extension"
+version = "0.1.0"
+edition = "2021"
+description = "Web Components tools extension for Zed"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+zed_extension_api = "0.6.0"

@@ -167,6 +167,8 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
+  packages/zed: {}
+
 packages:
 
   '@azu/format-text@1.0.2':

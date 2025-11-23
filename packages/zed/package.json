@@ -1,0 +1,14 @@
+{
+  "name": "@wc-toolkit/zed-extension",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "ensure-cargo-component": "node ./scripts/ensure-cargo-component.mjs",
+    "sync-language-server": "node ./scripts/sync-language-server.mjs",
+    "build": "pnpm run ensure-cargo-component && pnpm run sync-language-server && cargo component build --target wasm32-wasip1 --release && cp target/wasm32-wasip1/release/wc_zed_extension.wasm extension.wasm",
+    "build:debug": "pnpm run ensure-cargo-component && pnpm run sync-language-server && cargo component build --target wasm32-wasip1 && cp target/wasm32-wasip1/debug/wc_zed_extension.wasm extension.wasm",
+    "dev": "pnpm run ensure-cargo-component && pnpm run sync-language-server && node ./scripts/dev.mjs",
+    "fmt": "cargo fmt",
+    "lint": "cargo clippy --target wasm32-wasip1 -- -D warnings"
+  }
+}

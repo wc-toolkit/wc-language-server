@@ -1,0 +1,38 @@
+id = "wc-language-server"
+name = "Web Components Language Tools"
+description = "Language Server Protocol integration for modern Web Components projects."
+version = "0.1.0"
+schema_version = 1
+authors = ["WC Toolkit"]
+repository = "https://github.com/wc-toolkit/wc-language-server"
+license = "MIT"
+
+[[capabilities]]
+kind = "process:exec"
+command = "node"
+args = ["**"]
+
+[[capabilities]]
+kind = "npm:install"
+package = "@wc-toolkit/language-server"
+
+[language_servers.web-components]
+name = "Web Components Language Server"
+languages = [
+  "HTML",
+  "CSS",
+  "JavaScript",
+  "TypeScript",
+  "TSX",
+  "Vue",
+  "Svelte"
+]
+
+[language_servers.web-components.language_ids]
+"HTML" = "html"
+"CSS" = "css"
+"JavaScript" = "javascript"
+"TypeScript" = "typescript"
+"TSX" = "typescriptreact"
+"Vue" = "vue"
+"Svelte" = "svelte"
