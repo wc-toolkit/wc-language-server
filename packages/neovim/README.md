@@ -63,18 +63,45 @@ require("wc_language_server").setup({
 
 Hover popups are rendered as Markdown automatically (bold, code fences, tables, etc.). Set `hover.markdown_highlighting = false` if you want the legacy plain-text view.
 
-### Bundle the Language Server (for distribution)
+### Project Configuration (`wc.config.js`)
 
-Before packaging or sharing this plugin outside the monorepo, bundle the language server so Neovim doesn’t depend on workspace `node_modules`:
+The language server reads settings from `wc.config.js` (or `.ts/.mjs/.cjs`) at the project root. Use it to point the server at the right manifest, scope files, and override diagnostics.
 
-```bash
-pnpm build:ls
-pnpm --filter @wc-toolkit/neovim run bundle
+```js
+// wc.config.js
+export default {
+  /** Fetch a manifest from a custom path or URL */
+  manifestSrc: "./dist/custom-elements.json",
+  /** Narrow which files opt into the language server */
+  include: ["src/**/*.ts", "src/**/*.html"],
+  /** Optional: skip specific globs */
+  exclude: ["**/*.stories.ts"],
+  /** Per-library overrides */
+  libraries: {
+    "@your/pkg": {
+      manifestSrc: "https://cdn.example.com/custom-elements.json",
+      /** Adjust tag names before validation */
+      tagFormatter: (tag) => tag.replace(/^x-/, "my-")
+    }
+  },
+  /** Silence/relax certain diagnostics */
+  diagnosticSeverity: {
+    duplicateAttribute: "warning",
+    unknownElement: "info",
+  },
+};
 ```
 
-The first command builds the language server plus a single-file esbuild bundle. The second copies just that optimized file into `packages/neovim/server/bin/wc-language-server.js`, so the plugin ships with zero additional dependencies. If the packaged copy is missing, the runtime falls back to the workspace build or a globally installed `wc-language-server`.
+Key fields:
+- `manifestSrc`: local path or remote URL when `custom-elements.json` is not at the repo root.
+- `include`/`exclude`: glob arrays to scope which files trigger the language server.
+- `libraries`: per-package overrides for monorepos or vendor bundles.
+- `diagnosticSeverity`: tune error levels (`error`, `warning`, `info`, `hint`, `off`).
+- `tagFormatter`/`typeSrc` and other advanced options match the [VS Code integration docs](../vscode/README.md#configuration).
 
-## Configuration
+Every time you change `wc.config.*` the Neovim plugin automatically restarts the server, so edits apply on your next hover/completion.
+
+## Plugin Configuration
 
 | Option                         | Type                  | Default                                                                      | Description                                                                                                                                        |
 | ------------------------------ | --------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
