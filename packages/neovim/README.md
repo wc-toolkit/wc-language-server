@@ -14,8 +14,7 @@ First-class Neovim support for the Web Components Language Server. The plugin wi
 
 1. **Neovim 0.9 or newer** (0.10+ recommended)
 2. **Node.js 16+** available on `$PATH`
-3. **Language server build** – run `pnpm build:ls` once in the repo so `packages/language-server/bin/wc-language-server.js` exists (or install `wc-language-server` globally)
-4. A project that exposes a `custom-elements.json` (directly or via dependencies)
+3. A project that exposes a `custom-elements.json` (directly or via dependencies)
 
 ## Installation
 
@@ -77,29 +76,29 @@ The first command builds the language server plus a single-file esbuild bundle. 
 
 ## Configuration
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `autostart` | boolean | `true` | Attach automatically when a matching filetype opens. |
-| `filetypes` | string[] | HTML + popular templating filetypes | Customize the attach list. |
-| `root_dir_patterns` | string[] | `{ "wc.config.js", "package.json", ".git" }` | Upward search markers for workspace detection. |
-| `cmd` | string[] or fun(root) | auto-detected | Override the server command. Defaults to the bundled binary, then `wc-language-server` on `$PATH`. |
-| `tsdk` | string | auto-detected | Path to `node_modules/typescript/lib`. If omitted a best-effort search runs. |
-| `watch_patterns`/`watch_files` | string[] | important config names | Control which files trigger automatic restarts. |
-| `debounce_ms` | number | `350` | Debounce before restarting after file system events. |
-| `settings` | table | `{}` | Passed to the language server via `initializationOptions`. |
-| `capabilities` | table | `nil` | Override reported LSP capabilities. |
-| `on_attach` | function | `nil` | Called after the client attaches. Use this for formatting, keymaps, etc. |
-| `diagnostics` | table/false | see defaults | Configure `vim.diagnostic` (virtual text is off by default). |
-| `hover` | table/false | `{ keymap = "K", include_diagnostics = true, markdown_highlighting = true }` | Customize the combined hover/diagnostic popup, keybinding, and whether markdown syntax/Tree-sitter highlighting is applied to the floating window. |
-| `completion.set_omnifunc` | boolean | `true` | Set `omnifunc = v:lua.vim.lsp.omnifunc` so `<C-x><C-o>` uses the language server. |
+| Option                         | Type                  | Default                                                                      | Description                                                                                                                                        |
+| ------------------------------ | --------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `autostart`                    | boolean               | `true`                                                                       | Attach automatically when a matching filetype opens.                                                                                               |
+| `filetypes`                    | string[]              | HTML + popular templating filetypes                                          | Customize the attach list.                                                                                                                         |
+| `root_dir_patterns`            | string[]              | `{ "wc.config.js", "package.json", ".git" }`                                 | Upward search markers for workspace detection.                                                                                                     |
+| `cmd`                          | string[] or fun(root) | auto-detected                                                                | Override the server command. Defaults to the bundled binary, then `wc-language-server` on `$PATH`.                                                 |
+| `tsdk`                         | string                | auto-detected                                                                | Path to `node_modules/typescript/lib`. If omitted a best-effort search runs.                                                                       |
+| `watch_patterns`/`watch_files` | string[]              | important config names                                                       | Control which files trigger automatic restarts.                                                                                                    |
+| `debounce_ms`                  | number                | `350`                                                                        | Debounce before restarting after file system events.                                                                                               |
+| `settings`                     | table                 | `{}`                                                                         | Passed to the language server via `initializationOptions`.                                                                                         |
+| `capabilities`                 | table                 | `nil`                                                                        | Override reported LSP capabilities.                                                                                                                |
+| `on_attach`                    | function              | `nil`                                                                        | Called after the client attaches. Use this for formatting, keymaps, etc.                                                                           |
+| `diagnostics`                  | table/false           | see defaults                                                                 | Configure `vim.diagnostic` (virtual text is off by default).                                                                                       |
+| `hover`                        | table/false           | `{ keymap = "K", include_diagnostics = true, markdown_highlighting = true }` | Customize the combined hover/diagnostic popup, keybinding, and whether markdown syntax/Tree-sitter highlighting is applied to the floating window. |
+| `completion.set_omnifunc`      | boolean               | `true`                                                                       | Set `omnifunc = v:lua.vim.lsp.omnifunc` so `<C-x><C-o>` uses the language server.                                                                  |
 
 ## Commands & Keybinds
 
-| Command | Description |
-| --- | --- |
-| `:WcLanguageServerStart` | Attach the client for the current buffer. |
-| `:WcLanguageServerStop` | Stop the client for the current project root. |
-| `:WcLanguageServerRestart` | Restart the client and reload manifests. |
+| Command                    | Description                                   |
+| -------------------------- | --------------------------------------------- |
+| `:WcLanguageServerStart`   | Attach the client for the current buffer.     |
+| `:WcLanguageServerStop`    | Stop the client for the current project root. |
+| `:WcLanguageServerRestart` | Restart the client and reload manifests.      |
 
 - `K` (configurable) shows hover text plus any diagnostics on the current line.
 - `<C-x><C-o>` triggers LSP completion; use your completion framework (e.g., nvim-cmp) if preferred.
@@ -113,7 +112,3 @@ The first command builds the language server plus a single-file esbuild bundle. 
 - **Too many completion entries** – limit completion sources (buffer/snippet) or use `completion.set_omnifunc = false` and delegate to your completion plugin for filtering.
 
 If you need to reproduce an issue quickly, run `pnpm dev` from the repo root. It launches Neovim with this plugin preloaded, opens `demos/html/test.html`, and prints all plugin logs to `:messages`.
-
-## License
-
-MIT © wc-toolkit
