@@ -36,7 +36,7 @@ const wasmSource = resolve(
   "target",
   wasmTarget,
   "release",
-  "wc_language_tools_extension.wasm"
+  "wc_language_server_extension.wasm"
 );
 const wasmOutput = resolve(extensionDir, "extension.wasm");
 

@@ -1,32 +1,49 @@
+
 id = "wc-language-server"
 name = "Web Components Language Server"
-description = "Web Component autocomplete, documentation, and diagnostics powered by the wc-language-server."
 version = "0.0.1"
 schema_version = 1
-authors = ["WC Toolkit <burton@breakstuff.io>"]
-repository = "https://github.com/wc-toolkit/wc-language-server"
+authors = ["WC Tools <burton@breakstuff.io>"]
+description = "Language server extension providing diagnostics, completion, and validation for Web Components and custom elements"
 
 [language_servers.wc-language-server]
-name = "WC Language Server"
+name = "Web Components Language Server"
+language = "HTML"
 languages = [
+  "Go",
   "HTML",
-  "CSS",
   "JavaScript",
+  "JSON",
+  "Markdown",
+  "Python",
+  "Rust",
   "TypeScript",
-  "JSX",
-  "TSX",
-  "Vue",
+  "YAML",
+  "Ansible",
+  "AsciiDoc",
   "Astro",
-  "MDX"
+  "C#",
+  "Clojure",
+  "Dart",
+  "Deno",
+  "Elixir",
+  "Elm",
+  "Erlang",
+  "Gleam",
+  "GLSL",
+  "Helm",
+  "Java",
+  "Julia",
+  "Jsonnet",
+  "Kotlin",
+  "PHP",
+  "Ruby",
+  "Scala",
+  "Svelte",
+  "Swift",
+  "Vue",
+  "EJS",
+  "Elisp",
+  "Liquid",
+  "Twig",
 ]
-
-[language_servers.wc-language-server.language_ids]
-"HTML" = "html"
-"CSS" = "css"
-"JavaScript" = "javascript"
-"TypeScript" = "typescript"
-"JSX" = "javascriptreact"
-"TSX" = "typescriptreact"
-"Vue" = "vue"
-"Astro" = "astro"
-"MDX" = "mdx"

@@ -1,15 +1,11 @@
 [package]
-name = "wc_language_tools_extension"
+name = "zed-web-components"
 version = "0.0.1"
-edition = "2021"
-license = "MIT"
-publish = false
-
-authors = ["WC Toolkit <opensource@wc-toolkit.dev>"]
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib"]
 path = "src/lib.rs"
 
 [dependencies]
-zed_extension_api = "0.7.0"
+zed_extension_api = "0.6.0"
