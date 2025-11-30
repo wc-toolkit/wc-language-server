@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.4
+
+### Patch Changes
+
+- f955de3: Fixed release pipeline
+
 ## 0.0.3
 
 ### Patch Changes

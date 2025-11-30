@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.15
+
+### Patch Changes
+
+- f955de3: Fixed release pipeline
+
 ## 0.0.14
 
 ### Patch Changes
