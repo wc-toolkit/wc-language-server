@@ -63,42 +63,39 @@ tasks {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
 
-    // Create standalone language server installation with npm
-    val installLanguageServerStandalone by registering(Exec::class) {
-        val standaloneDir = file("build/language-server-standalone")
-        val nodeModulesMarker = file("build/language-server-standalone/node_modules/.package-lock.json")
-        
-        // Only run if not already installed
-        onlyIf { !nodeModulesMarker.exists() }
-        
-        doFirst {
-            standaloneDir.mkdirs()
-            copy {
-                from("../language-server/package.json")
-                into(standaloneDir)
-            }
-        }
-        
-        workingDir = standaloneDir
-        commandLine("npm", "install", "--omit=dev")
+    val repoRoot = projectDir.parentFile!!.parentFile!!
+    val pnpmCommand = if (System.getProperty("os.name").lowercase().contains("win")) "pnpm.cmd" else "pnpm"
+    val typescriptDir = repoRoot.resolve("node_modules/typescript")
+
+    val buildLanguageServerBundle by registering(Exec::class) {
+        workingDir = repoRoot
+        commandLine(pnpmCommand, "--filter", "@wc-toolkit/language-server", "run", "build")
     }
 
-    // Copy language server files with standalone node_modules
-    register<Sync>("copyLanguageServer") {
-        dependsOn(installLanguageServerStandalone)
-        
-        // Copy bin and dist from original location
+    val copyLanguageServerBundle by registering(Sync::class) {
+        dependsOn(buildLanguageServerBundle)
+        into(layout.buildDirectory.dir("resources/main").get())
+        from("../language-server/bin") {
+            include("wc-language-server.js")
+            into("language-server/bin")
+        }
+        from("../language-server/dist") {
+            include("wc-language-server.bundle.cjs")
+            into("language-server/dist")
+        }
         from("../language-server") {
-            include("bin/**")
-            include("dist/**")
             include("package.json")
+            into("language-server")
         }
-        // Copy node_modules from standalone install
-        from("build/language-server-standalone") {
-            include("node_modules/**")
+        if (typescriptDir.exists()) {
+            from(typescriptDir) {
+                into("language-server/node_modules/typescript")
+            }
+        } else {
+            doFirst {
+                logger.warn("[jetbrains] TypeScript runtime not found at ${typescriptDir}. Skipping copy.")
+            }
         }
-        
-        into("build/resources/main/language-server")
     }
 
     // Copy vscode extension files (for MCP server and utilities)
@@ -110,22 +107,33 @@ tasks {
 
     // Ensure language server is copied before building
     processResources {
-        dependsOn("copyLanguageServer", "copyVSCodeExtension")
+        dependsOn(copyLanguageServerBundle, "copyVSCodeExtension")
     }
     
     prepareSandbox {
-        dependsOn("copyLanguageServer", "copyVSCodeExtension")
-        
-        // Copy language server to sandbox
+        dependsOn(copyLanguageServerBundle, "copyVSCodeExtension")
+		
+        // Copy language server bundle to sandbox
+        from("../language-server/bin") {
+            include("wc-language-server.js")
+            into("wc-language-server-jetbrains/language-server/bin")
+        }
+        from("../language-server/dist") {
+            include("wc-language-server.bundle.cjs")
+            into("wc-language-server-jetbrains/language-server/dist")
+        }
         from("../language-server") {
-            include("bin/**")
-            include("dist/**")
             include("package.json")
             into("wc-language-server-jetbrains/language-server")
         }
-        from("build/language-server-standalone") {
-            include("node_modules/**")
-            into("wc-language-server-jetbrains/language-server")
+        if (typescriptDir.exists()) {
+            from(typescriptDir) {
+                into("wc-language-server-jetbrains/language-server/node_modules/typescript")
+            }
+        } else {
+            doFirst {
+                logger.warn("[jetbrains] TypeScript runtime not found at ${typescriptDir}. Skipping sandbox copy.")
+            }
         }
         from("../vscode/dist") {
             into("wc-language-server-jetbrains/vscode")
@@ -133,7 +141,7 @@ tasks {
     }
 
     buildPlugin {
-        dependsOn("copyLanguageServer", "copyVSCodeExtension")
+        dependsOn(copyLanguageServerBundle, "copyVSCodeExtension")
     }
     
     runIde {

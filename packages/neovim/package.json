@@ -1,0 +1,17 @@
+{
+  "name": "@wc-toolkit/neovim",
+  "version": "0.0.0",
+  "description": "Neovim plugin for the Web Components Language Server",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "node ./scripts/open-dev-terminal.mjs",
+    "bundle": "node ./scripts/bundle-language-server.mjs"
+  },
+  "keywords": [
+    "neovim",
+    "lsp",
+    "web-components",
+    "custom-elements"
+  ]
+}

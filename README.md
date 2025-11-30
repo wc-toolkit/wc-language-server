@@ -17,6 +17,7 @@ This project provides a language server and editor extensions for using Web Comp
 - `packages/language-server`: Core language server implementation
 - `packages/vscode`: VS Code extension client
 - `packages/jetbrains`: JetBrains plugin (WebStorm, IntelliJ IDEA)
+- `packages/neovim`: Neovim plugin that wires the language server into the built-in LSP client
 - `packages/wctools`: CLI utilities for parsing custom element manifests
 
 ## Getting Started

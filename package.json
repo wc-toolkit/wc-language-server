@@ -7,6 +7,7 @@
     "url": "https://github.com/volarjs/starter.git"
   },
   "scripts": {
+    "dev": "pnpm --filter @wc-toolkit/zed run dev",
     "build": "pnpm -r run build",
     "build:ls": "pnpm --filter @wc-toolkit/language-server run build",
     "changeset": "changeset add",

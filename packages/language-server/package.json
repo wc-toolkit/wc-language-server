@@ -1,30 +1,58 @@
 {
   "name": "@wc-toolkit/language-server",
-  "version": "0.0.7",
+  "version": "0.0.0",
   "type": "module",
   "main": "dist/index.js",
-  "private": true,
+  "description": "Language server that surfaces Web Components metadata, completions, and diagnostics",
   "exports": {
     ".": "./dist/*",
     "./services": "./dist/services/index.js",
     "./plugins": "./dist/plugins/index.js"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wc-toolkit/wc-language-server.git",
+    "directory": "packages/language-server"
+  },
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/wc-language-server/issues"
+  },
+  "homepage": "https://github.com/wc-toolkit/wc-language-server",
+  "keywords": [
+    "language-server",
+    "web-components",
+    "custom-elements",
+    "lsp",
+    "html",
+    "typescript",
+    "javascript",
+    "cem",
+    "custom-elements-manifest",
+    "css"
+  ],
   "files": [
-    "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/**/*",
+    "bin/**/*",
+    "README.md",
+    "LICENSE"
   ],
   "bin": {
     "wc-language-server": "./bin/wc-language-server.js"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && pnpm run bundle:single",
+    "bundle:single": "node ./scripts/build-single-file.mjs",
     "watch": "tsc -p tsconfig.json --watch",
     "test:unit": "node --test ./test/no-package-json.test.mjs",
     "clean": "rimraf dist && rimraf tsconfig.tsbuildinfo",
     "release": "pnpm run build && npm publish --access=public"
   },
   "dependencies": {
+    "esbuild": "^0.27.0",
     "@volar/language-core": "~2.4.0",
     "@volar/language-server": "~2.4.0",
     "@volar/typescript": "~2.4.0",

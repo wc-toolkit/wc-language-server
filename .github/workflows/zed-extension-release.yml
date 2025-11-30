@@ -1,0 +1,42 @@
+name: Zed Extension Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional tag override (defaults to pushed tag)"
+        required: false
+        type: string
+      fork:
+        description: "Fork to push updates to (defaults to <owner>/extensions)"
+        required: false
+        type: string
+      committer_token:
+        description: "Optional PAT override (falls back to repository secret)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  publish:
+    name: Open Zed extensions PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync forked extensions repository
+        uses: huacnlee/zed-extension-action@v2
+        with:
+          extension-name: wc-language-server
+          extension-path: packages/zed
+          push-to: ${{ inputs.fork || format('{0}/extensions', github.repository_owner) }}
+          tag: ${{ inputs.tag }}
+        env:
+          COMMITTER_TOKEN: ${{ inputs.committer_token != '' && inputs.committer_token || secrets.COMMITTER_TOKEN }}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <title>HTML Web Components Test Page</title>
+  </head>
+  <body>
+    <!-- wctools-ignore-next-line -->
+    <sl-alert variant="primaryee" closable="true" dep-attr closable> </sl-alert>
+    <!-- wctools-ignore-next-line invalidNumber -->
+    <sl-alert duration="3000ms" closable></sl-alert>
+    <sl-alert closable variant="danger"></sl-alert>
+    <sl-alert variant="primary"></sl-alert>
+    <sl-alert dep-attr variant="success"></sl-alert>
+    <sl-animated-image></sl-animated-image>
+    <sl-button></sl-button>
+    <sl-alert variant="success"></sl-alert>
+    <sl-animated-image></sl-animated-image>
+    <sl-dropdown style="--indicator-color: var(--border-color)">
+      <sl-button>Dropdown Button</sl-button>
+      <sl-menu>
+        <sl-menu-item disabled>Item 1</sl-menu-item>
+        <sl-menu-item disabled>Item 2</sl-menu-item>
+        <sl-menu-item>Item 3</sl-menu-item>
+      </sl-menu>
+    </sl-dropdown>
+    <sl-breadcrumb-item></sl-breadcrumb-item>
+    <sl-alert></sl-alert>
+    <sl-alert-formatted duration="3000"></sl-alert-formatted>
+    <wa-badge pill=""></wa-badge>
+    <wa-button appearance="outlined"></wa-button>
+    <awesome-animated-image></awesome-animated-image>
+    <awesome-badge variant="neutrall" stuff></awesome-badge>
+    <sl-animated-image></sl-animated-image>
+    <sl-alert
+      closable=""
+      variant="dangeree"
+      open
+      (sl-after-hide)=""
+      .something="value"
+      ?open="${true}"
+      .countdown=""
+      [attr.countdown]=""
+      .countdownElement=""
+    ></sl-alert>
+
+    <sl-animation style="--aspect-ratio: var(--body-spacing)"></sl-animation>
+    
+    sl
+    <style>
+      .test::state(checked) {
+      }
+
+      .test::part(password-toggle-button) {
+        --arrow-size: var(--aside-width);
+      }
+    </style>
+  </body>
+</html>
