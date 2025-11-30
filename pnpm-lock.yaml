@@ -68,6 +68,9 @@ importers:
       custom-elements-manifest:
         specifier: 2.1.0
         version: 2.1.0
+      esbuild:
+        specifier: ^0.27.0
+        version: 0.27.0
       minimatch:
         specifier: ^10.0.3
         version: 10.0.3
@@ -93,9 +96,6 @@ importers:
         specifier: ^3.0.8
         version: 3.1.0
     devDependencies:
-      esbuild:
-        specifier: ^0.27.0
-        version: 0.27.0
       vscode-languageserver-types:
         specifier: ^3.17.5
         version: 3.17.5
@@ -171,6 +171,8 @@ importers:
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
+
+  packages/zed: {}
 
 packages:
 

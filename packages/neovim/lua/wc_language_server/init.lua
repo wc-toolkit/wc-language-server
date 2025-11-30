@@ -61,18 +61,12 @@ local defaults = {
     signs = true,
     severity_sort = true,
     float = {
-      border = "rounded",
       source = "if_many",
-      focusable = false,
     },
   },
   hover = {
     keymap = "K",
     include_diagnostics = true,
-    border = "rounded",
-    float_opts = {
-      focusable = false,
-    },
     markdown_highlighting = true,
   },
   completion = {
