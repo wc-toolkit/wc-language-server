@@ -40,6 +40,9 @@
   "bin": {
     "wc-language-server": "./bin/wc-language-server.js"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=18"
   },
