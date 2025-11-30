@@ -13,6 +13,7 @@ export default tseslint.config(
       "node_modules/",
       "dist/",
       "build/",
+      "test-tmp/",
       "**/dist/",
       "**/build/",
       "**/demos/",

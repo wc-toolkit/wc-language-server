@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-undef */
 import { build } from "esbuild";
 import { mkdirSync } from "fs";
 import { createRequire } from "module";

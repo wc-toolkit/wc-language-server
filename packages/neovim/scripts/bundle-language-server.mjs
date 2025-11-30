@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-undef */
 import { spawnSync } from "child_process";
 import { copyFileSync, existsSync, mkdirSync, rmSync, cpSync } from "fs";
 import { fileURLToPath } from "url";
