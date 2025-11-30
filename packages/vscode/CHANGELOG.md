@@ -1,5 +1,12 @@
 # web-components-language-server
 
+## 0.0.32
+
+### Patch Changes
+
+- f39dd09: Optimized server build to reduce plugin size and improve performance
+- c982b80: Updated to include necessary TypeScript files
+
 ## 0.0.30
 
 ### Patch Changes
