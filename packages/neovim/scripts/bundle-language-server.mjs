@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "child_process";
-import { copyFileSync, existsSync, mkdirSync, rmSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, rmSync, cpSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 
@@ -13,6 +13,8 @@ const bundleSource = resolve(
   "packages/language-server/dist/wc-language-server.bundle.cjs"
 );
 const targetBinary = resolve(targetDir, "bin/wc-language-server.js");
+const typescriptSource = resolve(repoRoot, "node_modules", "typescript");
+const typescriptTarget = resolve(targetDir, "node_modules", "typescript");
 const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 console.log("[neovim] bundling language server ->", targetDir);
@@ -44,3 +46,16 @@ mkdirSync(dirname(targetBinary), { recursive: true });
 copyFileSync(bundleSource, targetBinary);
 
 console.log("[neovim] Language server bundled successfully ->", targetBinary);
+
+if (existsSync(typescriptSource)) {
+  console.log("[neovim] Copying bundled TypeScript runtime ->", typescriptTarget);
+  rmSync(typescriptTarget, { recursive: true, force: true });
+  mkdirSync(dirname(typescriptTarget), { recursive: true });
+  cpSync(typescriptSource, typescriptTarget, { recursive: true });
+} else {
+  console.warn(
+    "[neovim] Warning: Could not find TypeScript runtime at",
+    typescriptSource,
+    "— language server will need tsdk from the workspace"
+  );
+}

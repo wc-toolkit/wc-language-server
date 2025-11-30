@@ -65,6 +65,7 @@ tasks {
 
     val repoRoot = projectDir.parentFile!!.parentFile!!
     val pnpmCommand = if (System.getProperty("os.name").lowercase().contains("win")) "pnpm.cmd" else "pnpm"
+    val typescriptDir = repoRoot.resolve("node_modules/typescript")
 
     val buildLanguageServerBundle by registering(Exec::class) {
         workingDir = repoRoot
@@ -85,6 +86,15 @@ tasks {
         from("../language-server") {
             include("package.json")
             into("language-server")
+        }
+        if (typescriptDir.exists()) {
+            from(typescriptDir) {
+                into("language-server/node_modules/typescript")
+            }
+        } else {
+            doFirst {
+                logger.warn("[jetbrains] TypeScript runtime not found at ${typescriptDir}. Skipping copy.")
+            }
         }
     }
 
@@ -115,6 +125,15 @@ tasks {
         from("../language-server") {
             include("package.json")
             into("wc-language-server-jetbrains/language-server")
+        }
+        if (typescriptDir.exists()) {
+            from(typescriptDir) {
+                into("wc-language-server-jetbrains/language-server/node_modules/typescript")
+            }
+        } else {
+            doFirst {
+                logger.warn("[jetbrains] TypeScript runtime not found at ${typescriptDir}. Skipping sandbox copy.")
+            }
         }
         from("../vscode/dist") {
             into("wc-language-server-jetbrains/vscode")
