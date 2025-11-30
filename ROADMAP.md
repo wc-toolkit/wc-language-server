@@ -8,16 +8,16 @@ Here is a high level overview of some of the features coming. These will not nec
 - [x] Alternate Type reference
 - [x] CLI
 - [x] Disable diagnostic errors inline with comments
-- [ ] CSS Parts and Variables autocomplete integration
+- [x] CSS Parts and Variables autocomplete integration
 - [ ] Global Types for Components and Events
 - [ ] AI Integration
 - [ ] JSX Types
 - [ ] Vue types
 - [ ] Solidjs Types
 - [ ] Svelte Types
-- [ ] Lit template autocomplete
-- [ ] FAST template autocomplete
-- [ ] JetBrains Extension
-- [ ] Vim Extension
+- [x] Lit template autocomplete
+- [x] FAST template autocomplete
+- [x] JetBrains Extension
+- [x] Neovim Extension
 - [ ] Visual Studio Extension
-- [ ] Zed Extension
+- [x] Zed Extension
