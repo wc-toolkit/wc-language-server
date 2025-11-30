@@ -13,10 +13,22 @@ First-class Neovim support for the Web Components Language Server. The plugin wi
 ## Prerequisites
 
 1. **Neovim 0.9 or newer** (0.10+ recommended)
-2. **Node.js 16+** available on `$PATH`
+2. **Node.js 18+** available on `$PATH`
 3. A project that exposes a `custom-elements.json` (directly or via dependencies)
 
 ## Installation
+
+### Language server binary
+
+Install the CLI globally so Neovim (and Mason) can launch it:
+
+```bash
+npm install -g @wc-toolkit/language-server
+# OR from inside Neovim via Mason
+:MasonInstall wc-language-server
+```
+
+Both commands require Node.js 18+. If you prefer a bundled copy from this repo, run `pnpm --filter @wc-toolkit/language-server build` and point `cmd` at `packages/language-server/bin/wc-language-server.js`.
 
 ### lazy.nvim
 
@@ -81,8 +93,8 @@ export default {
     "@your/pkg": {
       manifestSrc: "https://cdn.example.com/custom-elements.json",
       /** Adjust tag names before validation */
-      tagFormatter: (tag) => tag.replace(/^x-/, "my-")
-    }
+      tagFormatter: (tag) => tag.replace(/^x-/, "my-"),
+    },
   },
   /** Silence/relax certain diagnostics */
   diagnosticSeverity: {
@@ -93,6 +105,7 @@ export default {
 ```
 
 Key fields:
+
 - `manifestSrc`: local path or remote URL when `custom-elements.json` is not at the repo root.
 - `include`/`exclude`: glob arrays to scope which files trigger the language server.
 - `libraries`: per-package overrides for monorepos or vendor bundles.
