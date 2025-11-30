@@ -1,69 +1,79 @@
-# Zed integration for the Web Components Language Server
+# Web Components Language Server for Zed
 
-This package bundles the Web Components language server and exposes it as a Zed
-extension so you can use framework-aware diagnostics, completions, and tooling
-in HTML, TypeScript, and single-file component templates.
+This extension brings the @wc-toolkit language server into Zed so you get framework-aware completions, diagnostics, and hover documentation while editing HTML, TypeScript, Markdown, Astro, Vue SFCs, and other templates that include custom elements.
 
-## Contents
+## Installation
 
-- `extension.toml` &mdash; Extension manifest that registers the language server
-  for the relevant languages.
-- `Cargo.toml` / `src/lib.rs` &mdash; Rust entry point that wires the extension to
-  a local Node.js bundle of the language server.
-- `scripts/bundle-language-server.mjs` &mdash; Copies the JavaScript bundle that is
-  produced by `@wc-toolkit/language-server` into this package.
-- `scripts/dev.mjs` &mdash; Developer workflow used by `pnpm dev`.
+### From Zed's extension browser
 
-## Development workflow
+1. Open the command palette (`Cmd/Ctrl` + `Shift` + `P`).
+2. Run **"Zed: Extensions"**.
+3. Search for **"Web Components Language Server"**.
+4. Select the entry and press **Install**.
 
-```bash
-# Install workspace dependencies first
-pnpm install
+Zed will download the latest released version (triggered by `v*` tags in this repository) and enable it for the current workspace.
 
-# Bundle the language server, build the WebAssembly artifact, link the dev
-# extension into Zed's data directory, and finally start `zed --foreground`.
-pnpm dev
+### Local build (optional)
+
+If you need a bleeding-edge build before a tag is published, clone this repo and run `pnpm dev` from the repo root. The script links a development copy into Zed's extensions directory and launches `zed --foreground` with the demo workspace. Refer to [`DEVELOPMENT.md`](./DEVELOPMENT.md) for the complete setup instructions.
+
+## Using the extension
+
+Once the extension is installed:
+
+- Open a workspace that contains your Web Components project (if you are using an npm package with web components that has a `custom-elements.json` file or if there is one locally, these will be automatically detected).
+- The extension automatically activates for the languages listed in `extension.toml` (HTML, JS/TS, Markdown, Vue, Astro, etc.).
+- Diagnostics and completion quality can be customized when you provide a workspace-level `wc.config.js`, described below.
+
+## Configuring your project with `wc.config.js`
+
+Place a `wc.config.js` (or `.cjs`/`.mjs`) file in the root of your workspace. The extension reads this file on startup to learn where your component manifest is stored, which paths to ignore, and how strict diagnostics should be.
+
+### Example configuration
+
+```js
+/** @type {import('@wc-toolkit/wctools').WCConfig} */
+export default {
+  manifestSrc: "custom-elements.json",
+  exclude: ["node_modules/**", "dist/**", "build/**"],
+  typeSrc: "parsedType",
+  diagnosticSeverity: {
+    invalidBoolean: "error",
+    invalidNumber: "error",
+    invalidAttributeValue: "error",
+    deprecatedAttribute: "warning",
+    deprecatedElement: "warning",
+    duplicateAttribute: "error",
+    unknownElement: "hint",
+    unknownAttribute: "hint",
+  },
+  debug: false,
+  libraries: {
+    "@awesome.me/webawesome": {
+      manifestSrc:
+        "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0/dist/custom-elements.json",
+      // tagFormatter: (tag) => tag.replace('wa-', 'awesome-'),
+      // diagnosticSeverity: { duplicateAttribute: 'warning' }
+    },
+  },
+};
 ```
 
-`pnpm dev` performs the following steps:
+### Key options
 
-1. Runs the bundler script so the latest `wc-language-server.bundle.cjs` is
-   copied into `packages/zed/server/bin`.
-2. Ensures `rustup target add wasm32-wasip2` is installed and compiles
-   `extension.wasm` via `cargo build --release --target wasm32-wasip2`.
-3. Copies the optimized artifact from `target/wasm32-wasip2/release/*.wasm`
-  to `extension.wasm`, which is what Zed loads at runtime.
-4. Symlinks the extension directory into
-  `~/Library/Application Support/Zed/extensions/dev/wc-language-server`
-  (or the Linux equivalent under `${XDG_DATA_HOME:-~/.local/share}/zed`).
-5. Launches `zed --foreground` with `demos/html` when it exists (or a custom
-  directory) so you can see log output from the extension in the terminal
-  immediately.
+- **`manifestSrc`** – Path or URL to the `custom-elements.json` manifest created by your build. Point this at wherever your design system emits metadata.
+- **`exclude`** – Glob patterns the language server should ignore when scanning files for diagnostics.
+- **`typeSrc`** – Controls how member types are resolved (e.g., `parsedType` or `closure`).
+- **`diagnosticSeverity`** – Override the severity (`error`, `warning`, `hint`) per diagnostic type so the extension only blocks on what matters to your team.
+- **`debug`** – Set to `true` to log detailed resolver information in Zed's developer console.
+- **`libraries`** – Provide per-package overrides. Common use cases include fetching a manifest from a CDN, transforming tag names via `tagFormatter`, or customizing severities for a specific component library.
 
-If the Zed CLI is not on your `PATH`, install it via the `cli: install` command
-inside Zed before running `pnpm dev`.
+You can omit any fields you don't need; the extension falls back to sensible defaults.
 
-## Manual commands
+## Keeping up with releases
 
-- `pnpm --filter @wc-toolkit/zed run bundle` &mdash; only copy the language server
-  bundle without touching Zed.
-- `pnpm --filter @wc-toolkit/zed run build` &mdash; bundle the language server,
-  build the WebAssembly payload, and emit `extension.wasm` without launching Zed.
-- `cargo build --release --target wasm32-wasip2` from `packages/zed` &mdash; rebuild
-  the extension WebAssembly payload manually if you are iterating on
-  `src/lib.rs`.
+When a new `v*` tag is pushed, `.github/workflows/zed-extension-release.yml` copies `packages/zed` into our fork of [zed-industries/extensions](https://github.com/zed-industries/extensions) and opens a PR. The workflow can also be dispatched manually from the **Actions** tab ("Zed Extension Publish") if you need to target a specific tag, fork, or temporary token.
 
-## Environment variables
+## Hacking on the extension
 
-- `WC_LANGUAGE_SERVER_BINARY` &mdash; absolute path to a custom language server
-  executable/script. When set, the Rust extension will run that command instead
-  of the bundled Node.js file.
-- `WC_LANGUAGE_SERVER_NODE` &mdash; override the Node.js binary used to start the
-  bundled language server.
-- `ZED_EXTENSIONS_DIR` &mdash; override the location where the dev script creates
-  the symlink (defaults to the "dev" directory inside Zed's data dir).
-- `ZED_BIN` &mdash; full path to the Zed executable if it is not discoverable via
-  your `PATH`.
-- `ZED_WORKSPACE_DIR` &mdash; absolute path of the workspace directory to open in
-  Zed. Defaults to `demos/html` when it exists, otherwise falls back to the
-  repository root.
+If you want to contribute fixes or build custom features, read [`DEVELOPMENT.md`](./DEVELOPMENT.md) for prerequisites, development workflows, and release tips. PRs are welcome!

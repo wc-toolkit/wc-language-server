@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-env node */
 import { spawnSync } from "child_process";
-import { copyFileSync, existsSync, readFileSync } from "fs";
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -26,6 +26,37 @@ function runStep(label, command, args, options = {}) {
     process.exit(result.status ?? 1);
   }
 }
+
+function syncExtensionVersion() {
+  const packageJsonPath = resolve(extensionDir, "package.json");
+  const extensionTomlPath = resolve(extensionDir, "extension.toml");
+
+  try {
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+    const packageVersion = packageJson.version;
+    if (!packageVersion) {
+      console.warn("\n[zed build] package.json missing version field; skipping version sync.");
+      return;
+    }
+
+    const tomlContents = readFileSync(extensionTomlPath, "utf8");
+    const versionPattern = /^version\s*=\s*"([^"]*)"/m;
+    const match = tomlContents.match(versionPattern);
+
+    if (match?.[1] === packageVersion) {
+      console.log(`\n[zed build] extension.toml already at version ${packageVersion}.`);
+      return;
+    }
+
+    const updatedToml = tomlContents.replace(versionPattern, `version = "${packageVersion}"`);
+    writeFileSync(extensionTomlPath, updatedToml);
+    console.log(`\n[zed build] Synced extension.toml version -> ${packageVersion}.`);
+  } catch (error) {
+    console.warn("\n[zed build] Unable to sync extension version:", error instanceof Error ? error.message : error);
+  }
+}
+
+syncExtensionVersion();
 
 runStep("Bundle language server", nodeCmd, [resolve(__dirname, "bundle-language-server.mjs")]);
 runStep("Install wasm32-wasip2 target", "rustup", ["target", "add", wasmTarget]);
