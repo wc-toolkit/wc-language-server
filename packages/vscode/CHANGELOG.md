@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.33
+
+### Patch Changes
+
+- f955de3: Fixed release pipeline
+
 ## 0.0.32
 
 ### Patch Changes

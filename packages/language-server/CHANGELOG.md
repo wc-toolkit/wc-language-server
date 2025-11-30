@@ -1,5 +1,11 @@
 # @wc-toolkit/language-server
 
+## 0.0.1
+
+### Patch Changes
+
+- f955de3: Fixed release pipeline
+
 ## 0.0.7
 
 ### Patch Changes
