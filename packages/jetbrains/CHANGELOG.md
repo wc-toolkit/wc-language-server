@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.5
+
+### Patch Changes
+
+- 3ded7ed: Updated JetBrains icon
+
 ## 0.0.4
 
 ### Patch Changes
