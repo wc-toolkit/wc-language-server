@@ -11,7 +11,7 @@
     <vendor url="https://github.com/wc-toolkit/wc-language-server">WC Toolkit</vendor>
     
     <!-- Plugin icon displayed on the Plugins Page and IDE Plugin Manager. -->
-    <icon>pluginIcon.png</icon>
+    <icon>pluginIcon.svg</icon>
     
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
