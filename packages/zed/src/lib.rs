@@ -2,7 +2,7 @@ use std::{env, path::PathBuf};
 use zed::settings::LspSettings;
 use zed_extension_api::{self as zed, LanguageServerId, Result};
 
-const SERVER_RELATIVE_PATH: &str = "server/bin/wc-language-server.js";
+const SERVER_RELATIVE_PATH: &str = "server/bin/wc-language-server";
 const CUSTOM_SERVER_ENV: &str = "WC_LANGUAGE_SERVER_BINARY";
 
 struct WebComponentsExtension;
@@ -44,8 +44,8 @@ impl zed::Extension for WebComponentsExtension {
         println!("[wc-tools] Resolving language server command...");
         let server_path = self.resolve_server_script()?;
         Ok(zed::Command {
-            command: zed::node_binary_path()?,
-            args: vec![server_path.to_string_lossy().to_string(), "--stdio".to_string()],
+            command: server_path.to_string_lossy().to_string(),
+            args: vec!["--stdio".to_string()],
             env: Default::default(),
         })
     }

@@ -37,6 +37,8 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
       - name: Build
         run: pnpm lint && pnpm build
       - name: Create Release Pull Request or Publish

@@ -75,26 +75,13 @@ tasks {
     val copyLanguageServerBundle by registering(Sync::class) {
         dependsOn(buildLanguageServerBundle)
         into(layout.buildDirectory.dir("resources/main").get())
-        from("../language-server/bin") {
-            include("wc-language-server.js")
-            into("language-server/bin")
-        }
         from("../language-server/dist") {
-            include("wc-language-server.bundle.cjs")
-            into("language-server/dist")
+            include("wc-language-server")
+            into("language-server/bin")
         }
         from("../language-server") {
             include("package.json")
             into("language-server")
-        }
-        if (typescriptDir.exists()) {
-            from(typescriptDir) {
-                into("language-server/node_modules/typescript")
-            }
-        } else {
-            doFirst {
-                logger.warn("[jetbrains] TypeScript runtime not found at ${typescriptDir}. Skipping copy.")
-            }
         }
     }
 
@@ -113,27 +100,14 @@ tasks {
     prepareSandbox {
         dependsOn(copyLanguageServerBundle, "copyVSCodeExtension")
 		
-        // Copy language server bundle to sandbox
-        from("../language-server/bin") {
-            include("wc-language-server.js")
-            into("wc-language-server-jetbrains/language-server/bin")
-        }
+        // Copy language server executable to sandbox
         from("../language-server/dist") {
-            include("wc-language-server.bundle.cjs")
-            into("wc-language-server-jetbrains/language-server/dist")
+            include("wc-language-server")
+            into("wc-language-server-jetbrains/language-server/bin")
         }
         from("../language-server") {
             include("package.json")
             into("wc-language-server-jetbrains/language-server")
-        }
-        if (typescriptDir.exists()) {
-            from(typescriptDir) {
-                into("wc-language-server-jetbrains/language-server/node_modules/typescript")
-            }
-        } else {
-            doFirst {
-                logger.warn("[jetbrains] TypeScript runtime not found at ${typescriptDir}. Skipping sandbox copy.")
-            }
         }
         from("../vscode/dist") {
             into("wc-language-server-jetbrains/vscode")

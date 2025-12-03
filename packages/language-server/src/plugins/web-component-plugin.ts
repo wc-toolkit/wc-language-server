@@ -82,8 +82,10 @@ export function webComponentPlugin(): LanguageServicePlugin {
          * (HTML, CSS, Emmet) at the LSP layer.
          */
         provideCompletionItems(document, position) {
+          console.error("provideCompletionItems called", document.uri, position);
           // Only provide custom completions if this file should be enhanced
           if (!shouldProvideEnhancedService(document)) {
+            console.error("shouldProvideEnhancedService false");
             return undefined;
           }
 
@@ -103,6 +105,8 @@ export function webComponentPlugin(): LanguageServicePlugin {
             ...(htmlCompletions || []),
             ...(cssCompletions || []),
           ];
+
+          console.error("returning completions", allItems.length);
 
           // Return our completions - Volar will merge with other services
           return {

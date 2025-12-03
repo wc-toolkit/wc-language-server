@@ -13,22 +13,28 @@ First-class Neovim support for the Web Components Language Server. The plugin wi
 ## Prerequisites
 
 1. **Neovim 0.9 or newer** (0.10+ recommended)
-2. **Node.js 18+** available on `$PATH`
-3. A project that exposes a `custom-elements.json` (directly or via dependencies)
+2. A project that exposes a `custom-elements.json` (directly or via dependencies)
 
 ## Installation
 
 ### Language server binary
 
-Install the CLI globally so Neovim (and Mason) can launch it:
+Download the precompiled executable for your platform from the [GitHub releases](https://github.com/wc-toolkit/wc-language-server/releases) and place it in your `$PATH`:
 
 ```bash
-npm install -g @wc-toolkit/language-server
-# OR from inside Neovim via Mason
-:MasonInstall wc-language-server
+# Example for macOS (Intel)
+curl -L https://github.com/wc-toolkit/wc-language-server/releases/download/v0.0.33/wc-language-server-macos-x64 -o /usr/local/bin/wc-language-server
+chmod +x /usr/local/bin/wc-language-server
+
+# Example for Linux
+curl -L https://github.com/wc-toolkit/wc-language-server/releases/download/v0.0.33/wc-language-server-linux-x64 -o /usr/local/bin/wc-language-server
+chmod +x /usr/local/bin/wc-language-server
+
+# Example for Windows
+# Download wc-language-server-windows-x64.exe and add to PATH
 ```
 
-Both commands require Node.js 18+. If you prefer a bundled copy from this repo, run `pnpm --filter @wc-toolkit/language-server build` and point `cmd` at `packages/language-server/bin/wc-language-server.js`.
+Alternatively, if you prefer to build from source, run `pnpm --filter @wc-toolkit/language-server run build` and ensure `packages/language-server/dist/wc-language-server` is in your `$PATH`.
 
 ### lazy.nvim
 
@@ -121,7 +127,7 @@ Every time you change `wc.config.*` the Neovim plugin automatically restarts the
 | `autostart`                    | boolean               | `true`                                                                       | Attach automatically when a matching filetype opens.                                                                                               |
 | `filetypes`                    | string[]              | HTML + popular templating filetypes                                          | Customize the attach list.                                                                                                                         |
 | `root_dir_patterns`            | string[]              | `{ "wc.config.js", "package.json", ".git" }`                                 | Upward search markers for workspace detection.                                                                                                     |
-| `cmd`                          | string[] or fun(root) | auto-detected                                                                | Override the server command. Defaults to the bundled binary, then `wc-language-server` on `$PATH`.                                                 |
+| `cmd`                          | string[] or fun(root) | auto-detected                                                                | Override the server command. Defaults to `wc-language-server` on `$PATH`.                                                 |
 | `tsdk`                         | string                | auto-detected                                                                | Path to `node_modules/typescript/lib`. If omitted a best-effort search runs.                                                                       |
 | `watch_patterns`/`watch_files` | string[]              | important config names                                                       | Control which files trigger automatic restarts.                                                                                                    |
 | `debounce_ms`                  | number                | `350`                                                                        | Debounce before restarting after file system events.                                                                                               |
@@ -146,7 +152,7 @@ Every time you change `wc.config.*` the Neovim plugin automatically restarts the
 ## Troubleshooting
 
 - **No completions or hover** – run `:LspInfo` to ensure `wc-language-server` is attached. If not, verify the filetype is listed in `filetypes` and that the root dir was detected correctly.
-- **“Unable to locate wc-language-server binary”** – build the server with `pnpm build:ls` or set `cmd` to a global installation.
+- **"Unable to locate wc-language-server binary"** – ensure the executable is in your `$PATH`, or set `cmd` to the full path to the binary.
 - **Diagnostics missing** – check `:lua vim.diagnostic.open_float()` at the cursor; if nothing shows, ensure `custom-elements.json` exists and watch for errors in `:messages`.
 - **Watching doesn’t restart** – confirm the files you edit match `watch_patterns` or add your own (e.g., for monorepo manifests).
 - **Too many completion entries** – limit completion sources (buffer/snippet) or use `completion.set_omnifunc = false` and delegate to your completion plugin for filtering.

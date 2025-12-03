@@ -14,9 +14,9 @@ const extensionDir = resolve(__dirname, "..");
 const serverDir = resolve(extensionDir, "server");
 const bundleSource = resolve(
   repoRoot,
-  "packages/language-server/dist/wc-language-server.bundle.cjs"
+  "packages/language-server/dist/wc-language-server"
 );
-const targetBinary = resolve(serverDir, "bin/wc-language-server.js");
+const targetBinary = resolve(serverDir, "bin/wc-language-server");
 const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 console.log("[zed] bundling language server ->", targetBinary);
@@ -49,22 +49,7 @@ copyFileSync(bundleSource, targetBinary);
 
 console.log("[zed] Language server bundled successfully ->", targetBinary);
 
-const tsSource = resolve(repoRoot, "node_modules", "typescript");
-const tsTarget = resolve(serverDir, "node_modules", "typescript");
 const serverPackageJson = resolve(serverDir, "package.json");
-
-if (existsSync(tsSource)) {
-  console.log("[zed] Copying bundled TypeScript runtime ->", tsTarget);
-  rmSync(tsTarget, { recursive: true, force: true });
-  mkdirSync(dirname(tsTarget), { recursive: true });
-  cpSync(tsSource, tsTarget, { recursive: true });
-} else {
-  console.warn(
-    "[zed] Warning: Could not find TypeScript runtime at",
-    tsSource,
-    "— language server will need tsdk from the workspace"
-  );
-}
 
 const serverPackage = {
   name: "@wc-toolkit/zed-language-server-runtime",

@@ -1,10 +1,8 @@
-import { getTsdk } from "@volar/vscode";
 import {
   BaseLanguageClient,
+  Executable,
   LanguageClient,
   LanguageClientOptions,
-  ServerOptions,
-  TransportKind,
 } from "@volar/vscode/node";
 import * as vscode from "vscode";
 
@@ -169,30 +167,30 @@ export async function createClient(): Promise<BaseLanguageClient> {
   const serverModule = vscode.Uri.joinPath(
     context.extensionUri,
     "dist",
-    "server.js"
+    "wc-language-server"
   );
-  const runOptions = { execArgv: [] as string[] };
-  const debugOptions = { execArgv: ["--nolazy", "--inspect=0"] }; // use dynamic port to avoid collisions
+  // const runOptions = { execArgv: [] as string[] };
+  // const debugOptions = { execArgv: ["--nolazy", "--inspect=0"] }; // use dynamic port to avoid collisions
 
-  const serverOptions: ServerOptions = {
-    run: {
-      module: serverModule.fsPath,
-      transport: TransportKind.ipc,
-      options: runOptions,
-    },
-    debug: {
-      module: serverModule.fsPath,
-      transport: TransportKind.ipc,
-      options: debugOptions,
-    },
+  const serverOptions: Executable = {
+    command: serverModule.fsPath,
+    args: ["--stdio"],
+    // run: {
+    //   module: serverModule.fsPath,
+    //   transport: TransportKind.ipc,
+    //   options: runOptions,
+    // },
+    // debug: {
+    //   module: serverModule.fsPath,
+    //   transport: TransportKind.ipc,
+    //   options: debugOptions,
+    // },
   };
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: "file", language: "*" }],
+    documentSelector: ["html"],
     initializationOptions: {
-      typescript: {
-        tsdk: (await getTsdk(context))!.tsdk,
-      },
     },
+    workspaceFolder: vscode.workspace.workspaceFolders?.[0],
   };
   
   const newClient = new LanguageClient(

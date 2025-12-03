@@ -47,7 +47,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && pnpm run bundle:single",
+    "build": "zsh -c 'source ~/.zshrc && pnpm run bundle:single && bun build --compile dist/wc-language-server.bundle.mjs --outfile dist/wc-language-server'",
     "bundle:single": "node ./scripts/build-single-file.mjs",
     "watch": "tsc -p tsconfig.json --watch",
     "test:unit": "node --test ./test/no-package-json.test.mjs",
@@ -62,6 +62,7 @@
     "@wc-toolkit/cem-utilities": "^1.5.4",
     "custom-elements-manifest": "2.1.0",
     "minimatch": "^10.0.3",
+    "typescript": "^5.6.3",
     "volar-service-css": "volar-2.4",
     "volar-service-emmet": "volar-2.4",
     "volar-service-html": "volar-2.4",

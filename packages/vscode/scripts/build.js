@@ -1,21 +1,21 @@
 /* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-require-imports */
-const { copyFileSync, existsSync, mkdirSync } = require("fs");
+const { chmodSync, copyFileSync, existsSync, mkdirSync } = require("fs");
 const { spawnSync } = require("child_process");
 const path = require("path");
 
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
-const bundleSource = path.resolve(
+const executableSource = path.resolve(
   repoRoot,
-  "packages/language-server/dist/wc-language-server.bundle.cjs"
+  "packages/language-server/dist/wc-language-server"
 );
-const serverTarget = path.resolve(__dirname, "../dist/server.js");
+const serverTarget = path.resolve(__dirname, "../dist/wc-language-server");
 const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const skipServerBuild = process.argv.includes("--skip-server-build");
 const forceServerBuild = process.argv.includes("--force-server-build");
 
 function runLanguageServerBuild() {
-  console.log("[vscode] building language server bundle...");
+  console.log("[vscode] building language server executable...");
   const result = spawnSync(
     pnpmCmd,
     ["--filter", "@wc-toolkit/language-server", "run", "build"],
@@ -27,31 +27,32 @@ function runLanguageServerBuild() {
 
   if (result.status !== 0) {
     throw new Error(
-      "[vscode] Failed to build the language server bundle. See logs above."
+      "[vscode] Failed to build the language server executable. See logs above."
     );
   }
 }
 
-function ensureLanguageServerBundle() {
-  if (!skipServerBuild && (forceServerBuild || !existsSync(bundleSource))) {
+function ensureLanguageServerExecutable() {
+  if (!skipServerBuild && (forceServerBuild || !existsSync(executableSource))) {
     runLanguageServerBuild();
   }
 
-  if (!existsSync(bundleSource)) {
+  if (!existsSync(executableSource)) {
     throw new Error(
-      `[vscode] Missing language server bundle at ${bundleSource}. ` +
+      `[vscode] Missing language server executable at ${executableSource}. ` +
         "Run 'pnpm --filter @wc-toolkit/language-server run build' first."
     );
   }
 }
 
-function copyBundleIntoExtension() {
+function copyExecutableIntoExtension() {
   mkdirSync(path.dirname(serverTarget), { recursive: true });
-  copyFileSync(bundleSource, serverTarget);
-  console.log("[vscode] Copied language server bundle ->", serverTarget);
+  copyFileSync(executableSource, serverTarget);
+  chmodSync(serverTarget, 0o755);
+  console.log("[vscode] Copied language server executable ->", serverTarget);
 }
 
-ensureLanguageServerBundle();
+ensureLanguageServerExecutable();
 
 require("esbuild")
   .context({
@@ -98,9 +99,9 @@ require("esbuild")
         return;
       }
       try {
-        copyBundleIntoExtension();
+        copyExecutableIntoExtension();
       } catch (copyError) {
-        console.error("[vscode] Failed to copy language server bundle", copyError);
+        console.error("[vscode] Failed to copy files", copyError);
       }
     };
 
