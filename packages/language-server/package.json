@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/language-server",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "main": "dist/index.js",
   "description": "Language server that surfaces Web Components metadata, completions, and diagnostics",

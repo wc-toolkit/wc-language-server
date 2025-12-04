@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.16
+
+### Patch Changes
+
+- 739346a: Updated build to include TypeScript depeendencies
+
 ## 0.0.15
 
 ### Patch Changes

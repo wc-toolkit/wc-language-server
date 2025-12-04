@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.6
+
+### Patch Changes
+
+- 739346a: Updated build to include TypeScript depeendencies
+
 ## 0.0.5
 
 ### Patch Changes

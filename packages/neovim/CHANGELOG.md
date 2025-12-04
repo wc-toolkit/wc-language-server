@@ -1,5 +1,11 @@
 # @wc-toolkit/neovim
 
+## 0.0.3
+
+### Patch Changes
+
+- 739346a: Updated build to include TypeScript depeendencies
+
 ## 0.0.2
 
 ### Patch Changes
