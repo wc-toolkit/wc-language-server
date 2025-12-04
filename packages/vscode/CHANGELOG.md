@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.34
+
+### Patch Changes
+
+- 739346a: Updated build to include TypeScript depeendencies
+
 ## 0.0.33
 
 ### Patch Changes
