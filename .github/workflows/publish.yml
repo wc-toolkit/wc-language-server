@@ -82,6 +82,7 @@ jobs:
         if: steps.changesets.outputs.published == 'true' && steps.check_openvsx.outputs.exists == 'false'
         uses: HaaLeo/publish-vscode-extension@v2
         id: publishToOpenVSX
+        continue-on-error: true
         with:
           pat: ${{ secrets.OPENVSX_TOKEN }}
           packagePath: ./packages/vscode
@@ -121,6 +122,7 @@ jobs:
       - name: Publish to Visual Studio Marketplace
         if: steps.changesets.outputs.published == 'true' && steps.check_marketplace.outputs.exists == 'false'
         uses: HaaLeo/publish-vscode-extension@v2
+        continue-on-error: true
         with:
           pat: ${{ secrets.VSCODE_MARKETPLACE }}
           packagePath: ./packages/vscode
@@ -165,6 +167,8 @@ jobs:
       
       - name: Publish JetBrains Plugin
         if: steps.changesets.outputs.published == 'true' && steps.check_jetbrains.outputs.exists == 'false'
+        id: publishJetBrains
+        continue-on-error: true
         env:
           PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
         run: |
