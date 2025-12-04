@@ -42,8 +42,6 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build
-        run: pnpm lint && pnpm build
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1
@@ -55,6 +53,8 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           OPENVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}
           VSCODE_MARKETPLACE: ${{ secrets.VSCODE_MARKETPLACE }}
+      - name: Build
+        run: pnpm lint && pnpm build
       # Only run the following steps if packages were actually published
       - name: Get VSCode Extension Version
         if: steps.changesets.outputs.published == 'true'
