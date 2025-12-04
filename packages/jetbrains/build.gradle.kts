@@ -69,14 +69,14 @@ tasks {
 
     val buildLanguageServerBundle by registering(Exec::class) {
         workingDir = repoRoot
-        commandLine(pnpmCommand, "--filter", "@wc-toolkit/language-server", "run", "build")
+        commandLine(pnpmCommand, "--filter", "@wc-toolkit/language-server", "run", "bundle:executable")
     }
 
     val copyLanguageServerBundle by registering(Sync::class) {
         dependsOn(buildLanguageServerBundle)
         into(layout.buildDirectory.dir("resources/main").get())
         from("../language-server/bin") {
-            include("wc-language-server.js")
+            include("wc-language-server")
             into("language-server/bin")
         }
         from("../language-server/dist") {
@@ -115,7 +115,7 @@ tasks {
 		
         // Copy language server bundle to sandbox
         from("../language-server/bin") {
-            include("wc-language-server.js")
+            include("wc-language-server")
             into("wc-language-server-jetbrains/language-server/bin")
         }
         from("../language-server/dist") {

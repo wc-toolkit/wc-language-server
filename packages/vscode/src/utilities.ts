@@ -168,7 +168,7 @@ export async function createClient(): Promise<BaseLanguageClient> {
   const serverExecutable = vscode.Uri.joinPath(
     context.extensionUri,
     "dist",
-    "server.js"
+    "server"
   );
   
   const serverOptions: ServerOptions = {

@@ -23,7 +23,7 @@ pnpm install
 pnpm build:ls
 ```
 
-The language server build step produces `packages/language-server/bin/wc-language-server.js`. The Neovim plugin prefers this local binary but can also call a globally installed `wc-language-server` if you skip the build. Keeping the local build up to date ensures you are testing the same code that ships with the plugin.
+The language server build step produces `packages/language-server/bin/wc-language-server`. The Neovim plugin prefers this local binary but can also call a globally installed `wc-language-server` if you skip the build. Keeping the local build up to date ensures you are testing the same code that ships with the plugin.
 
 ## Dev Profile (`pnpm dev`)
 
@@ -73,7 +73,7 @@ There are currently no automated tests for the Neovim package. Manual testing vi
 	pnpm --filter @wc-toolkit/neovim run bundle
 	```
 
-	This produces a single-file build at `packages/neovim/server/bin/wc-language-server.js` (ignored by git) so you can ship the plugin with a self-contained server.
+	This produces a single-file build at `packages/neovim/server/bin/wc-language-server` (ignored by git) so you can ship the plugin with a self-contained server.
 3. Verify the plugin works in the dev profile and in a clean Neovim session (preferably with only the bundled server available).
 4. Update `CHANGELOG.md` at the repo root or include a Changeset if you are publishing a release.
 5. Commit only the Lua/docs changes you touched—do **not** check in generated `server/` artifacts.

@@ -10,7 +10,16 @@ This project provides a language server and editor extensions for using Web Comp
 - Duplicate attribute detection
 - Completion and hover support for custom elements
 - Configurable diagnostics severity
+- **Self-contained executable** - no Node.js runtime required
 - Works with any Web Components library that provides a Custom Elements Manifest
+
+## Distribution
+
+The language server is distributed as a self-contained executable that embeds its own runtime. This eliminates the need for Node.js to be installed on the target system for runtime execution.
+
+- **Standalone installation**: `npm install -g @wc-toolkit/language-server` (requires Node.js for installation only)
+- **Editor integrations**: Available as plugins for VS Code, JetBrains IDEs, Neovim, and Zed
+- **Development**: Requires Node.js 18+ for building and testing
 
 ## Monorepo Structure
 

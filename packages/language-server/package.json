@@ -38,7 +38,7 @@
     "LICENSE"
   ],
   "bin": {
-    "wc-language-server": "./bin/wc-language-server.js"
+    "wc-language-server": "./bin/wc-language-server"
   },
   "publishConfig": {
     "access": "public"
@@ -47,8 +47,9 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && pnpm run bundle:single",
+    "build": "tsc -p tsconfig.json && pnpm run bundle:single && pnpm run bundle:executable",
     "bundle:single": "node ./scripts/build-single-file.mjs",
+    "bundle:executable": "node ./scripts/build-single-executable.mjs",
     "watch": "tsc -p tsconfig.json --watch",
     "test:unit": "node --test ./test/no-package-json.test.mjs",
     "clean": "rimraf dist && rimraf tsconfig.tsbuildinfo",

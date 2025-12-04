@@ -18,7 +18,6 @@ Advanced editor support for using Web Components and custom elements in WebStorm
 ## Requirements
 
 - **JetBrains IDE**: WebStorm 2024.2+ or IntelliJ IDEA 2024.2+ (with JavaScript plugin)
-- **Node.js**: Version 16 or higher installed and available in PATH
 - **Custom Elements Manifest**: A component library with a `custom-elements.json` ([Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest)) file
 ## Installation
 

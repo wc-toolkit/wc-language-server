@@ -1,7 +1,7 @@
 import {
   createConnection,
   createServer,
-  createTypeScriptProject,
+  createSimpleProject,
   InitializeParams,
 } from "@volar/language-server/node.js";
 import { create as createEmmetService } from "volar-service-emmet";
@@ -9,8 +9,24 @@ import { create as createCssService } from "volar-service-css";
 import { create as createHtmlService } from "volar-service-html";
 import { manifestService } from "./services/manifest-service.js";
 import { webComponentPlugin } from "./plugins/web-component-plugin.js";
-import * as ts from "typescript";
-import * as tsserver from "typescript/lib/tsserverlibrary.js";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+// Handle --version argument
+if (process.argv.includes("--version")) {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const pkgPath = join(__dirname, "../package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+    console.log(pkg.version);
+  } catch {
+    // Fallback if package.json not found
+    console.log("0.0.2");
+  }
+  process.exit(0);
+}
 
 // Add global error handlers to prevent server crashes
 process.on("unhandledRejection", (reason, promise) => {
@@ -39,13 +55,9 @@ connection.listen();
  */
 connection.onInitialize((params: InitializeParams) => {
   try {
-    // @ts-expect-error - diagnosticMessages exists at runtime
-    const tsdk = { typescript: ts, diagnosticMessages: tsserver.diagnosticMessages };
     return server.initialize(
       params,
-      createTypeScriptProject(tsdk.typescript, tsdk.diagnosticMessages, () => ({
-        languagePlugins: [],
-      })),
+      createSimpleProject([]),
       [
         // Order matters: base services first, then our custom plugin
         // This ensures HTML/CSS/Emmet completions are available first
