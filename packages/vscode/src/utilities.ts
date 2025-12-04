@@ -4,7 +4,6 @@ import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
-  TransportKind,
 } from "@volar/vscode/node";
 import * as vscode from "vscode";
 
@@ -166,26 +165,17 @@ export function createRestartingWatcher(
  * @returns A configured language client ready to be started
  */
 export async function createClient(): Promise<BaseLanguageClient> {
-  const serverModule = vscode.Uri.joinPath(
+  const serverExecutable = vscode.Uri.joinPath(
     context.extensionUri,
     "dist",
     "server.js"
   );
-  const runOptions = { execArgv: [] as string[] };
-  const debugOptions = { execArgv: ["--nolazy", "--inspect=0"] }; // use dynamic port to avoid collisions
-
+  
   const serverOptions: ServerOptions = {
-    run: {
-      module: serverModule.fsPath,
-      transport: TransportKind.ipc,
-      options: runOptions,
-    },
-    debug: {
-      module: serverModule.fsPath,
-      transport: TransportKind.ipc,
-      options: debugOptions,
-    },
+    command: serverExecutable.fsPath,
+    args: ["--stdio"],
   };
+  
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "*" }],
     initializationOptions: {

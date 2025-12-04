@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-undef */
 import { build } from "esbuild";
-import { mkdirSync } from "fs";
+import { chmodSync, mkdirSync } from "fs";
 import { createRequire } from "module";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
@@ -44,13 +44,14 @@ async function run() {
     outfile,
     sourcemap: false,
     banner: {
-      js: "// Bundled by esbuild for the Web Components Language Server\n",
+      js: "#!/usr/bin/env node\n// Bundled by esbuild for the Web Components Language Server\n",
     },
     minify: true,
     logLevel: "info",
     plugins: [umdToEsmPlugin],
   });
 
+  chmodSync(outfile, 0o755);
   console.log("[language-server] Created single-file bundle:", outfile);
 }
 

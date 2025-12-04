@@ -19,7 +19,7 @@ repositories {
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    version.set("2024.2")
+    version.set("2024.3")
     type.set("IU") // Target IntelliJ IDEA Ultimate (includes JavaScript support)
     plugins.set(listOf(
         "JavaScript"
@@ -49,7 +49,7 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("242")
+        sinceBuild.set("243")
         untilBuild.set("") // Empty means "all future versions"
     }
 
