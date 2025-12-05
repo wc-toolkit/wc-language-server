@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-undef */
 import { build } from "esbuild";
-import { chmodSync, mkdirSync } from "fs";
+import { chmodSync, mkdirSync, copyFileSync } from "fs";
 import { createRequire } from "module";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
@@ -12,6 +12,8 @@ const packageRoot = resolve(__dirname, "..", "");
 const entryPoint = resolve(packageRoot, "src/index.ts");
 const outDir = resolve(packageRoot, "dist");
 const outfile = resolve(outDir, "wc-language-server.bundle.cjs");
+const binDir = resolve(packageRoot, "bin");
+const binfile = resolve(binDir, "wc-language-server.js");
 const require = createRequire(import.meta.url);
 
 const umdToEsmPlugin = {
@@ -53,6 +55,12 @@ async function run() {
 
   chmodSync(outfile, 0o755);
   console.log("[language-server] Created single-file bundle:", outfile);
+
+  // Copy to bin for compatibility
+  mkdirSync(binDir, { recursive: true });
+  copyFileSync(outfile, binfile);
+  chmodSync(binfile, 0o755);
+  console.log("[language-server] Copied bundle to bin:", binfile);
 }
 
 run().catch((error) => {
