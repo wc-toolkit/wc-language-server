@@ -56,7 +56,6 @@ jobs:
         run: pnpm lint && pnpm build
       # Only run the following steps if packages were actually published
       - name: Get VSCode Extension Version
-        if: steps.changesets.outputs.published == 'true'
         id: vscode_version
         run: |
           VERSION=$(node -p "require('./packages/vscode/package.json').version")
@@ -64,7 +63,6 @@ jobs:
           echo "VSCode extension version: $VERSION"
       
       - name: Check if version exists on Open VSX
-        if: steps.changesets.outputs.published == 'true'
         id: check_openvsx
         continue-on-error: true
         run: |
@@ -78,7 +76,7 @@ jobs:
           fi
       
       - name: Publish to Open VSX Registry
-        if: steps.changesets.outputs.published == 'true' && steps.check_openvsx.outputs.exists == 'false'
+        if: steps.check_openvsx.outputs.exists == 'false'
         uses: HaaLeo/publish-vscode-extension@v2
         id: publishToOpenVSX
         continue-on-error: true
@@ -87,7 +85,6 @@ jobs:
           packagePath: ./packages/vscode
       
       - name: Check if version exists on VS Marketplace
-        if: steps.changesets.outputs.published == 'true'
         id: check_marketplace
         continue-on-error: true
         run: |
@@ -119,7 +116,7 @@ jobs:
           fi
       
       - name: Publish to Visual Studio Marketplace
-        if: steps.changesets.outputs.published == 'true' && steps.check_marketplace.outputs.exists == 'false'
+        if: steps.check_marketplace.outputs.exists == 'false'
         uses: HaaLeo/publish-vscode-extension@v2
         continue-on-error: true
         with:
@@ -129,7 +126,6 @@ jobs:
           extensionFile: ${{ steps.publishToOpenVSX.outputs.vsixPath }}
       
       - name: Get JetBrains Plugin Version
-        if: steps.changesets.outputs.published == 'true'
         id: jetbrains_version
         run: |
           VERSION=$(node -p "require('./packages/jetbrains/package.json').version")
@@ -137,7 +133,6 @@ jobs:
           echo "JetBrains plugin version: $VERSION"
       
       - name: Check if version exists on JetBrains Marketplace
-        if: steps.changesets.outputs.published == 'true'
         id: check_jetbrains
         continue-on-error: true
         run: |
@@ -151,21 +146,21 @@ jobs:
           fi
       
       - name: Setup Java for JetBrains Plugin
-        if: steps.changesets.outputs.published == 'true' && steps.check_jetbrains.outputs.exists == 'false'
+        if: steps.check_jetbrains.outputs.exists == 'false'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
       
       - name: Build JetBrains Plugin
-        if: steps.changesets.outputs.published == 'true' && steps.check_jetbrains.outputs.exists == 'false'
+        if: steps.check_jetbrains.outputs.exists == 'false'
         run: |
           cd packages/jetbrains
           chmod +x gradlew
           ./gradlew buildPlugin
       
       - name: Publish JetBrains Plugin
-        if: steps.changesets.outputs.published == 'true' && steps.check_jetbrains.outputs.exists == 'false'
+        if: steps.check_jetbrains.outputs.exists == 'false'
         id: publishJetBrains
         continue-on-error: true
         env:
