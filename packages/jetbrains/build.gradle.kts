@@ -76,7 +76,7 @@ tasks {
         dependsOn(buildLanguageServerBundle)
         into(layout.buildDirectory.dir("resources/main").get())
         from("../language-server/bin") {
-            include("wc-language-server")
+            include("wc-language-server-*")
             into("language-server/bin")
         }
         from("../language-server/dist") {
@@ -115,7 +115,7 @@ tasks {
 		
         // Copy language server bundle to sandbox
         from("../language-server/bin") {
-            include("wc-language-server")
+            include("wc-language-server-*")
             into("wc-language-server-jetbrains/language-server/bin")
         }
         from("../language-server/dist") {

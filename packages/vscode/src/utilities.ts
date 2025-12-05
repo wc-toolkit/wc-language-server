@@ -165,10 +165,25 @@ export function createRestartingWatcher(
  * @returns A configured language client ready to be started
  */
 export async function createClient(): Promise<BaseLanguageClient> {
+  // Determine the correct executable based on platform
+  let executableName = "wc-language-server-linux-x64"; // default
+  
+  const platform = process.platform;
+  const arch = process.arch;
+  
+  if (platform === "win32") {
+    executableName = "wc-language-server-windows-x64.exe";
+  } else if (platform === "darwin") {
+    executableName = arch === "arm64" ? "wc-language-server-macos-arm64" : "wc-language-server-macos-x64";
+  } else if (platform === "linux") {
+    executableName = "wc-language-server-linux-x64";
+  }
+  
   const serverExecutable = vscode.Uri.joinPath(
     context.extensionUri,
     "dist",
-    "server"
+    "server",
+    executableName
   );
   
   const serverOptions: ServerOptions = {
