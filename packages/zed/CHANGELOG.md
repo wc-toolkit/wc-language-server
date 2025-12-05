@@ -1,5 +1,11 @@
 # @wc-toolkit/zed
 
+## 0.0.5
+
+### Patch Changes
+
+- 0131c34: Added operating specific executables
+
 ## 0.0.4
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.36
+
+### Patch Changes
+
+- 0131c34: Added operating specific executables
+
 ## 0.0.35
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.8
+
+### Patch Changes
+
+- 0131c34: Added operating specific executables
+
 ## 0.0.7
 
 ### Patch Changes

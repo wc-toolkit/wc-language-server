@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/jetbrains-plugin",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "JetBrains plugin for Web Components Language Server",
   "private": true,
   "scripts": {

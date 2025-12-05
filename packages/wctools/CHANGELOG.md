@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.18
+
+### Patch Changes
+
+- 0131c34: Added operating specific executables
+
 ## 0.0.17
 
 ### Patch Changes
