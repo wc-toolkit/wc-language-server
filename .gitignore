@@ -5,4 +5,4 @@ node_modules
 *.vsix
 .DS_STORE
 test-tmp
-packages/language-server/bin
+packages/**/bin
