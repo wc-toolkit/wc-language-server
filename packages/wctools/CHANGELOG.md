@@ -1,5 +1,11 @@
 # @wc-toolkit/wctools
 
+## 0.0.17
+
+### Patch Changes
+
+- 935c0fa: Updated language server to compile to a single-file executable to remove node.js dependency
+
 ## 0.0.16
 
 ### Patch Changes

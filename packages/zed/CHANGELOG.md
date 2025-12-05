@@ -1,5 +1,11 @@
 # @wc-toolkit/zed
 
+## 0.0.4
+
+### Patch Changes
+
+- 935c0fa: Updated language server to compile to a single-file executable to remove node.js dependency
+
 ## 0.0.3
 
 ### Patch Changes

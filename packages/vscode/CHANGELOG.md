@@ -1,5 +1,11 @@
 # web-components-language-server
 
+## 0.0.35
+
+### Patch Changes
+
+- 935c0fa: Updated language server to compile to a single-file executable to remove node.js dependency
+
 ## 0.0.34
 
 ### Patch Changes

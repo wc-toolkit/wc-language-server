@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.7
+
+### Patch Changes
+
+- 935c0fa: Updated language server to compile to a single-file executable to remove node.js dependency
+
 ## 0.0.6
 
 ### Patch Changes
