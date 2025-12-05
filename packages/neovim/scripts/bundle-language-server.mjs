@@ -11,9 +11,9 @@ const repoRoot = resolve(__dirname, "../../..");
 const targetDir = resolve(repoRoot, "packages/neovim/server");
 const bundleSource = resolve(
   repoRoot,
-  "packages/language-server/dist/wc-language-server.bundle.cjs"
+  "packages/language-server/bin/wc-language-server"
 );
-const targetBinary = resolve(targetDir, "bin/wc-language-server.js");
+const targetBinary = resolve(targetDir, "bin/wc-language-server");
 const typescriptSource = resolve(repoRoot, "node_modules", "typescript");
 const typescriptTarget = resolve(targetDir, "node_modules", "typescript");
 const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
@@ -22,7 +22,7 @@ console.log("[neovim] bundling language server ->", targetDir);
 
 const buildResult = spawnSync(
   pnpmCmd,
-  ["--filter", "@wc-toolkit/language-server", "run", "build"],
+  ["--filter", "@wc-toolkit/language-server", "run", "bundle:executable"],
   {
     cwd: repoRoot,
     stdio: "inherit",
@@ -35,7 +35,7 @@ if (buildResult.status !== 0) {
 }
 
 if (!existsSync(bundleSource)) {
-  console.error("[neovim] Bundle missing:", bundleSource);
+  console.error("[neovim] Executable missing:", bundleSource);
   process.exit(1);
 }
 
@@ -46,7 +46,7 @@ if (existsSync(targetDir)) {
 mkdirSync(dirname(targetBinary), { recursive: true });
 copyFileSync(bundleSource, targetBinary);
 
-console.log("[neovim] Language server bundled successfully ->", targetBinary);
+console.log("[neovim] Language server executable bundled successfully ->", targetBinary);
 
 if (existsSync(typescriptSource)) {
   console.log("[neovim] Copying bundled TypeScript runtime ->", typescriptTarget);

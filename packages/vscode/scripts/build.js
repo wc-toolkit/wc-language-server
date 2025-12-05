@@ -7,18 +7,18 @@ const path = require("path");
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
 const bundleSource = path.resolve(
   repoRoot,
-  "packages/language-server/dist/wc-language-server.bundle.cjs"
+  "packages/language-server/bin/wc-language-server"
 );
-const serverTarget = path.resolve(__dirname, "../dist/server.js");
+const serverTarget = path.resolve(__dirname, "../dist/server");
 const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const skipServerBuild = process.argv.includes("--skip-server-build");
 const forceServerBuild = process.argv.includes("--force-server-build");
 
 function runLanguageServerBuild() {
-  console.log("[vscode] building language server bundle...");
+  console.log("[vscode] building language server executable...");
   const result = spawnSync(
     pnpmCmd,
-    ["--filter", "@wc-toolkit/language-server", "run", "build"],
+    ["--filter", "@wc-toolkit/language-server", "run", "bundle:executable"],
     {
       cwd: repoRoot,
       stdio: "inherit",
@@ -27,7 +27,7 @@ function runLanguageServerBuild() {
 
   if (result.status !== 0) {
     throw new Error(
-      "[vscode] Failed to build the language server bundle. See logs above."
+      "[vscode] Failed to build the language server executable. See logs above."
     );
   }
 }
@@ -39,8 +39,8 @@ function ensureLanguageServerBundle() {
 
   if (!existsSync(bundleSource)) {
     throw new Error(
-      `[vscode] Missing language server bundle at ${bundleSource}. ` +
-        "Run 'pnpm --filter @wc-toolkit/language-server run build' first."
+      `[vscode] Missing language server executable at ${bundleSource}. ` +
+        "Run 'pnpm --filter @wc-toolkit/language-server run bundle:executable' first."
     );
   }
 }
@@ -48,7 +48,7 @@ function ensureLanguageServerBundle() {
 function copyBundleIntoExtension() {
   mkdirSync(path.dirname(serverTarget), { recursive: true });
   copyFileSync(bundleSource, serverTarget);
-  console.log("[vscode] Copied language server bundle ->", serverTarget);
+  console.log("[vscode] Copied language server executable ->", serverTarget);
 }
 
 ensureLanguageServerBundle();

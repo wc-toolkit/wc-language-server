@@ -14,16 +14,16 @@ const extensionDir = resolve(__dirname, "..");
 const serverDir = resolve(extensionDir, "server");
 const bundleSource = resolve(
   repoRoot,
-  "packages/language-server/dist/wc-language-server.bundle.cjs"
+  "packages/language-server/bin/wc-language-server"
 );
-const targetBinary = resolve(serverDir, "bin/wc-language-server.js");
+const targetBinary = resolve(serverDir, "bin/wc-language-server");
 const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 console.log("[zed] bundling language server ->", targetBinary);
 
 const buildResult = spawnSync(
   pnpmCmd,
-  ["--filter", "@wc-toolkit/language-server", "run", "build"],
+  ["--filter", "@wc-toolkit/language-server", "run", "bundle:executable"],
   {
     cwd: repoRoot,
     stdio: "inherit",
@@ -36,7 +36,7 @@ if (buildResult.status !== 0) {
 }
 
 if (!existsSync(bundleSource)) {
-  console.error("[zed] Bundle missing:", bundleSource);
+  console.error("[zed] Executable missing:", bundleSource);
   process.exit(1);
 }
 
@@ -47,7 +47,7 @@ if (existsSync(serverDir)) {
 mkdirSync(dirname(targetBinary), { recursive: true });
 copyFileSync(bundleSource, targetBinary);
 
-console.log("[zed] Language server bundled successfully ->", targetBinary);
+console.log("[zed] Language server executable bundled successfully ->", targetBinary);
 
 const tsSource = resolve(repoRoot, "node_modules", "typescript");
 const tsTarget = resolve(serverDir, "node_modules", "typescript");

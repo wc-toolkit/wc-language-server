@@ -5,8 +5,8 @@ local uv = vim.loop
 
 local script_path = debug.getinfo(1, "S").source:sub(2)
 local plugin_root = fn.fnamemodify(script_path, ":p:h:h:h")
-local packaged_server = fn.fnamemodify(plugin_root .. "/server/bin/wc-language-server.js", ":p")
-local bundled_server = fn.fnamemodify(plugin_root .. "/../language-server/bin/wc-language-server.js", ":p")
+local packaged_server = fn.fnamemodify(plugin_root .. "/server/bin/wc-language-server", ":p")
+local bundled_server = fn.fnamemodify(plugin_root .. "/../language-server/bin/wc-language-server", ":p")
 
 local defaults = {
   autostart = true,

@@ -28,7 +28,7 @@ npm install -g @wc-toolkit/language-server
 :MasonInstall wc-language-server
 ```
 
-Both commands require Node.js 18+. If you prefer a bundled copy from this repo, run `pnpm --filter @wc-toolkit/language-server build` and point `cmd` at `packages/language-server/bin/wc-language-server.js`.
+Both commands require Node.js 18+. If you prefer a bundled copy from this repo, run `pnpm --filter @wc-toolkit/language-server bundle:executable` and point `cmd` at `packages/language-server/bin/wc-language-server`.
 
 ### lazy.nvim
 
