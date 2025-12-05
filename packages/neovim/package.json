@@ -5,6 +5,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+    "build": "node ./scripts/bundle-language-server.mjs",
     "dev": "node ./scripts/open-dev-terminal.mjs",
     "bundle": "node ./scripts/bundle-language-server.mjs"
   },

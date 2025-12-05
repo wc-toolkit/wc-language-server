@@ -11,9 +11,8 @@ const repoRoot = resolve(__dirname, "../../..");
 const targetDir = resolve(repoRoot, "packages/neovim/server");
 const bundleSource = resolve(
   repoRoot,
-  "packages/language-server/bin/wc-language-server"
+  "packages/language-server/bin/wc-language-server-linux-x64"
 );
-const targetBinary = resolve(targetDir, "bin/wc-language-server");
 const typescriptSource = resolve(repoRoot, "node_modules", "typescript");
 const typescriptTarget = resolve(targetDir, "node_modules", "typescript");
 const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
@@ -43,10 +42,34 @@ if (existsSync(targetDir)) {
   rmSync(targetDir, { recursive: true, force: true });
 }
 
-mkdirSync(dirname(targetBinary), { recursive: true });
-copyFileSync(bundleSource, targetBinary);
+mkdirSync(targetDir, { recursive: true });
 
-console.log("[neovim] Language server executable bundled successfully ->", targetBinary);
+// Copy all platform executables
+const executables = [
+  'wc-language-server-linux-x64',
+  'wc-language-server-linux-arm64',
+  'wc-language-server-macos-x64', 
+  'wc-language-server-macos-arm64',
+  'wc-language-server-windows-x64.exe'
+];
+
+for (const exe of executables) {
+  const source = resolve(repoRoot, "packages/language-server/bin", exe);
+  const target = resolve(targetDir, "bin", exe);
+  if (existsSync(source)) {
+    mkdirSync(dirname(target), { recursive: true });
+    copyFileSync(source, target);
+    console.log(`[neovim] Copied ${exe} -> ${target}`);
+  }
+}
+
+// For backward compatibility, create a symlink or copy to the default name
+// This will be overridden by the Lua script's OS detection
+const defaultTarget = resolve(targetDir, "bin/wc-language-server");
+if (existsSync(bundleSource)) {
+  copyFileSync(bundleSource, defaultTarget);
+  console.log(`[neovim] Created default executable -> ${defaultTarget}`);
+}
 
 if (existsSync(typescriptSource)) {
   console.log("[neovim] Copying bundled TypeScript runtime ->", typescriptTarget);

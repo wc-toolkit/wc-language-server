@@ -13,22 +13,25 @@ First-class Neovim support for the Web Components Language Server. The plugin wi
 ## Prerequisites
 
 1. **Neovim 0.9 or newer** (0.10+ recommended)
-2. **Node.js 18+** available on `$PATH`
-3. A project that exposes a `custom-elements.json` (directly or via dependencies)
+2. A project that exposes a `custom-elements.json` (directly or via dependencies)
+3. **Language Server Executable**: Download the appropriate pre-built executable for your platform from the [latest GitHub release](https://github.com/wc-toolkit/wc-language-server/releases/latest) and place it in `packages/neovim/server/bin/`.
 
 ## Installation
 
-### Language server binary
+### Download Language Server Executable
 
-Install the CLI globally so Neovim (and Mason) can launch it:
+1. Go to the [GitHub Releases page](https://github.com/wc-toolkit/wc-language-server/releases/latest).
+2. Download the executable matching your OS and architecture:
+   - Linux x64: `wc-language-server-linux-x64`
+   - Linux ARM64: `wc-language-server-linux-arm64`
+   - macOS x64: `wc-language-server-macos-x64`
+   - macOS ARM64: `wc-language-server-macos-arm64`
+   - Windows x64: `wc-language-server-windows-x64.exe`
+3. Place the downloaded file in `packages/neovim/server/bin/` and make it executable (e.g., `chmod +x wc-language-server-linux-x64` on Unix systems).
 
-```bash
-npm install -g @wc-toolkit/language-server
-# OR from inside Neovim via Mason
-:MasonInstall wc-language-server
-```
+### Install Neovim Plugin
 
-Both commands require Node.js 18+. If you prefer a bundled copy from this repo, run `pnpm --filter @wc-toolkit/language-server bundle:executable` and point `cmd` at `packages/language-server/bin/wc-language-server`.
+The Neovim plugin requires the language server executable to be installed as described above.
 
 ### lazy.nvim
 

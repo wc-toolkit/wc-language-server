@@ -5,7 +5,37 @@ local uv = vim.loop
 
 local script_path = debug.getinfo(1, "S").source:sub(2)
 local plugin_root = fn.fnamemodify(script_path, ":p:h:h:h")
-local packaged_server = fn.fnamemodify(plugin_root .. "/server/bin/wc-language-server", ":p")
+
+-- Function to get the correct executable based on OS
+local function get_packaged_server()
+  local uname = uv.os_uname()
+  local sysname = uname.sysname
+  local machine = uname.machine
+  
+  local executable_name
+  if sysname == "Linux" then
+    if machine == "aarch64" or machine == "arm64" then
+      executable_name = "wc-language-server-linux-arm64"
+    else
+      executable_name = "wc-language-server-linux-x64"
+    end
+  elseif sysname == "Darwin" then
+    if machine == "arm64" then
+      executable_name = "wc-language-server-macos-arm64"
+    else
+      executable_name = "wc-language-server-macos-x64"
+    end
+  elseif sysname == "Windows_NT" then
+    executable_name = "wc-language-server-windows-x64.exe"
+  else
+    -- Fallback to linux x64
+    executable_name = "wc-language-server-linux-x64"
+  end
+  
+  return fn.fnamemodify(plugin_root .. "/server/bin/" .. executable_name, ":p")
+end
+
+local packaged_server = get_packaged_server()
 local bundled_server = fn.fnamemodify(plugin_root .. "/../language-server/bin/wc-language-server", ":p")
 
 local defaults = {
@@ -284,7 +314,7 @@ local function build_cmd(root_dir)
   end
 
   if file_exists(packaged_server) then
-    return { resolve_node_binary(), packaged_server, "--stdio" }
+    return { packaged_server, "--stdio" }
   end
 
   if file_exists(bundled_server) then

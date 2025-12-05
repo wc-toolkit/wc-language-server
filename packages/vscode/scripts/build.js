@@ -5,11 +5,6 @@ const { spawnSync } = require("child_process");
 const path = require("path");
 
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
-const bundleSource = path.resolve(
-  repoRoot,
-  "packages/language-server/bin/wc-language-server"
-);
-const serverTarget = path.resolve(__dirname, "../dist/server");
 const pnpmCmd = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const skipServerBuild = process.argv.includes("--skip-server-build");
 const forceServerBuild = process.argv.includes("--force-server-build");
@@ -33,22 +28,32 @@ function runLanguageServerBuild() {
 }
 
 function ensureLanguageServerBundle() {
-  if (!skipServerBuild && (forceServerBuild || !existsSync(bundleSource))) {
+  if (!skipServerBuild && forceServerBuild) {
     runLanguageServerBuild();
-  }
-
-  if (!existsSync(bundleSource)) {
-    throw new Error(
-      `[vscode] Missing language server executable at ${bundleSource}. ` +
-        "Run 'pnpm --filter @wc-toolkit/language-server run bundle:executable' first."
-    );
   }
 }
 
 function copyBundleIntoExtension() {
-  mkdirSync(path.dirname(serverTarget), { recursive: true });
-  copyFileSync(bundleSource, serverTarget);
-  console.log("[vscode] Copied language server executable ->", serverTarget);
+  const serverDir = path.resolve(__dirname, "../dist/server");
+  mkdirSync(serverDir, { recursive: true });
+  
+  // Copy all platform executables
+  const executables = [
+    'wc-language-server-linux-x64',
+    'wc-language-server-linux-arm64',
+    'wc-language-server-macos-x64', 
+    'wc-language-server-macos-arm64',
+    'wc-language-server-windows-x64.exe'
+  ];
+  
+  for (const exe of executables) {
+    const source = path.resolve(repoRoot, "packages/language-server/bin", exe);
+    const target = path.resolve(serverDir, exe);
+    if (existsSync(source)) {
+      copyFileSync(source, target);
+      console.log(`[vscode] Copied ${exe} -> ${target}`);
+    }
+  }
 }
 
 ensureLanguageServerBundle();

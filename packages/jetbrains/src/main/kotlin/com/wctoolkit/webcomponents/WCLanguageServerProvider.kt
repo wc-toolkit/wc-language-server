@@ -47,11 +47,35 @@ class WCLanguageServerDescriptor(project: Project) : ProjectWideLspServerDescrip
             ?: throw IllegalStateException("Plugin not found: com.wc-toolkit.web-components-language-server")
         
         val pluginPath = plugin.pluginPath
-        val serverExecutable = pluginPath.resolve("language-server/bin/wc-language-server").toFile()
+        
+        // Determine the correct executable based on OS
+        val osName = System.getProperty("os.name").lowercase()
+        val executableName = when {
+            osName.contains("windows") -> "wc-language-server-windows-x64.exe"
+            osName.contains("mac") || osName.contains("darwin") -> {
+                val arch = System.getProperty("os.arch").lowercase()
+                if (arch.contains("aarch64") || arch.contains("arm64")) {
+                    "wc-language-server-macos-arm64"
+                } else {
+                    "wc-language-server-macos-x64"
+                }
+            }
+            else -> { // Linux and other Unix-like systems
+                val arch = System.getProperty("os.arch").lowercase()
+                if (arch.contains("aarch64") || arch.contains("arm64")) {
+                    "wc-language-server-linux-arm64"
+                } else {
+                    "wc-language-server-linux-x64"
+                }
+            }
+        }
+        
+        val serverExecutable = pluginPath.resolve("language-server/bin/$executableName").toFile()
         
         if (!serverExecutable.exists()) {
             throw IllegalStateException(
                 "Language server executable not found at: ${serverExecutable.absolutePath}\n" +
+                "Expected executable: $executableName\n" +
                 "Please ensure the plugin is properly installed.\n" +
                 "Plugin path: $pluginPath"
             )
