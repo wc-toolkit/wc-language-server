@@ -14,7 +14,7 @@ First-class Neovim support for the Web Components Language Server. The plugin wi
 
 1. **Neovim 0.9 or newer** (0.10+ recommended)
 2. A project that exposes a `custom-elements.json` (directly or via dependencies)
-3. **Language Server Executable**: Download the appropriate pre-built executable for your platform from the [latest GitHub release](https://github.com/wc-toolkit/wc-language-server/releases/latest) and place it in `packages/neovim/server/bin/`.
+3. **Language Server Executable**: Either download manually from [GitHub releases](https://github.com/wc-toolkit/wc-language-server/releases/latest) or install via [mason.nvim](https://github.com/williamboman/mason.nvim)
 
 ## Installation
 
@@ -29,9 +29,19 @@ First-class Neovim support for the Web Components Language Server. The plugin wi
    - Windows x64: `wc-language-server-windows-x64.exe`
 3. Place the downloaded file in `packages/neovim/server/bin/` and make it executable (e.g., `chmod +x wc-language-server-linux-x64` on Unix systems).
 
+### Mason (Recommended)
+
+If you have [mason.nvim](https://github.com/williamboman/mason.nvim) installed, you can install the language server executable automatically:
+
+```vim
+:MasonInstall wc-language-server
+```
+
+This will download and install the appropriate executable for your platform. The Neovim plugin will automatically detect and use the mason-installed executable.
+
 ### Install Neovim Plugin
 
-The Neovim plugin requires the language server executable to be installed as described above.
+The Neovim plugin requires the language server executable to be installed as described above (either manually or via mason).
 
 ### lazy.nvim
 
