@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/neovim",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Neovim plugin for the Web Components Language Server",
   "private": true,
   "license": "MIT",
