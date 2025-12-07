@@ -34,10 +34,6 @@ jobs:
       - name: Build executables
         run: cd packages/language-server && node scripts/build-single-executable.mjs
 
-      - name: Get version
-        id: get_version
-        run: echo "version=$(node -p "require('./packages/language-server/package.json').version")" >> $GITHUB_OUTPUT
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
