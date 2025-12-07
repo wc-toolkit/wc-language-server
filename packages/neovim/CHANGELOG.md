@@ -1,5 +1,11 @@
 # @wc-toolkit/neovim
 
+## 0.0.6
+
+### Patch Changes
+
+- e2c39d7: Updated where executables get deployed in the GitHub Release
+
 ## 0.0.5
 
 ### Patch Changes
