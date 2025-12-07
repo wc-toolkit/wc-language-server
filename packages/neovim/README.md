@@ -22,11 +22,12 @@ First-class Neovim support for the Web Components Language Server. The plugin wi
 
 1. Go to the [GitHub Releases page](https://github.com/wc-toolkit/wc-language-server/releases/latest).
 2. Download the executable matching your OS and architecture:
-   - Linux x64: `wc-language-server-linux-x64`
-   - Linux ARM64: `wc-language-server-linux-arm64`
-   - macOS x64: `wc-language-server-macos-x64`
-   - macOS ARM64: `wc-language-server-macos-arm64`
-   - Windows x64: `wc-language-server-windows-x64.exe`
+   - `wc-language-server.js` - Single-file JavaScript bundle (requires Node.js)
+   - `wc-language-server-linux-x64` - Linux x64 executable
+   - `wc-language-server-linux-arm64` - Linux ARM64 executable
+   - `wc-language-server-macos-x64` - macOS x64 executable
+   - `wc-language-server-macos-arm64` - macOS ARM64 executable
+   - `wc-language-server-windows-x64.exe` - Windows x64 executable
 3. Place the downloaded file in `packages/neovim/server/bin/` and make it executable (e.g., `chmod +x wc-language-server-linux-x64` on Unix systems).
 
 ### Mason (Recommended)

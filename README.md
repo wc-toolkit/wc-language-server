@@ -17,7 +17,16 @@ This project provides a language server and editor extensions for using Web Comp
 
 The language server is distributed as a self-contained executable that embeds its own runtime. This eliminates the need for Node.js to be installed on the target system for runtime execution.
 
+### Installation Options
+
 - **Standalone installation**: `npm install -g @wc-toolkit/language-server` (requires Node.js for installation only)
+- **Direct executable download**: Download platform-specific executables from [GitHub Releases](https://github.com/wc-toolkit/wc-language-server/releases). Available executables include:
+  - `wc-language-server.js` - Single-file JavaScript bundle (requires Node.js)
+  - `wc-language-server-linux-x64` - Linux x64 executable
+  - `wc-language-server-linux-arm64` - Linux ARM64 executable
+  - `wc-language-server-macos-x64` - macOS x64 executable
+  - `wc-language-server-macos-arm64` - macOS ARM64 executable
+  - `wc-language-server-windows-x64.exe` - Windows x64 executable
 - **Editor integrations**: Available as plugins for VS Code, JetBrains IDEs, Neovim, and Zed
 - **Development**: Requires Node.js 18+ for building and testing
 
