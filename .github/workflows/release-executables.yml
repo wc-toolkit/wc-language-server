@@ -3,7 +3,7 @@ name: Release Executables
 on:
   push:
     tags:
-      - 'v*'
+      - '@wc-toolkit/language-server@*'
 
 permissions:
   contents: write
@@ -41,7 +41,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.get_version.outputs.version }}
+          tag_name: ${{ github.ref_name }}
           files: packages/language-server/bin/*
           generate_release_notes: true
         env:
