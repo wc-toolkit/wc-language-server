@@ -69,7 +69,9 @@
     "volar-service-typescript": "volar-2.4",
     "vscode-css-languageservice": "^6.3.8",
     "vscode-html-languageservice": "^5.3.1",
-    "vscode-uri": "^3.0.8"
+    "vscode-uri": "^3.0.8",
+    "tree-sitter": "^0.22.0",
+    "tree-sitter-html": "^0.20.0"
   },
   "devDependencies": {
     "vscode-languageserver-types": "^3.17.5"

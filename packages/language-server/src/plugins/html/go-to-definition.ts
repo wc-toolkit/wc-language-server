@@ -1,23 +1,16 @@
+import type * as html from "vscode-html-languageservice";
 import { manifestService } from "../../services/manifest-service.js";
-import * as html from "vscode-html-languageservice";
+import { parserService } from "../../services/parser-service.js";
 import * as fs from "fs";
 import * as path from "path";
 
 export function getGoToDefinition(
-  document: html.TextDocument,
-  position: html.Position,
+  document: import("vscode-html-languageservice").TextDocument,
+  position: import("vscode-html-languageservice").Position,
 ) {
-  const textDocument = html.TextDocument.create(
-    document.uri,
-    "html",
-    0,
-    document.getText(),
-  );
-
-  const htmlLanguageService = html.getLanguageService();
-  const htmlDocument = htmlLanguageService.parseHTMLDocument(textDocument);
-  const offset = textDocument.offsetAt(position);
-  const node = htmlDocument.findNodeAt(offset);
+  const offset = document.offsetAt(position);
+  const parsed = parserService.parse(document);
+  const node = parsed.findNodeAt(offset);
 
   if (!node?.tag || !manifestService.hasCustomElement(node.tag)) {
     return null;

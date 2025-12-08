@@ -2,7 +2,6 @@ import * as fs from "fs";
 import * as path from "path";
 import { glob } from "glob";
 import { minimatch } from "minimatch";
-import { getLanguageService } from "vscode-html-languageservice";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Diagnostic } from "vscode-languageserver-types";
 import { getValidation } from "../../language-server/src/plugins/html/validation.js";
@@ -71,8 +70,6 @@ export async function validateFiles(
 
   // Validate each file
   const results: ValidationResult[] = [];
-  const htmlLanguageService = getLanguageService();
-
   for (const file of files) {
     try {
       debug(`Validating file: ${file}`);
@@ -94,7 +91,7 @@ export async function validateFiles(
         fileContent,
       );
 
-      const diagnostics = getValidation(document, htmlLanguageService);
+      const diagnostics = getValidation(document as any);
 
       results.push({
         file: path.relative(process.cwd(), file),

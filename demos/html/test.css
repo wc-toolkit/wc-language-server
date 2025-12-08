@@ -7,4 +7,5 @@
   height: var(--secondary-opacity);
 }
 
-.test:state(
+.test:state(blank) {
+}

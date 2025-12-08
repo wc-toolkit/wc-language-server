@@ -11,6 +11,10 @@ import {
   ComponentMetadata,
   componentService,
 } from "../../services/component-service.js";
+import {
+  parserService,
+  TemplateNode,
+} from "../../services/parser-service.js";
 
 // Compatible document interface that matches both vscode-languageserver-textdocument and html.TextDocument
 interface DocumentLike {
@@ -44,13 +48,11 @@ const COMMON_ATTRIBUTES = [
  */
 export function getValidation(
   document: DocumentLike,
-  htmlLanguageService: html.LanguageService
 ): html.Diagnostic[] {
-  // Use the document directly for parsing
-  const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
   const diagnostics: html.Diagnostic[] = [];
 
-  validateNodes(htmlDocument.roots, document, diagnostics);
+  const parsed = parserService.parse(document as html.TextDocument);
+  validateNodes(parsed.roots, document, diagnostics);
   return diagnostics;
 }
 
@@ -58,7 +60,7 @@ export function getValidation(
  * Recursively validates all nodes in the document.
  */
 export function validateNodes(
-  nodes: html.Node[],
+  nodes: TemplateNode[],
   document: DocumentLike,
   diagnostics: html.Diagnostic[]
 ): void {
@@ -74,7 +76,7 @@ export function validateNodes(
  * Validates a single node - checks for unknown elements and validates attributes.
  */
 export function validateSingleNode(
-  node: html.Node,
+  node: TemplateNode,
   document: DocumentLike,
   diagnostics: html.Diagnostic[]
 ): void {
@@ -107,7 +109,7 @@ export function validateSingleNode(
  * Validates and reports unknown custom elements.
  */
 function validateUnknownElement(
-  node: html.Node,
+  node: TemplateNode,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[]
 ): void {
@@ -131,7 +133,7 @@ function validateUnknownElement(
  * Validates and reports deprecated elements.
  */
 function validateElementDeprecation(
-  node: html.Node,
+  node: TemplateNode,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
   element: ComponentCache
@@ -163,7 +165,7 @@ function validateElementDeprecation(
  * This handles both duplicate detection and individual attribute validation.
  */
 function validateRawAttributes(
-  node: html.Node,
+  node: TemplateNode,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
   packageName?: string
@@ -177,7 +179,7 @@ function validateRawAttributes(
 /**
  * Extracts the opening tag text from the full element text.
  */
-function extractElementOpeningTag(node: html.Node, text: string): string {
+function extractElementOpeningTag(node: TemplateNode, text: string): string {
   let elementText = text.substring(node.start, node.end);
   const openTagEnd = elementText.indexOf(">");
   if (openTagEnd !== -1) {
@@ -319,7 +321,7 @@ export function isDiagnosticIgnored(
  */
 export function parseAttributesFromText(
   elementText: string,
-  node: html.Node
+  node: TemplateNode
 ): Array<{
   name: string;
   value: string | null;
@@ -453,7 +455,7 @@ function validateAttributeList(
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
   packageName?: string,
-  node?: html.Node
+  node?: TemplateNode
 ): void {
   const seenAttrs = new Set<string>();
 
@@ -561,7 +563,7 @@ function validateDuplicateAttribute(
  * Validates a single attribute's value.
  */
 function validateSingleAttributeValue(
-  node: html.Node,
+  node: TemplateNode,
   document: html.TextDocument,
   diagnostics: html.Diagnostic[],
   attrName: string,
@@ -779,7 +781,7 @@ function getSeverityLevel(
  */
 function findElementTagRange(
   document: html.TextDocument,
-  node: html.Node
+  node: TemplateNode
 ): html.Range | null {
   if (!node.tag) return null;
 

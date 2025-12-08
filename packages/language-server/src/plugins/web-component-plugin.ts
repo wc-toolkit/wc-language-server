@@ -6,7 +6,6 @@ import {
 } from "@volar/language-server";
 import { manifestService } from "../services/manifest-service.js";
 import { configurationService } from "../services/configuration-service.js";
-import * as html from "vscode-html-languageservice";
 import { getHoverContent } from "./html/hover.js";
 import { getAutoCompleteSuggestions } from "./html/autocomplete.js";
 import { getGoToDefinition } from "./html/go-to-definition.js";
@@ -153,7 +152,7 @@ export function webComponentPlugin(): LanguageServicePlugin {
           // Wait for manifests to be loaded before validating
           await manifestService.waitForManifestsLoaded();
           
-          return getValidation(document, html.getLanguageService());
+          return getValidation(document);
         },
 
         dispose() {

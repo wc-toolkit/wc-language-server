@@ -44,13 +44,18 @@ async function run() {
     format: "cjs",
     entryPoints: [entryPoint],
     outfile,
+    external: [
+      // Keep native/runtime-loaded modules external to avoid bundling .node
+      "tree-sitter",
+      "tree-sitter-html",
+    ],
+    plugins: [umdToEsmPlugin],
     sourcemap: false,
     banner: {
       js: "#!/usr/bin/env node\n// Bundled by esbuild for the Web Components Language Server\n",
     },
     minify: true,
     logLevel: "info",
-    plugins: [umdToEsmPlugin],
   });
 
   chmodSync(outfile, 0o755);
