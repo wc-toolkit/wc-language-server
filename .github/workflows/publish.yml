@@ -52,6 +52,26 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           OPENVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}
           VSCODE_MARKETPLACE: ${{ secrets.VSCODE_MARKETPLACE }}
+      - name: Get language server version
+        id: ls_version
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          VERSION=$(echo ${{ steps.changesets.outputs.publishedPackages }} | jq -r '.[] | select(.name == "@wc-toolkit/language-server") | .version')
+          if [ -n "$VERSION" ]; then
+            echo "tag=@wc-toolkit/language-server@$VERSION" >> $GITHUB_OUTPUT
+          fi
+      - name: Build executables
+        if: steps.changesets.outputs.published == 'true' && steps.ls_version.outputs.tag
+        run: cd packages/language-server && node scripts/build-single-executable.mjs
+      - name: Upload executables to release
+        if: steps.changesets.outputs.published == 'true' && steps.ls_version.outputs.tag
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ls_version.outputs.tag }}
+          files: packages/language-server/bin/*
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: pnpm lint && pnpm build
       # Only run the following steps if packages were actually published
