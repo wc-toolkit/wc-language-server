@@ -1,5 +1,11 @@
 # @wc-toolkit/language-server
 
+## 0.0.6
+
+### Patch Changes
+
+- ad48173: Fixed executable deployment to GitHub Releases
+
 ## 0.0.5
 
 ### Patch Changes
