@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-undef */
 /* eslint-env node */
 import { mkdirSync, rmSync, symlinkSync } from "fs";
 import { homedir } from "os";
