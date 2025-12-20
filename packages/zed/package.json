@@ -8,7 +8,8 @@
   "scripts": {
     "bundle": "node ./scripts/bundle-language-server.mjs",
     "build": "node ./scripts/build-extension.mjs",
-    "dev": "node ./scripts/dev.mjs"
+    "dev": "npm run link:dev && node ./scripts/dev.mjs",
+    "link:dev": "node ./scripts/link-dev.mjs"
   },
   "keywords": [
     "zed",
