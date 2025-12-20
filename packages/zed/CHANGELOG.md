@@ -1,5 +1,12 @@
 # @wc-toolkit/zed
 
+## 0.0.6
+
+### Patch Changes
+
+- d03ec83: Added language server fetch to facilitate non-build environments
+  Added script for symlinking the dev environment
+
 ## 0.0.5
 
 ### Patch Changes
