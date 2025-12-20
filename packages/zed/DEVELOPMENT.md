@@ -55,6 +55,16 @@ mkdir -p "$DEV_EXT_DIR"
 ln -sfn "$PWD/packages/zed" "$DEV_EXT_DIR/wc-language-server"
 ```
 
+### One-command dev link
+
+Run the helper script to create (or refresh) the dev symlink automatically:
+
+```bash
+pnpm --filter @wc-toolkit/zed run link:dev
+```
+
+The script resolves the correct dev extensions directory for macOS/Linux (or uses `ZED_EXTENSIONS_DIR` if set), removes any existing link, and recreates it pointing at `packages/zed`.
+
 > Replace `wc-language-server` with any directory name you prefer, as long as it matches the `name` in `extension.toml`. Keep the quotes around `$DEV_EXT_DIR` so paths with spaces (like `Application Support`) are handled correctly.
 
 After linking, restart Zed (or run `pnpm dev`) and verify the extension appears under **Extensions → Development** inside Zed.
