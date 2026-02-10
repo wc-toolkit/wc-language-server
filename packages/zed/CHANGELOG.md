@@ -1,5 +1,12 @@
 # @wc-toolkit/zed
 
+## 0.0.7
+
+### Patch Changes
+
+- e72512b: Updated extension to use platform-specific binaries with a node fallback in case of failures
+- e72512b: Fixed "cannot write to path" issue in Windows
+
 ## 0.0.6
 
 ### Patch Changes
