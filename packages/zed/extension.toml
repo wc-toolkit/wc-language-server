@@ -1,6 +1,6 @@
 id = "wc-language-server"
 name = "Web Components Language Server"
-version = "0.0.6"
+version = "0.0.7"
 schema_version = 1
 authors = ["WC Tools <burton@breakstuff.io>"]
 description = "Language server extension providing diagnostics, completion, and validation for Web Components and custom elements"
