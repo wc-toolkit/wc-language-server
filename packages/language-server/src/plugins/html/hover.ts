@@ -56,6 +56,10 @@ export function getHoverContent(
 
         let attrContent = `${attribute.description}\n\n**Type:** \`${attribute.detail}\``;
 
+        if (attribute.defaultValue) {
+          attrContent += `\n\n**Default:** \`${attribute.defaultValue}\``;
+        }
+
         if (attribute.deprecated) {
           const attrDeprecationMessage =
             typeof attribute.deprecated === "string"

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type * as cem from "custom-elements-manifest/schema.js";
 import { removeQuotes } from "@wc-toolkit/cem-utilities";
-// import * as fs from 'fs';
 
 export const EXCLUDED_TYPES = [
   "any",
@@ -72,6 +71,32 @@ export function parseAttributeValueOptions(
 
   // Handle union types
   const splitValues = value.split("|").map((v) => v.trim());
+
+  // Check for intersection type patterns like (number & {}) or (string & {})
+  // These indicate "accept this primitive type but suggest specific literals"
+  const intersectionMatch = splitValues.find((type) =>
+    /^\((?:number|string)\s*&\s*\{\s*\}\)$/.test(type)
+  );
+
+  if (intersectionMatch) {
+    // Extract the base type from intersection (e.g., "number" from "(number & {})")
+    const baseType = intersectionMatch.match(/^\((\w+)\s*&/)?.[1];
+    
+    if (baseType === "number" || baseType === "string") {
+      // If there are literals, return them (validation will also accept the base type)
+      const literalValues = splitValues
+        .filter((type) => 
+          !EXCLUDED_TYPES.includes(type) && 
+          !/^\((?:number|string)\s*&\s*\{\s*\}\)$/.test(type)
+        )
+        .map((type) => removeQuotes(type))
+        .filter(Boolean);
+
+      // Return literals if present, otherwise return the base type
+      // The presence of intersection means validation should be lenient
+      return literalValues.length ? literalValues : baseType;
+    }
+  }
 
   // If union contains boolean or string, return that primitive type
   if (splitValues.includes("boolean")) {

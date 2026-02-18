@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Intersection Types</title>
+</head>
+<body>
+  <h1>Test: Intersection Types Validation</h1>
+  
+  <!-- Type: 'primary' | 'success' | 'neutral' | 'warning' | 'danger' | (number & {}) -->
+  
+  <!-- These should be VALID (matches literal) -->
+  <sl-alert variant="primary">Valid: matches literal</sl-alert>
+  <sl-alert variant="success">Valid: matches literal</sl-alert>
+  <sl-alert variant="neutral">Valid: matches literal</sl-alert>
+  <sl-alert variant="warning">Valid: matches literal</sl-alert>
+  <sl-alert variant="danger">Valid: matches literal</sl-alert>
+  
+  <!-- These should be VALID (valid number from intersection type) -->
+  <sl-alert variant="1">Valid: number allowed by intersection</sl-alert>
+  <sl-alert variant="42">Valid: number allowed by intersection</sl-alert>
+  <sl-alert variant="999">Valid: number allowed by intersection</sl-alert>
+  <sl-alert variant="0">Valid: number allowed by intersection</sl-alert>
+  
+  <!-- These should be INVALID (not a literal and not a number) -->
+  <sl-alert variant="invalid">Invalid: not a literal or number</sl-alert>
+  <sl-alert variant="custom">Invalid: not a literal or number</sl-alert>
+  <sl-alert variant="test">Invalid: not a literal or number</sl-alert>
+
+</body>
+</html>

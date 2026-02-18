@@ -310,13 +310,27 @@ export class AutocompleteService {
     attributes?: Map<string, ComponentMetadata>
   ) {
     attributes?.forEach((attr) => {
+      let descriptionParts = '';
+      
+      if (attr.description) {
+        descriptionParts += attr.description;
+      }
+      
+      if (attr.type) {
+        descriptionParts += `\n\n**Type:** \`${attr.type}\``;
+      }
+      
+      if (attr.defaultValue) {
+        descriptionParts += `\n\n**Default:** \`${attr.defaultValue}\``;
+      }
+
       const completion: html.CompletionItem = {
         ...attr,
         kind: CompletionItemKind.Property,
         insertTextFormat: InsertTextFormat.Snippet,
         documentation: {
           kind: "markdown",
-          value: attr.description,
+          value: descriptionParts,
         },
       };
       this.componentCache.get(tagName)?.attributes?.set(attr.label, completion);
@@ -330,8 +344,9 @@ export class AutocompleteService {
             sortText: `0000-${option}`,
             kind: CompletionItemKind.Value,
             insertText: option,
-            detail: `Option for \`${attr.label}\``,
+            detail: option === attr.defaultValue ? `default` : undefined,
           };
+
           return valueCompletion;
         });
       if (valueCompletions?.length) {

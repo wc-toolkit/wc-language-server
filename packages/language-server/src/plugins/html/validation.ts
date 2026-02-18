@@ -695,13 +695,14 @@ function validateAttributeValue(
   }
 
   const attrType = attr.type;
+  const rawType = attr.rawType || attrType; // Use raw type if available
 
-  // No validation possible or needed
+  // No validation possible or needed for strings (with or without intersection types)
   if (
     !attrType ||
     attrType === "string" ||
-    attrType.includes("string & {}") ||
-    attrType.includes("(string & {})")
+    rawType.includes("string & {}") ||
+    rawType.includes("(string & {})")
   ) {
     return null;
   }
@@ -726,20 +727,37 @@ function validateAttributeValue(
     return null;
   }
 
-  // Number validation
-  if (attrType === "number" && isNaN(Number(cleanValue))) {
-    return {
-      error: `The value for "${attributeName}" must be a valid number.`,
-      type: "invalidNumber",
-    };
-  }
+  // Check if type includes number intersection (e.g., "1 | 2 | 3 | (number & {})")
+  // This means literals are preferred but any number is valid
+  const hasNumberIntersection =
+    rawType.includes("number & {}") || rawType.includes("(number & {})");
 
-  // Enum validation
-  if (Array.isArray(attr.options) && !attr.options.includes(cleanValue)) {
+  // Enum validation - check literal values first
+  if (Array.isArray(attr.options) && attr.options.length > 0) {
+    // If value matches a literal, it's valid
+    if (attr.options.includes(cleanValue)) {
+      return null;
+    }
+        
+    // If there's an intersection type that allows the base type, check if value matches that type
+    if (hasNumberIntersection && !isNaN(Number(cleanValue))) {
+      return null; // Valid number, passes validation
+    }
+
     return {
       error: `"${cleanValue}" is not a valid value for "${attributeName}".`,
       type: "invalidAttributeValue",
     };
+  }
+
+  // Number validation - when there are no enum options, validate as number
+  if (attrType === "number") {
+    if (isNaN(Number(cleanValue))) {
+      return {
+        error: `The value for "${attributeName}" must be a valid number.`,
+        type: "invalidNumber",
+      };
+    }
   }
 
   return null;
