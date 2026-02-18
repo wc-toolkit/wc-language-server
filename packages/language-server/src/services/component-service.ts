@@ -30,7 +30,9 @@ export type ComponentMetadata = {
   deprecated: boolean;
   deprecationMessage: string;
   type: string;
+  rawType?: string; // Original type including intersection patterns
   options?: string[];
+  defaultValue?: string;
 };
 export type ComponentCache = {
   tag: TagMetadata;
@@ -215,6 +217,11 @@ export class ComponentService {
       const displayType = hasOptions
         ? (attrType as string[]).join(" | ")
         : (attrType as string);
+      
+      // Store the raw type for validation purposes
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawType = (attr as any)[`${this.typeSrc}`]?.text || attr.type?.text;
+      
       const metadata: ComponentMetadata = {
         label: attr.name,
         description: attr.description || "No description available.",
@@ -232,7 +239,9 @@ export class ComponentService {
         ),
         detail: displayType,
         type: displayType,
+        rawType: rawType, // Store original type with intersection patterns
         options: hasOptions ? attrType : undefined,
+        defaultValue: attr.default ? String(attr.default) : undefined,
       };
       this.componentCache.get(tagName)!.attributes?.set(attr.name, metadata);
     });
@@ -255,6 +264,7 @@ export class ComponentService {
         ),
         detail: displayType,
         type: displayType,
+        defaultValue: prop.default ? String(prop.default) : undefined,
       };
       this.componentCache.get(tagName)!.properties?.set(prop.name, metadata);
     });
