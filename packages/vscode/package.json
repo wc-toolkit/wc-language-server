@@ -1,6 +1,6 @@
 {
   "name": "web-components-language-server",
-  "version": "0.0.36",
+  "version": "0.0.37",
   "icon": "assets/icon_alpha.png",
   "private": true,
   "repository": {
