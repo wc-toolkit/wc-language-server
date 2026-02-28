@@ -1,0 +1,72 @@
+name: Release Visual Studio VSIX
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-vsix:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect relevant file changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            visualstudio:
+              - 'packages/visual-studio/**'
+              - 'packages/language-server/bin/**'
+              - '.github/workflows/release-visual-studio-vsix.yml'
+
+      - name: Setup .NET SDK
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Build Visual Studio extension (Release)
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        shell: pwsh
+        run: |
+          dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
+          dotnet build ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj -c Release --no-restore
+
+      - name: Find VSIX output
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        id: find_vsix
+        shell: pwsh
+        run: |
+          $vsix = Get-ChildItem -Path ./packages/visual-studio/bin -Recurse -Filter *.vsix | Select-Object -First 1
+          if (-not $vsix) {
+            Write-Error "No VSIX file found under packages/visual-studio/bin"
+            exit 1
+          }
+
+          "vsix_path=$($vsix.FullName)" >> $env:GITHUB_OUTPUT
+          "vsix_name=$($vsix.Name)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload workflow artifact
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-studio-vsix
+          path: ${{ steps.find_vsix.outputs.vsix_path }}
+
+      - name: Attach VSIX to GitHub Release
+        if: (github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true') && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: ${{ steps.find_vsix.outputs.vsix_path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

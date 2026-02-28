@@ -27,16 +27,24 @@ The language server is distributed as a self-contained executable that embeds it
   - `wc-language-server-macos-x64` - macOS x64 executable
   - `wc-language-server-macos-arm64` - macOS ARM64 executable
   - `wc-language-server-windows-x64.exe` - Windows x64 executable
-- **Editor integrations**: Available as plugins for VS Code, JetBrains IDEs, Neovim, and Zed
+- **Editor integrations**: Available as plugins for VS Code, Visual Studio, JetBrains IDEs, Neovim, and Zed
 - **Development**: Requires Node.js 18+ for building and testing
 
 ## Monorepo Structure
 
 - `packages/language-server`: Core language server implementation
 - `packages/vscode`: VS Code extension client
+- `packages/visual-studio`: Visual Studio extension client
 - `packages/jetbrains`: JetBrains plugin (WebStorm, IntelliJ IDEA)
 - `packages/neovim`: Neovim plugin that wires the language server into the built-in LSP client
 - `packages/wctools`: CLI utilities for parsing custom element manifests
+
+### Editor Integration Development Docs
+
+- VS Code: [`packages/vscode/README.md`](packages/vscode/README.md)
+- Visual Studio: [`packages/visual-studio/README.md`](packages/visual-studio/README.md)
+- Visual Studio development/build guide: [`packages/visual-studio/DEVELOPMENT.md`](packages/visual-studio/DEVELOPMENT.md)
+- JetBrains development guide: [`packages/jetbrains/DEVELOPMENT.md`](packages/jetbrains/DEVELOPMENT.md)
 
 ## Getting Started
 
