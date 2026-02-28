@@ -1,5 +1,12 @@
 # @wc-toolkit/language-server
 
+## 0.0.7
+
+### Patch Changes
+
+- a80cf60: Added support for type validation with union and intersection types - `string & {}` and `number & {}`
+- a80cf60: Added default value details to hover and autocomplete services
+
 ## 0.0.6
 
 ### Patch Changes
