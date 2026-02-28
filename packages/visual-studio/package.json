@@ -1,0 +1,27 @@
+{
+  "name": "@wc-toolkit/visual-studio",
+  "version": "0.0.1",
+  "description": "Visual Studio extension for the Web Components Language Server",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "dotnet build WebComponentsLanguageServer.VisualStudio.csproj -c Release",
+    "clean": "dotnet clean WebComponentsLanguageServer.VisualStudio.csproj",
+    "pack": "dotnet build WebComponentsLanguageServer.VisualStudio.csproj -c Release",
+    "release": "echo 'Visual Studio extension published via GitHub Actions release workflow'"
+  },
+  "keywords": [
+    "visual-studio",
+    "vsix",
+    "lsp",
+    "web-components",
+    "custom-elements",
+    "language-server"
+  ],
+  "author": "wc-toolkit",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wc-toolkit/wc-language-server.git",
+    "directory": "packages/visual-studio"
+  }
+}

@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Import Project="$(NuGetPackageRoot)system.text.json/9.0.0/buildTransitive/net462/System.Text.Json.targets" Condition="Exists('$(NuGetPackageRoot)system.text.json/9.0.0/buildTransitive/net462/System.Text.Json.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.vssdk.compatibilityanalyzer/17.14.2120/build/Microsoft.VsSDK.CompatibilityAnalyzer.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.vssdk.compatibilityanalyzer/17.14.2120/build/Microsoft.VsSDK.CompatibilityAnalyzer.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.visualstudio.sdk.analyzers/17.7.79/build/Microsoft.VisualStudio.SDK.Analyzers.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.visualstudio.sdk.analyzers/17.7.79/build/Microsoft.VisualStudio.SDK.Analyzers.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.vssdk.buildtools/17.14.2120/build/Microsoft.VSSDK.BuildTools.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.vssdk.buildtools/17.14.2120/build/Microsoft.VSSDK.BuildTools.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.visualstudio.threading.analyzers/17.14.15/buildTransitive/Microsoft.VisualStudio.Threading.Analyzers.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.visualstudio.threading.analyzers/17.14.15/buildTransitive/Microsoft.VisualStudio.Threading.Analyzers.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.visualstudio.setup.configuration.interop/3.14.2075/build/Microsoft.VisualStudio.Setup.Configuration.Interop.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.visualstudio.setup.configuration.interop/3.14.2075/build/Microsoft.VisualStudio.Setup.Configuration.Interop.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.netframework.referenceassemblies.net472/1.0.3/build/Microsoft.NETFramework.ReferenceAssemblies.net472.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.netframework.referenceassemblies.net472/1.0.3/build/Microsoft.NETFramework.ReferenceAssemblies.net472.targets')" />
+  </ImportGroup>
+</Project>

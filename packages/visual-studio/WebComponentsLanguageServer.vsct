@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable">
+  <Extern href="stdidcmd.h" />
+  <Extern href="vsshlids.h" />
+
+  <Commands package="guidWebComponentsPackage">
+    <Groups>
+      <Group guid="guidWebComponentsCommandSet" id="WebComponentsGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS" />
+      </Group>
+    </Groups>
+
+    <Buttons>
+      <Button guid="guidWebComponentsCommandSet" id="cmdidRestartLanguageServer" priority="0x0100" type="Button">
+        <Parent guid="guidWebComponentsCommandSet" id="WebComponentsGroup" />
+        <Strings>
+          <ButtonText>Restart Web Components Language Server</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="guidWebComponentsCommandSet" id="cmdidShowLanguageServerStatus" priority="0x0110" type="Button">
+        <Parent guid="guidWebComponentsCommandSet" id="WebComponentsGroup" />
+        <Strings>
+          <ButtonText>Check Web Components Language Server Status</ButtonText>
+        </Strings>
+      </Button>
+    </Buttons>
+  </Commands>
+
+  <Symbols>
+    <GuidSymbol name="guidWebComponentsPackage" value="{2A0B7851-6A43-4434-A0D6-211D8C4D4D74}" />
+    <GuidSymbol name="guidWebComponentsCommandSet" value="{72AF4B84-B95B-4BB0-AE44-74D73136C16E}">
+      <IDSymbol name="WebComponentsGroup" value="0x1020" />
+      <IDSymbol name="cmdidRestartLanguageServer" value="0x0100" />
+      <IDSymbol name="cmdidShowLanguageServerStatus" value="0x0101" />
+    </GuidSymbol>
+  </Symbols>
+</CommandTable>

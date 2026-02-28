@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - '@wc-toolkit/language-server@*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,28 +14,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect relevant file changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            executables:
+              - 'packages/language-server/**'
+              - '.github/workflows/release-executables.yml'
 
       - name: Install pnpm
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.executables == 'true'
         uses: pnpm/action-setup@v4
 
       - name: Use Node.js 22
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.executables == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "pnpm"
 
       - name: Setup Bun
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.executables == 'true'
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
       - name: Install dependencies
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.executables == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build executables
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.executables == 'true'
         run: cd packages/language-server && node scripts/build-single-executable.mjs
 
       - name: Create Release
+        if: (github.event_name == 'workflow_dispatch' || steps.changes.outputs.executables == 'true') && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}

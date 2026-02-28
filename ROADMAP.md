@@ -19,5 +19,5 @@ Here is a high level overview of some of the features coming. These will not nec
 - [x] FAST template autocomplete
 - [x] JetBrains Extension
 - [x] Neovim Extension
-- [ ] Visual Studio Extension
+- [x] Visual Studio Extension
 - [x] Zed Extension
