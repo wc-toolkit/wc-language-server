@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       jetbrains: ${{ steps.filter.outputs.jetbrains }}
+      visualstudio: ${{ steps.filter.outputs.visualstudio }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,6 +26,13 @@ jobs:
               - 'packages/jetbrains/**'
               - 'packages/language-server/**'
               - 'packages/vscode/**'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+              - '.github/workflows/release-jetbrains-plugin.yml'
+            visualstudio:
+              - 'packages/visual-studio/**'
+              - 'packages/language-server/**'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
               - 'package.json'
@@ -76,10 +84,81 @@ jobs:
       - name: Build
         run: |
           pnpm lint
-          pnpm -r --filter "${{ steps.changed_scope.outputs.pnpm_filter }}" --filter "!@wc-toolkit/jetbrains-plugin" run build
+          pnpm -r \
+            --filter "${{ steps.changed_scope.outputs.pnpm_filter }}" \
+            --filter "!@wc-toolkit/jetbrains-plugin" \
+            --filter "!@wc-toolkit/visual-studio" \
+            run build 2>&1 | tee /tmp/pnpm_build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          if [[ $BUILD_EXIT -ne 0 ]] && grep -q "No projects matched the filters" /tmp/pnpm_build.log; then
+            echo "No packages matched filters, nothing to build"
+            exit 0
+          fi
+          exit $BUILD_EXIT
 
       # - name: Run tests
       #   run: pnpm test
+
+  visual-studio-build-ls:
+    needs: changes
+    if: needs.changes.outputs.visualstudio == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build language server binaries
+        run: pnpm run build:ls
+
+      - name: Upload language server binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-language-server-bin
+          path: packages/language-server/bin/
+
+  visual-studio-build:
+    needs: [changes, visual-studio-build-ls]
+    if: needs.changes.outputs.visualstudio == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download language server binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-language-server-bin
+          path: packages/language-server/bin/
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Build Visual Studio extension
+        shell: pwsh
+        run: |
+          dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
+          dotnet build ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj -c Release --no-restore
 
   jetbrains-build:
     needs: changes
@@ -121,7 +200,7 @@ jobs:
           ./gradlew --no-daemon buildPlugin
 
   ci-summary:
-    needs: [changes, build, jetbrains-build]
+    needs: [changes, build, jetbrains-build, visual-studio-build]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -133,4 +212,5 @@ jobs:
             echo "- JetBrains relevant changes detected: ${{ needs.changes.outputs.jetbrains }}"
             echo "- Core build result: ${{ needs.build.result }}"
             echo "- JetBrains build result: ${{ needs.jetbrains-build.result }}"
+            echo "- Visual Studio build result: ${{ needs.visual-studio-build.result }}"
           } >> "$GITHUB_STEP_SUMMARY"
