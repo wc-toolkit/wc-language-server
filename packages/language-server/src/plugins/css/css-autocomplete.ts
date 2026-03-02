@@ -7,7 +7,7 @@ import { autocompleteService } from "../../services/autocomplete-service.js";
 
 export function getCssAutoCompleteSuggestions(
   document: css.TextDocument,
-  position: css.Position
+  position: css.Position,
 ): css.CompletionItem[] | null {
   debug("css:autocomplete:getSuggestions:start", {
     uri: document.uri,
@@ -30,7 +30,7 @@ export function getCssAutoCompleteSuggestions(
 // --- CSS context detection helper ---
 function isCssContext(
   document: css.TextDocument,
-  position: css.Position
+  position: css.Position,
 ): boolean {
   const text = document.getText();
   const offset = document.offsetAt(position);
@@ -99,7 +99,7 @@ export function isInCssTemplateLiteral(beforeText: string): boolean {
   // Count backticks to determine if we're inside a template literal
   let backtickCount = 0;
   let lastCssPosition = -1;
-  
+
   // Find all backticks and the last 'css' keyword
   for (let i = 0; i < beforeText.length; i++) {
     if (beforeText[i] === "`") {
@@ -113,13 +113,13 @@ export function isInCssTemplateLiteral(beforeText: string): boolean {
       }
     }
   }
-  
+
   // If odd number of backticks and we found a 'css' keyword, check if it's recent
   if (backtickCount % 2 === 1 && lastCssPosition !== -1) {
     // Check if there's a 'css' keyword right before the last unclosed backtick
     const textAfterCss = beforeText.slice(lastCssPosition);
     const backtickAfterCss = textAfterCss.indexOf("`");
-    
+
     // If the backtick right after 'css' is the last unclosed one, we're inside
     if (backtickAfterCss !== -1) {
       const remainingText = textAfterCss.slice(backtickAfterCss + 1);
@@ -127,7 +127,7 @@ export function isInCssTemplateLiteral(beforeText: string): boolean {
       return !hasAnotherBacktick;
     }
   }
-  
+
   return false;
 }
 

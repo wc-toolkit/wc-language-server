@@ -108,6 +108,7 @@ wctools init
 The generated configuration shows all available options for clarity; every field is optional. Remove entries you do not need.
 
 Supported config filenames (auto-discovered in project root):
+
 - `wc.config.js / .cjs / .mjs / .ts`
 
 ## Disabling diagnostics in source
@@ -120,7 +121,7 @@ Examples:
 
 ```html
 <!-- wctools-ignore -->
-````
+```
 
 - Disable specific rules for the file (stacked, comma or space separated):
 
@@ -372,12 +373,12 @@ npm run build && npm run validate:wc
 nodemon --watch src --ext html,js,ts --exec "wctools validate 'src/**/*.html'"
 ```
 
-
 ## Validate only changed files
 
 You can run wctools only on files that have changed by using git to list changed filenames and passing them to the CLI. Below are a few common patterns.
 
 - Changed in working tree (including unstaged/staged):
+
 ```bash
 # find changed files and validate them
 git ls-files --modified --others --exclude-standard -- 'src/**/*.{html,js,ts}' | \
@@ -385,18 +386,21 @@ git ls-files --modified --others --exclude-standard -- 'src/**/*.{html,js,ts}' |
 ```
 
 - Staged files only:
+
 ```bash
 git diff --name-only --cached -- 'src/**/*.{html,js,ts}' | \
   xargs -r npx wctools validate
 ```
 
 - Files changed in the last commit:
+
 ```bash
 git diff --name-only HEAD~1..HEAD -- 'src/**/*.{html,js,ts}' | \
   xargs -r npx wctools validate
 ```
 
 - Files changed between branches or PR ranges (useful in CI):
+
 ```bash
 git fetch origin main
 git diff --name-only origin/main...HEAD -- 'src/**/*.{html,js,ts}' | \
@@ -404,11 +408,13 @@ git diff --name-only origin/main...HEAD -- 'src/**/*.{html,js,ts}' | \
 ```
 
 Notes:
+
 - xargs -r (GNU) or xargs --no-run-if-empty avoids running the command when there are no files.
 - Adjust the glob to match the files you want to validate.
 - If you prefer JSON/JUnit output for CI, add `--format json|junit` and redirect output.
 
 Example npm scripts:
+
 ```json
 {
   "scripts": {
@@ -419,6 +425,7 @@ Example npm scripts:
 ```
 
 Example GitHub Actions step (validate changed files in a PR):
+
 ```yaml
 - name: Validate changed files with wctools
   run: |

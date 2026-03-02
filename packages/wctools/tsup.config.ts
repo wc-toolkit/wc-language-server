@@ -45,7 +45,7 @@ export default defineConfig({
   ],
 
   // Add shebang to CLI file only
-  banner: (ctx: { format: Format, outDir?: string }) => {
+  banner: (ctx: { format: Format; outDir?: string }) => {
     if (ctx.format === "esm" && ctx.outDir && ctx.outDir.endsWith("cli.js")) {
       return { js: "#!/usr/bin/env node" };
     }

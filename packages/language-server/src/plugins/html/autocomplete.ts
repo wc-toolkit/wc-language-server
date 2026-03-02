@@ -1,5 +1,8 @@
 import * as html from "vscode-html-languageservice";
-import { CompletionItemKind, InsertTextFormat } from "vscode-languageserver-types";
+import {
+  CompletionItemKind,
+  InsertTextFormat,
+} from "vscode-languageserver-types";
 import {
   ATTR_NAME_REGEX,
   ATTR_VALUE_REGEX,
@@ -12,7 +15,7 @@ import { autocompleteService } from "../../services/autocomplete-service.js";
 // --- CSS context detection helper ---
 export function getAutoCompleteSuggestions(
   document: html.TextDocument,
-  position: html.Position
+  position: html.Position,
 ) {
   debug("autocomplete:getSuggestions:start", {
     uri: document.uri,
@@ -30,9 +33,7 @@ export function getAutoCompleteSuggestions(
   return customCompletions;
 }
 
-function getCompletions(
-  beforeText: string
-): html.CompletionItem[] | null {
+function getCompletions(beforeText: string): html.CompletionItem[] | null {
   // Tag completion: <my-elem|
   const tagMatch = beforeText.match(/<([a-zA-Z0-9_.-]*)$/);
   if (tagMatch) {
@@ -80,16 +81,13 @@ function getCompletions(
       prefix: attrPrefix,
       beforeTextEnd: beforeText.slice(-50),
     });
-    return getAttributeCompletions(
-      tagName,
-      attrPrefix,
-    );
+    return getAttributeCompletions(tagName, attrPrefix);
   }
 
   // wctools directive completions inside HTML comments, e.g.
   // <!-- wctools-ignore | --> or <!-- wctools-ignore unknownAttribute,| -->
   const wctoolsCommentMatch = beforeText.match(
-    /<!--\s*wctools-(ignore|ignore-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/
+    /<!--\s*wctools-(ignore|ignore-next-line)(?:\s+([a-zA-Z0-9_,\-\s]*)?)?$/,
   );
   if (wctoolsCommentMatch) {
     debug("autocomplete:trigger:directiveComment", {
@@ -166,10 +164,10 @@ function addLintRuleCompletions() {
 }
 
 function getTagCompletions(
-  includeOpeningBrackets: boolean = false
+  includeOpeningBrackets: boolean = false,
 ): html.CompletionItem[] {
   const customCompletions = autocompleteService.getTagCompletions(
-    includeOpeningBrackets
+    includeOpeningBrackets,
   );
   return customCompletions;
 }
@@ -188,11 +186,11 @@ function getAttributeCompletions(
 
 function getAttributeValueCompletions(
   tagName: string,
-  attributeName: string
+  attributeName: string,
 ): html.CompletionItem[] {
   const attrValueCompletions = autocompleteService.getAttributeValueCompletions(
     tagName,
-    attributeName
+    attributeName,
   );
 
   return attrValueCompletions;

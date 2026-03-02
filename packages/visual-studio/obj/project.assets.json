@@ -1608,9 +1608,7 @@
           "System.Runtime.CompilerServices.Unsafe": "6.1.0",
           "System.Threading.Tasks.Extensions": "4.6.0"
         },
-        "frameworkAssemblies": [
-          "WindowsBase"
-        ],
+        "frameworkAssemblies": ["WindowsBase"],
         "compile": {
           "lib/net472/Microsoft.VisualStudio.Threading.dll": {
             "related": ".xml"
@@ -1865,9 +1863,7 @@
           "Microsoft.VisualStudio.SDK.Analyzers": "17.7.79",
           "Microsoft.VsSDK.CompatibilityAnalyzer": "17.14.2120"
         },
-        "frameworkAssemblies": [
-          "Microsoft.Win32.Primitives"
-        ],
+        "frameworkAssemblies": ["Microsoft.Win32.Primitives"],
         "build": {
           "build/Microsoft.VSSDK.BuildTools.props": {},
           "build/Microsoft.VSSDK.BuildTools.targets": {}
@@ -1891,9 +1887,7 @@
           "System.Security.AccessControl": "5.0.0",
           "System.Security.Principal.Windows": "5.0.0"
         },
-        "frameworkAssemblies": [
-          "mscorlib"
-        ],
+        "frameworkAssemblies": ["mscorlib"],
         "compile": {
           "ref/net461/Microsoft.Win32.Registry.dll": {
             "related": ".xml"
@@ -2212,9 +2206,7 @@
       },
       "System.Numerics.Vectors/4.6.0": {
         "type": "package",
-        "frameworkAssemblies": [
-          "System.Numerics"
-        ],
+        "frameworkAssemblies": ["System.Numerics"],
         "compile": {
           "lib/net462/System.Numerics.Vectors.dll": {
             "related": ".xml"
@@ -2261,9 +2253,7 @@
       },
       "System.Runtime.CompilerServices.Unsafe/6.1.0": {
         "type": "package",
-        "frameworkAssemblies": [
-          "mscorlib"
-        ],
+        "frameworkAssemblies": ["mscorlib"],
         "compile": {
           "lib/net462/System.Runtime.CompilerServices.Unsafe.dll": {
             "related": ".xml"
@@ -2302,10 +2292,7 @@
       },
       "System.Security.Principal.Windows/5.0.0": {
         "type": "package",
-        "frameworkAssemblies": [
-          "System",
-          "mscorlib"
-        ],
+        "frameworkAssemblies": ["System", "mscorlib"],
         "compile": {
           "ref/net461/System.Security.Principal.Windows.dll": {
             "related": ".xml"
@@ -6559,12 +6546,8 @@
       "packagesPath": "/Users/burtonsmith/.nuget/packages/",
       "outputPath": "/Users/burtonsmith/Documents/Projects/wc-toolkit/wc-language-server/packages/visual-studio/obj/",
       "projectStyle": "PackageReference",
-      "configFilePaths": [
-        "/Users/burtonsmith/.nuget/NuGet/NuGet.Config"
-      ],
-      "originalTargetFrameworks": [
-        "net472"
-      ],
+      "configFilePaths": ["/Users/burtonsmith/.nuget/NuGet/NuGet.Config"],
+      "originalTargetFrameworks": ["net472"],
       "sources": {
         "https://api.nuget.org/v3/index.json": {}
       },
@@ -6575,12 +6558,8 @@
         }
       },
       "warningProperties": {
-        "noWarn": [
-          "NU1701"
-        ],
-        "warnAsError": [
-          "NU1605"
-        ]
+        "noWarn": ["NU1701"],
+        "warnAsError": ["NU1605"]
       },
       "restoreAuditProperties": {
         "enableAudit": "true",

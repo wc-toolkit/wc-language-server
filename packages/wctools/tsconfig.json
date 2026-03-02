@@ -6,12 +6,6 @@
     "composite": false,
     "incremental": false
   },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "test"
-  ]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "test"]
 }

@@ -13,15 +13,17 @@ const bundleFile = resolve(packageRoot, "dist/wc-language-server.bundle.cjs");
 
 // Define targets to build for
 const targets = [
-  { target: 'bun-linux-x64', suffix: 'linux-x64' },
-  { target: 'bun-linux-arm64', suffix: 'linux-arm64' },
-  { target: 'bun-darwin-x64', suffix: 'macos-x64' },
-  { target: 'bun-darwin-arm64', suffix: 'macos-arm64' },
-  { target: 'bun-windows-x64', suffix: 'windows-x64' },
+  { target: "bun-linux-x64", suffix: "linux-x64" },
+  { target: "bun-linux-arm64", suffix: "linux-arm64" },
+  { target: "bun-darwin-x64", suffix: "macos-x64" },
+  { target: "bun-darwin-arm64", suffix: "macos-arm64" },
+  { target: "bun-windows-x64", suffix: "windows-x64" },
 ];
 
 async function run() {
-  console.log("[language-server] Building single-file executables for all platforms with Bun...");
+  console.log(
+    "[language-server] Building single-file executables for all platforms with Bun...",
+  );
 
   // First, create the esbuild bundle
   console.log("[language-server] Creating esbuild bundle...");
@@ -37,31 +39,41 @@ async function run() {
   try {
     execSync("bun --version", { stdio: "pipe" });
   } catch {
-    console.error("[language-server] Bun is not installed. Please install Bun to build the executable.");
+    console.error(
+      "[language-server] Bun is not installed. Please install Bun to build the executable.",
+    );
     process.exit(1);
   }
 
   // Build for each target
   for (const { target, suffix } of targets) {
-    const executableName = `wc-language-server-${suffix}${suffix.includes('windows') ? '.exe' : ''}`;
+    const executableName = `wc-language-server-${suffix}${suffix.includes("windows") ? ".exe" : ""}`;
     const outFile = resolve(packageRoot, "bin", executableName);
 
-    console.log(`[language-server] Compiling bundle to executable for ${suffix}...`);
+    console.log(
+      `[language-server] Compiling bundle to executable for ${suffix}...`,
+    );
     const command = `bun build "${bundleFile}" --compile --outfile "${outFile}" --target ${target}`;
     try {
       execSync(command, { stdio: "inherit", cwd: packageRoot });
     } catch (error) {
-      console.error(`[language-server] Failed to build executable for ${suffix}`, error);
+      console.error(
+        `[language-server] Failed to build executable for ${suffix}`,
+        error,
+      );
       process.exit(1);
     }
 
     // Make sure it's executable (skip for Windows)
-    if (existsSync(outFile) && !suffix.includes('windows')) {
+    if (existsSync(outFile) && !suffix.includes("windows")) {
       chmodSync(outFile, 0o755);
     }
 
     if (existsSync(outFile)) {
-      console.log(`[language-server] Created executable for ${suffix}:`, outFile);
+      console.log(
+        `[language-server] Created executable for ${suffix}:`,
+        outFile,
+      );
     } else {
       console.error(`[language-server] Executable not found for ${suffix}`);
       process.exit(1);
@@ -72,6 +84,9 @@ async function run() {
 }
 
 run().catch((error) => {
-  console.error("[language-server] Failed to build single-file executable", error);
+  console.error(
+    "[language-server] Failed to build single-file executable",
+    error,
+  );
   process.exitCode = 1;
 });

@@ -53,11 +53,11 @@ async function loadDocs(): Promise<void> {
 
 export async function activate(context: vscode.ExtensionContext) {
   setExtensionContext(context);
-  
+
   // Create and start the language client
   const client = await createClient();
   await client.start();
-  
+
   // Set up callback for after restart
   setOnRestartCallback(() => {
     void loadDocs();
@@ -68,12 +68,22 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   // Start MCP server if enabled
-  const mcpEnabled = vscode.workspace.getConfiguration("wctools").get<boolean>("mcp.enabled", false);
-  const mcpTransport = vscode.workspace.getConfiguration("wctools").get<"stdio" | "http">("mcp.transport", "http");
-  const mcpPort = vscode.workspace.getConfiguration("wctools").get<number>("mcp.port", 3000);
-  const mcpHost = vscode.workspace.getConfiguration("wctools").get<string>("mcp.host", "localhost");
+  const mcpEnabled = vscode.workspace
+    .getConfiguration("wctools")
+    .get<boolean>("mcp.enabled", false);
+  const mcpTransport = vscode.workspace
+    .getConfiguration("wctools")
+    .get<"stdio" | "http">("mcp.transport", "http");
+  const mcpPort = vscode.workspace
+    .getConfiguration("wctools")
+    .get<number>("mcp.port", 3000);
+  const mcpHost = vscode.workspace
+    .getConfiguration("wctools")
+    .get<string>("mcp.host", "localhost");
 
-  log(`MCP server enabled: ${mcpEnabled}, transport: ${mcpTransport}, port: ${mcpPort}`);
+  log(
+    `MCP server enabled: ${mcpEnabled}, transport: ${mcpTransport}, port: ${mcpPort}`,
+  );
 
   if (mcpEnabled) {
     try {
@@ -82,33 +92,39 @@ export async function activate(context: vscode.ExtensionContext) {
         port: mcpPort,
         host: mcpHost,
       });
-      
+
       await mcpServer.start();
       log(`MCP server started (${mcpTransport} mode)`);
-      
+
       // Set initial docs (will be empty at first, but will be updated when loadDocs completes)
       mcpServer.setComponentDocs(componentDocs);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const isPortInUse = errorMessage.includes("EADDRINUSE");
-      
+
       log(`Failed to start MCP server: ${errorMessage}`);
-      
+
       if (isPortInUse) {
-        vscode.window.showWarningMessage(
-          `MCP server port ${mcpPort} is already in use. Try changing wctools.mcp.port in settings or restart VS Code.`,
-          "Open Settings"
-        ).then(selection => {
-          if (selection === "Open Settings") {
-            vscode.commands.executeCommand("workbench.action.openSettings", "wctools.mcp.port");
-          }
-        });
+        vscode.window
+          .showWarningMessage(
+            `MCP server port ${mcpPort} is already in use. Try changing wctools.mcp.port in settings or restart VS Code.`,
+            "Open Settings",
+          )
+          .then((selection) => {
+            if (selection === "Open Settings") {
+              vscode.commands.executeCommand(
+                "workbench.action.openSettings",
+                "wctools.mcp.port",
+              );
+            }
+          });
       } else {
         vscode.window.showWarningMessage(
-          `Failed to start Web Components MCP server: ${errorMessage}`
+          `Failed to start Web Components MCP server: ${errorMessage}`,
         );
       }
-      
+
       // Clear the server instance so we don't try to use it
       mcpServer = undefined;
     }
@@ -134,32 +150,32 @@ export async function activate(context: vscode.ExtensionContext) {
   // Watchers (config, manifest, package.json)
   const configWatcher = createRestartingWatcher(
     "**/wc.config.{js,cjs,mjs,ts,json}",
-    "config"
+    "config",
   );
   const manifestWatcher = createRestartingWatcher(
     "**/custom-elements.json",
-    "manifest"
+    "manifest",
   );
   const packageJsonWatcher = createRestartingWatcher(
     "**/package.json",
-    "package.json"
+    "package.json",
   );
 
   // Watch for node_modules addition/removal
   const nodeModulesWatcher =
     vscode.workspace.createFileSystemWatcher("**/node_modules");
   nodeModulesWatcher.onDidCreate((uri) =>
-    scheduleRestart(`node_modules added: ${uri.fsPath}`)
+    scheduleRestart(`node_modules added: ${uri.fsPath}`),
   );
   nodeModulesWatcher.onDidDelete((uri) =>
-    scheduleRestart(`node_modules removed: ${uri.fsPath}`)
+    scheduleRestart(`node_modules removed: ${uri.fsPath}`),
   );
 
   context.subscriptions.push(
     configWatcher,
     manifestWatcher,
     packageJsonWatcher,
-    nodeModulesWatcher
+    nodeModulesWatcher,
   );
 
   // support for auto close tag
@@ -177,9 +193,9 @@ export async function activate(context: vscode.ExtensionContext) {
       async () => {
         scheduleRestart("manual command");
         vscode.window.showInformationMessage(
-          "Web Components Language Server restart requested."
+          "Web Components Language Server restart requested.",
         );
-      }
+      },
     );
     context.subscriptions.push(restartCommand);
     restartCommandRegistered = true;
@@ -191,30 +207,40 @@ export async function activate(context: vscode.ExtensionContext) {
     () => {
       if (!mcpServer) {
         vscode.window.showInformationMessage(
-          "MCP server is not enabled. Enable it in settings: wctools.mcp.enabled"
+          "MCP server is not enabled. Enable it in settings: wctools.mcp.enabled",
         );
       } else {
-        const transport = vscode.workspace.getConfiguration("wctools").get<string>("mcp.transport", "http");
-        const port = vscode.workspace.getConfiguration("wctools").get<number>("mcp.port", 3000);
-        const host = vscode.workspace.getConfiguration("wctools").get<string>("mcp.host", "localhost");
+        const transport = vscode.workspace
+          .getConfiguration("wctools")
+          .get<string>("mcp.transport", "http");
+        const port = vscode.workspace
+          .getConfiguration("wctools")
+          .get<number>("mcp.port", 3000);
+        const host = vscode.workspace
+          .getConfiguration("wctools")
+          .get<string>("mcp.host", "localhost");
         const componentCount = Object.keys(componentDocs).length;
-        
+
         if (transport === "http") {
-          vscode.window.showInformationMessage(
-            `MCP server is running on http://${host}:${port} with ${componentCount} component(s) loaded`,
-            "Open Health Check"
-          ).then(selection => {
-            if (selection === "Open Health Check") {
-              vscode.env.openExternal(vscode.Uri.parse(`http://${host}:${port}/health`));
-            }
-          });
+          vscode.window
+            .showInformationMessage(
+              `MCP server is running on http://${host}:${port} with ${componentCount} component(s) loaded`,
+              "Open Health Check",
+            )
+            .then((selection) => {
+              if (selection === "Open Health Check") {
+                vscode.env.openExternal(
+                  vscode.Uri.parse(`http://${host}:${port}/health`),
+                );
+              }
+            });
         } else {
           vscode.window.showInformationMessage(
-            `MCP server is running in stdio mode with ${componentCount} component(s) loaded`
+            `MCP server is running in stdio mode with ${componentCount} component(s) loaded`,
           );
         }
       }
-    }
+    },
   );
   context.subscriptions.push(checkMcpCommand);
 
@@ -227,7 +253,7 @@ export async function deactivate(): Promise<void> {
     await mcpServer.close();
     log("MCP server closed");
   }
-  
+
   const client = getClientInstance();
   await client?.stop();
 }

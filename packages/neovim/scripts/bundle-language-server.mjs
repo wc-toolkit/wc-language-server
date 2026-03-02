@@ -11,7 +11,7 @@ const repoRoot = resolve(__dirname, "../../..");
 const targetDir = resolve(repoRoot, "packages/neovim/server");
 const bundleSource = resolve(
   repoRoot,
-  "packages/language-server/bin/wc-language-server-linux-x64"
+  "packages/language-server/bin/wc-language-server-linux-x64",
 );
 const typescriptSource = resolve(repoRoot, "node_modules", "typescript");
 const typescriptTarget = resolve(targetDir, "node_modules", "typescript");
@@ -25,11 +25,13 @@ const buildResult = spawnSync(
   {
     cwd: repoRoot,
     stdio: "inherit",
-  }
+  },
 );
 
 if (buildResult.status !== 0) {
-  console.error("[neovim] Failed to build language server bundle. See logs above.");
+  console.error(
+    "[neovim] Failed to build language server bundle. See logs above.",
+  );
   process.exit(buildResult.status ?? 1);
 }
 
@@ -46,11 +48,11 @@ mkdirSync(targetDir, { recursive: true });
 
 // Copy all platform executables
 const executables = [
-  'wc-language-server-linux-x64',
-  'wc-language-server-linux-arm64',
-  'wc-language-server-macos-x64', 
-  'wc-language-server-macos-arm64',
-  'wc-language-server-windows-x64.exe'
+  "wc-language-server-linux-x64",
+  "wc-language-server-linux-arm64",
+  "wc-language-server-macos-x64",
+  "wc-language-server-macos-arm64",
+  "wc-language-server-windows-x64.exe",
 ];
 
 for (const exe of executables) {
@@ -72,7 +74,10 @@ if (existsSync(bundleSource)) {
 }
 
 if (existsSync(typescriptSource)) {
-  console.log("[neovim] Copying bundled TypeScript runtime ->", typescriptTarget);
+  console.log(
+    "[neovim] Copying bundled TypeScript runtime ->",
+    typescriptTarget,
+  );
   rmSync(typescriptTarget, { recursive: true, force: true });
   mkdirSync(dirname(typescriptTarget), { recursive: true });
   cpSync(typescriptSource, typescriptTarget, { recursive: true });
@@ -80,6 +85,6 @@ if (existsSync(typescriptSource)) {
   console.warn(
     "[neovim] Warning: Could not find TypeScript runtime at",
     typescriptSource,
-    "— language server will need tsdk from the workspace"
+    "— language server will need tsdk from the workspace",
   );
 }

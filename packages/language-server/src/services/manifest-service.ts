@@ -102,12 +102,12 @@ export class ManifestService {
       const tagName =
         configurationService?.getFormattedTagName(
           element.tagName!,
-          element.dependency as string
+          element.dependency as string,
         ) || element.tagName!;
       this.customElements.set(tagName, element);
       this.customElementsDocs.set(
         tagName,
-        `### \`<${tagName}>\`\n\n---\n\n${getComponentDetailsTemplate(element, { altType })}`
+        `### \`<${tagName}>\`\n\n---\n\n${getComponentDetailsTemplate(element, { altType })}`,
       );
       componentService.loadCache(tagName, element, depName || "Global");
     });
@@ -144,7 +144,7 @@ export class ManifestService {
 
   public getAttributeValueOptions(
     tagName: string,
-    attributeName: string
+    attributeName: string,
   ): string[] | string | null {
     const options = this.attributeOptions.get(`${tagName}:${attributeName}`);
     debug("cem:getAttributeValueOptions", {
@@ -210,7 +210,7 @@ export class ManifestService {
       });
       this.loadManifestFromFile(
         this.workspaceRoot,
-        configurationService.config.manifestSrc
+        configurationService.config.manifestSrc,
       );
     } else {
       debug("cem:config:primary:none");
@@ -245,7 +245,7 @@ export class ManifestService {
         this.loadManifestFromFile(
           this.workspaceRoot,
           libConfig.manifestSrc,
-          name
+          name,
         );
       }
     }
@@ -268,7 +268,7 @@ export class ManifestService {
     const nodeModulesPath = path.join(this.workspaceRoot, "node_modules");
     if (!fs.existsSync(nodeModulesPath)) {
       error(
-        "`node_modules` directory was not found. Please make sure your dependencies are installed."
+        "`node_modules` directory was not found. Please make sure your dependencies are installed.",
       );
       return;
     }
@@ -305,7 +305,7 @@ export class ManifestService {
         this.loadManifestFromFile(
           depRoot,
           (depPkg as any).customElements,
-          depName
+          depName,
         );
       } catch (err) {
         debug("cem:dep:error", {
@@ -325,7 +325,7 @@ export class ManifestService {
   private loadManifestFromFile(
     packagePath: string,
     cemPath?: string,
-    depName?: string
+    depName?: string,
   ) {
     debug("cem:file:resolve:start", {
       packagePath,
@@ -375,7 +375,7 @@ export class ManifestService {
 
       if (manifest) {
         debug(
-          `Loading manifest from: ${fullPath}${depName ? ` for dependency: ${depName}` : ""}`
+          `Loading manifest from: ${fullPath}${depName ? ` for dependency: ${depName}` : ""}`,
         );
         this.parseManifest(manifest, depName);
       } else {
@@ -388,7 +388,7 @@ export class ManifestService {
 
   private async loadManifestFromUrl(
     url: string,
-    depName?: string
+    depName?: string,
   ): Promise<void> {
     debug("cem:url:fetch", { url, dep: depName || "local" });
     try {

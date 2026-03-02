@@ -10,7 +10,7 @@ const PREFIX = "[wctools]";
 export function debug(...args: unknown[]) {
   if (isDebuggingEnabled) {
     // Use console.debug where available
-    console.debug('[debug]', ...args);
+    console.debug("[debug]", ...args);
   }
 }
 

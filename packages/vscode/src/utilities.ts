@@ -22,7 +22,7 @@ let onRestartCallback: (() => void) | undefined;
 /**
  * Sets the extension context for use throughout the extension.
  * Must be called during extension activation.
- * 
+ *
  * @param ctx - The VS Code extension context
  */
 export function setExtensionContext(ctx: vscode.ExtensionContext) {
@@ -31,7 +31,7 @@ export function setExtensionContext(ctx: vscode.ExtensionContext) {
 
 /**
  * Sets the language client instance.
- * 
+ *
  * @param newClient - The language client to store
  */
 export function setClient(newClient: BaseLanguageClient) {
@@ -40,7 +40,7 @@ export function setClient(newClient: BaseLanguageClient) {
 
 /**
  * Gets the current language client instance.
- * 
+ *
  * @returns The active language client, or null if not yet initialized
  */
 export function getClientInstance() {
@@ -50,7 +50,7 @@ export function getClientInstance() {
 /**
  * Sets a callback to be invoked after the language server restarts.
  * Useful for reloading component documentation or other post-restart operations.
- * 
+ *
  * @param callback - The function to call after restart completes
  */
 export function setOnRestartCallback(callback: () => void) {
@@ -60,13 +60,13 @@ export function setOnRestartCallback(callback: () => void) {
 /**
  * Logs a message to the Web Components Language Server output channel.
  * Messages are queued if the output channel is not yet available.
- * 
+ *
  * @param msg - The message to log
  */
 export function log(msg: string) {
   const line = `[web components language server] ${msg}`;
   const channel: vscode.OutputChannel | undefined = client?.outputChannel;
-  
+
   if (channel) {
     if (pendingLogs.length) {
       for (const l of pendingLogs) channel.appendLine(l);
@@ -81,7 +81,7 @@ export function log(msg: string) {
 /**
  * Schedules a language server restart with debouncing.
  * Multiple restart requests within the debounce period are coalesced into a single restart.
- * 
+ *
  * @param reason - Description of why the restart was requested
  */
 export function scheduleRestart(reason: string) {
@@ -96,7 +96,7 @@ export function scheduleRestart(reason: string) {
  * Restarts the language client with the given reason.
  * Handles cleanup of the previous client, starting the new one, and calling restart callbacks.
  * Automatically queues additional restarts if requested during the restart process.
- * 
+ *
  * @param reason - Description of why the restart is occurring
  */
 export async function restartLanguageClient(reason: string): Promise<void> {
@@ -120,7 +120,7 @@ export async function restartLanguageClient(reason: string): Promise<void> {
       }
       await client?.start();
       log(`restart complete`);
-      
+
       // Call the restart callback if set
       if (onRestartCallback) {
         setTimeout(() => {
@@ -136,24 +136,24 @@ export async function restartLanguageClient(reason: string): Promise<void> {
 /**
  * Creates a file system watcher that automatically schedules a language server restart
  * when files matching the glob pattern are changed, created, or deleted.
- * 
+ *
  * @param glob - Glob pattern to watch (e.g., '**\/wc.config.js')
  * @param label - Descriptive label for logging (e.g., "config file")
  * @returns A configured file system watcher
  */
 export function createRestartingWatcher(
   glob: string,
-  label: string
+  label: string,
 ): vscode.FileSystemWatcher {
   const watcher = vscode.workspace.createFileSystemWatcher(glob);
   watcher.onDidChange((uri) =>
-    scheduleRestart(`${label} changed: ${uri.fsPath}`)
+    scheduleRestart(`${label} changed: ${uri.fsPath}`),
   );
   watcher.onDidCreate((uri) =>
-    scheduleRestart(`${label} created: ${uri.fsPath}`)
+    scheduleRestart(`${label} created: ${uri.fsPath}`),
   );
   watcher.onDidDelete((uri) =>
-    scheduleRestart(`${label} deleted: ${uri.fsPath}`)
+    scheduleRestart(`${label} deleted: ${uri.fsPath}`),
   );
   return watcher;
 }
@@ -161,36 +161,39 @@ export function createRestartingWatcher(
 /**
  * Creates and configures the Web Components Language Server client.
  * Sets up the server module path, transport options, and client capabilities.
- * 
+ *
  * @returns A configured language client ready to be started
  */
 export async function createClient(): Promise<BaseLanguageClient> {
   // Determine the correct executable based on platform
   let executableName = "wc-language-server-linux-x64"; // default
-  
+
   const platform = process.platform;
   const arch = process.arch;
-  
+
   if (platform === "win32") {
     executableName = "wc-language-server-windows-x64.exe";
   } else if (platform === "darwin") {
-    executableName = arch === "arm64" ? "wc-language-server-macos-arm64" : "wc-language-server-macos-x64";
+    executableName =
+      arch === "arm64"
+        ? "wc-language-server-macos-arm64"
+        : "wc-language-server-macos-x64";
   } else if (platform === "linux") {
     executableName = "wc-language-server-linux-x64";
   }
-  
+
   const serverExecutable = vscode.Uri.joinPath(
     context.extensionUri,
     "dist",
     "server",
-    executableName
+    executableName,
   );
-  
+
   const serverOptions: ServerOptions = {
     command: serverExecutable.fsPath,
     args: ["--stdio"],
   };
-  
+
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "*" }],
     initializationOptions: {
@@ -199,14 +202,14 @@ export async function createClient(): Promise<BaseLanguageClient> {
       },
     },
   };
-  
+
   const newClient = new LanguageClient(
     "wcLanguageServer",
     "Web Components Language Server",
     serverOptions,
-    clientOptions
+    clientOptions,
   );
-  
+
   client = newClient;
   return newClient;
 }

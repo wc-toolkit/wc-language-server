@@ -99,27 +99,27 @@ export class ComponentService {
 
   public getAttributeCache(
     tagName: string,
-    attributeName: string
+    attributeName: string,
   ): ComponentMetadata | undefined {
     return this.componentCache.get(tagName)?.attributes?.get(attributeName);
   }
 
   public getPropertyCache(
     tagName: string,
-    propertyName: string
+    propertyName: string,
   ): ComponentMetadata | undefined {
     return this.componentCache.get(tagName)?.properties?.get(propertyName);
   }
 
   public getEventCache(
     tagName: string,
-    eventName: string
+    eventName: string,
   ): ComponentMetadata | undefined {
     return this.componentCache.get(tagName)?.events?.get(eventName);
   }
 
   public getCssVariableCache(
-    cssVarName: string
+    cssVarName: string,
   ): ComponentMetadata | undefined {
     return this.loadedCssVars.get(cssVarName);
   }
@@ -134,7 +134,7 @@ export class ComponentService {
 
   public getAttributeByPrefix(
     tagName: string,
-    rawAttrName: string
+    rawAttrName: string,
   ): ComponentMetadata | undefined {
     const component = this.componentCache.get(tagName);
     if (!component || !component.attributes) {
@@ -153,7 +153,7 @@ export class ComponentService {
       // No prefix, try to find by exact name
       const attribute = componentService.getAttributeCache(
         tagName,
-        baseAttrName
+        baseAttrName,
       );
       if (attribute) {
         return attribute;
@@ -164,7 +164,7 @@ export class ComponentService {
       // Property binding, try to find by base name
       const attribute = componentService.getPropertyCache(
         tagName,
-        baseAttrName
+        baseAttrName,
       );
       if (attribute) {
         return attribute;
@@ -192,7 +192,7 @@ export class ComponentService {
   private loadTagCache(
     tagName: string,
     component: Component,
-    packageName: string
+    packageName: string,
   ) {
     const metadata: TagMetadata = {
       label: tagName,
@@ -203,7 +203,7 @@ export class ComponentService {
       deprecated: !!component.deprecated,
       deprecationMessage: this.getDeprecatedMessage(
         component.deprecated,
-        "This component is deprecated."
+        "This component is deprecated.",
       ),
       detail: `Custom Element from ${packageName || "Global"}`,
     };
@@ -217,11 +217,11 @@ export class ComponentService {
       const displayType = hasOptions
         ? (attrType as string[]).join(" | ")
         : (attrType as string);
-      
+
       // Store the raw type for validation purposes
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawType = (attr as any)[`${this.typeSrc}`]?.text || attr.type?.text;
-      
+
       const metadata: ComponentMetadata = {
         label: attr.name,
         description: attr.description || "No description available.",
@@ -230,12 +230,12 @@ export class ComponentService {
         insertText: this.getInsertTextFormat(
           attr.name,
           hasOptions,
-          attrType === "boolean"
+          attrType === "boolean",
         ),
         deprecated: !!attr.deprecated,
         deprecationMessage: this.getDeprecatedMessage(
           attr.deprecated,
-          "This attribute is deprecated."
+          "This attribute is deprecated.",
         ),
         detail: displayType,
         type: displayType,
@@ -260,7 +260,7 @@ export class ComponentService {
         deprecated: !!prop.deprecated,
         deprecationMessage: this.getDeprecatedMessage(
           prop.deprecated,
-          "This property is deprecated."
+          "This property is deprecated.",
         ),
         detail: displayType,
         type: displayType,
@@ -282,7 +282,7 @@ export class ComponentService {
         deprecated: !!event.deprecated,
         deprecationMessage: this.getDeprecatedMessage(
           event.deprecated,
-          "This event is deprecated."
+          "This event is deprecated.",
         ),
         detail: displayType,
         type: displayType,
@@ -302,7 +302,7 @@ export class ComponentService {
         deprecated: !!cssVar.deprecated,
         deprecationMessage: this.getDeprecatedMessage(
           cssVar.deprecated,
-          "This CSS variable is deprecated."
+          "This CSS variable is deprecated.",
         ),
         detail: `CSS Custom Property`,
         type: "string",
@@ -325,7 +325,7 @@ export class ComponentService {
         deprecated: !!cssPart.deprecated,
         deprecationMessage: this.getDeprecatedMessage(
           cssPart.deprecated,
-          "This CSS part is deprecated."
+          "This CSS part is deprecated.",
         ),
         detail: `CSS Part`,
         type: "string",
@@ -346,7 +346,7 @@ export class ComponentService {
         deprecated: !!cssState.deprecated,
         deprecationMessage: this.getDeprecatedMessage(
           cssState.deprecated,
-          "This CSS state is deprecated."
+          "This CSS state is deprecated.",
         ),
         detail: `CSS State`,
         type: "string",
@@ -359,7 +359,7 @@ export class ComponentService {
   private getInsertTextFormat(
     attrName: string,
     hasValues?: boolean,
-    isBoolean?: boolean
+    isBoolean?: boolean,
   ): string {
     return hasValues
       ? `${attrName}="$1"$0`
@@ -370,7 +370,7 @@ export class ComponentService {
 
   private getDeprecatedMessage(
     deprecated: string | boolean = false,
-    fallbackMessage: string
+    fallbackMessage: string,
   ): string {
     return typeof deprecated === "string" ? deprecated : fallbackMessage;
   }

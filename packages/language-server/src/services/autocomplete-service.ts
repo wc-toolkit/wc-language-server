@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as html from "vscode-html-languageservice";
 import * as css from "vscode-css-languageservice";
-import { CompletionItemKind, InsertTextFormat } from "vscode-languageserver-types";
+import {
+  CompletionItemKind,
+  InsertTextFormat,
+} from "vscode-languageserver-types";
 import {
   getAttributePrefix,
   getBaseAttributeName,
@@ -66,7 +69,7 @@ export class AutocompleteService {
   }
 
   getTagCompletions(
-    includeOpeningBrackets: boolean = false
+    includeOpeningBrackets: boolean = false,
   ): html.CompletionItem[] {
     this.checkCache();
     if (!includeOpeningBrackets) {
@@ -168,7 +171,7 @@ export class AutocompleteService {
 
   getAttributeCompletion(
     tagName: string,
-    attributeName: string
+    attributeName: string,
   ): html.CompletionItem | undefined {
     this.checkCache();
     const componentCache = this.componentCache.get(tagName);
@@ -198,7 +201,7 @@ export class AutocompleteService {
     if (prefix === "[") {
       return attributeNameNormalized.startsWith("attr.")
         ? componentCache.attributes?.get(
-            attributeNameNormalized.replace("attr.", "")
+            attributeNameNormalized.replace("attr.", ""),
           )
         : componentCache.properties?.get(attributeNameNormalized);
     }
@@ -219,7 +222,7 @@ export class AutocompleteService {
 
   public getAttributeValueCompletions(
     tagName: string,
-    attributeName: string
+    attributeName: string,
   ): html.CompletionItem[] {
     this.checkCache();
     const componentCache = this.componentCache.get(tagName);
@@ -264,13 +267,11 @@ export class AutocompleteService {
 
   getCssVariableCompletions(): css.CompletionItem[] {
     this.checkCache();
-    return this.loadedCssVars
-      ? Array.from(this.loadedCssVars.values())
-      : [];
+    return this.loadedCssVars ? Array.from(this.loadedCssVars.values()) : [];
   }
 
   getCssCustomPropertyCompletion(
-    propertyName: string
+    propertyName: string,
   ): css.CompletionItem | undefined {
     return this.loadedCssVars.get(propertyName);
   }
@@ -286,7 +287,7 @@ export class AutocompleteService {
   private checkCache() {
     if (!this.isCacheLoaded) {
       componentService.componentCache.forEach((value, tagName) =>
-        this.loadCache(tagName, value)
+        this.loadCache(tagName, value),
       );
       this.isCacheLoaded = true;
     }
@@ -307,19 +308,19 @@ export class AutocompleteService {
 
   private loadAttributeCache(
     tagName: string,
-    attributes?: Map<string, ComponentMetadata>
+    attributes?: Map<string, ComponentMetadata>,
   ) {
     attributes?.forEach((attr) => {
-      let descriptionParts = '';
-      
+      let descriptionParts = "";
+
       if (attr.description) {
         descriptionParts += attr.description;
       }
-      
+
       if (attr.type) {
         descriptionParts += `\n\n**Type:** \`${attr.type}\``;
       }
-      
+
       if (attr.defaultValue) {
         descriptionParts += `\n\n**Default:** \`${attr.defaultValue}\``;
       }
@@ -359,7 +360,7 @@ export class AutocompleteService {
 
   private loadPropertyCache(
     tagName: string,
-    properties?: Map<string, ComponentMetadata>
+    properties?: Map<string, ComponentMetadata>,
   ) {
     properties?.forEach((prop) => {
       const completion: html.CompletionItem = {
@@ -377,7 +378,7 @@ export class AutocompleteService {
 
   private loadEventCache(
     tagName: string,
-    events?: Map<string, ComponentMetadata>
+    events?: Map<string, ComponentMetadata>,
   ) {
     events?.forEach((event) => {
       const completion: html.CompletionItem = {

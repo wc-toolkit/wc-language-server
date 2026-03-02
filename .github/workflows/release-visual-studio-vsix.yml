@@ -3,7 +3,7 @@ name: Release Visual Studio VSIX
 on:
   push:
     tags:
-      - '*'
+      - "*"
   workflow_dispatch:
 
 permissions:
