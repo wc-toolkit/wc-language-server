@@ -56,7 +56,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: pnpm lint && pnpm -r --filter=!@wc-toolkit/jetbrains run build
+        run: pnpm lint && pnpm -r --filter=!@wc-toolkit/jetbrains-plugin run build
 
       # - name: Run tests
       #   run: pnpm test
