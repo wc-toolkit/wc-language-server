@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.4
+
+### Patch Changes
+
+- b22e7f6: Update pipeline to auto-deploy
+
 ## 0.0.3
 
 ### Patch Changes
