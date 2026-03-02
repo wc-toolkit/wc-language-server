@@ -120,6 +120,7 @@ jobs:
       - name: Build Visual Studio extension (Release)
         shell: pwsh
         run: |
+          New-Item -ItemType Directory -Force -Path $env:VSIX_OUTPUT_PATH | Out-Null
           dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
           dotnet msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj `
             /p:Configuration=Release `
