@@ -14,12 +14,11 @@ permissions:
   contents: write
 
 jobs:
-  build-vsix:
+  gate:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
-    runs-on: windows-latest
-    env:
-      VISUAL_STUDIO_MARKETPLACE_TOKEN: ${{ secrets.VSCODE_MARKETPLACE }}
-
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.gate.outputs.should_run }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,75 +36,93 @@ jobs:
 
       - name: Decide whether to run
         id: gate
-        shell: pwsh
         run: |
-          $shouldRun = $false
-
-          if ('${{ github.event_name }}' -eq 'workflow_dispatch') { $shouldRun = $true }
-          if ('${{ github.event_name }}' -eq 'workflow_run') { $shouldRun = $true }
-          if ('${{ github.event_name }}' -eq 'push' -and '${{ startsWith(github.ref, 'refs/tags/') }}' -eq 'true') { $shouldRun = $true }
-          if ('${{ steps.changes.outputs.visualstudio }}' -eq 'true') { $shouldRun = $true }
-
-          "should_run=$($shouldRun.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          should_run=false
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then should_run=true; fi
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then should_run=true; fi
+          if [[ "${{ github.event_name }}" == "push" && "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then should_run=true; fi
+          if [[ "${{ steps.changes.outputs.visualstudio }}" == "true" ]]; then should_run=true; fi
+          echo "should_run=$should_run" >> $GITHUB_OUTPUT
 
       - name: Workflow summary
-        shell: pwsh
         run: |
-          $tokenPresent = if ([string]::IsNullOrWhiteSpace("${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}")) { "false" } else { "true" }
-          Write-Host "event_name=${{ github.event_name }}"
-          Write-Host "ref=${{ github.ref }}"
-          Write-Host "is_tag=${{ startsWith(github.ref, 'refs/tags/') }}"
-          Write-Host "paths_filter_visualstudio=${{ steps.changes.outputs.visualstudio }}"
-          Write-Host "should_run=${{ steps.gate.outputs.should_run }}"
-          Write-Host "marketplace_token_present=$tokenPresent"
+          echo "event_name=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "is_tag=${{ startsWith(github.ref, 'refs/tags/') }}"
+          echo "paths_filter_visualstudio=${{ steps.changes.outputs.visualstudio }}"
+          echo "should_run=${{ steps.gate.outputs.should_run }}"
 
-      - name: Setup .NET SDK
-        if: steps.gate.outputs.should_run == 'true'
-        uses: actions/setup-dotnet@v4
+  build-ls:
+    needs: gate
+    if: needs.gate.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
         with:
-          dotnet-version: 9.0.x
+          fetch-depth: 0
 
       - name: Install pnpm
-        if: steps.gate.outputs.should_run == 'true'
         uses: pnpm/action-setup@v4
 
       - name: Use Node.js 22
-        if: steps.gate.outputs.should_run == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "pnpm"
 
       - name: Setup Bun
-        if: steps.gate.outputs.should_run == 'true'
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
       - name: Install dependencies
-        if: steps.gate.outputs.should_run == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build language server binaries
-        if: steps.gate.outputs.should_run == 'true'
         run: pnpm run build:ls
 
+      - name: Upload language server binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: language-server-bin
+          path: packages/language-server/bin/
+
+  build-vsix:
+    needs: [gate, build-ls]
+    if: needs.gate.outputs.should_run == 'true'
+    runs-on: windows-latest
+    env:
+      VISUAL_STUDIO_MARKETPLACE_TOKEN: ${{ secrets.VSCODE_MARKETPLACE }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download language server binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: language-server-bin
+          path: packages/language-server/bin/
+
       - name: Preflight binary check
-        if: steps.gate.outputs.should_run == 'true'
         shell: pwsh
         run: |
           Write-Host "Listing packages/language-server/bin contents:"
           Get-ChildItem -Path ./packages/language-server/bin -File | Select-Object Name, Length, LastWriteTime
 
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
       - name: Build Visual Studio extension (Release)
-        if: steps.gate.outputs.should_run == 'true'
         shell: pwsh
         run: |
           dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
           dotnet build ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj -c Release --no-restore
 
       - name: Find VSIX output
-        if: steps.gate.outputs.should_run == 'true'
         id: find_vsix
         shell: pwsh
         run: |
@@ -119,14 +136,13 @@ jobs:
           "vsix_name=$($vsix.Name)" >> $env:GITHUB_OUTPUT
 
       - name: Upload workflow artifact
-        if: steps.gate.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: visual-studio-vsix
           path: ${{ steps.find_vsix.outputs.vsix_path }}
 
       - name: Attach VSIX to GitHub Release
-        if: steps.gate.outputs.should_run == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -135,7 +151,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get Visual Studio extension metadata
-        if: steps.gate.outputs.should_run == 'true'
         id: vs_meta
         shell: pwsh
         run: |
@@ -154,8 +169,17 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           "itemName=$itemName" >> $env:GITHUB_OUTPUT
 
+      - name: Workflow summary
+        shell: pwsh
+        run: |
+          $tokenPresent = if ([string]::IsNullOrWhiteSpace("${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}")) { "false" } else { "true" }
+          Write-Host "event_name=${{ github.event_name }}"
+          Write-Host "ref=${{ github.ref }}"
+          Write-Host "is_tag=${{ startsWith(github.ref, 'refs/tags/') }}"
+          Write-Host "marketplace_token_present=$tokenPresent"
+
       - name: Check if Visual Studio extension version exists on Marketplace
-        if: steps.gate.outputs.should_run == 'true' && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
+        if: env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
         id: check_vs_marketplace
         shell: bash
         continue-on-error: true
@@ -188,7 +212,7 @@ jobs:
           fi
 
       - name: Publish VSIX to Visual Studio Marketplace
-        if: steps.gate.outputs.should_run == 'true' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_run') && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != '' && steps.check_vs_marketplace.outputs.exists == 'false'
+        if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_run') && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != '' && steps.check_vs_marketplace.outputs.exists == 'false'
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}
