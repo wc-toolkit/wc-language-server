@@ -11,6 +11,7 @@
     "build": "pnpm -r run build",
     "build:ls": "pnpm --filter @wc-toolkit/language-server run build",
     "changeset": "changeset add",
+    "changeset:version": "changeset version && node ./packages/zed/scripts/sync-cargo-version.mjs",
     "watch": "cd ./packages/vscode && npm run watch",
     "vscode:pack": "npm run build && cd ./packages/vscode && npm run pack",
     "vscode:release": "npm run build && cd ./packages/vscode && npm run release",

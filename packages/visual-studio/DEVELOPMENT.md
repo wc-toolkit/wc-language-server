@@ -82,3 +82,7 @@ To install locally:
 The repo includes workflow automation for VSIX builds and release artifacts in:
 
 - `.github/workflows/release-visual-studio-vsix.yml`
+
+To enable automatic publishing to Visual Studio Marketplace from that workflow, set this repository secret:
+
+- `VSCODE_MARKETPLACE`
