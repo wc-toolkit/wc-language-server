@@ -13,12 +13,8 @@
         "packagesPath": "/Users/burtonsmith/.nuget/packages/",
         "outputPath": "/Users/burtonsmith/Documents/Projects/wc-toolkit/wc-language-server/packages/visual-studio/obj/",
         "projectStyle": "PackageReference",
-        "configFilePaths": [
-          "/Users/burtonsmith/.nuget/NuGet/NuGet.Config"
-        ],
-        "originalTargetFrameworks": [
-          "net472"
-        ],
+        "configFilePaths": ["/Users/burtonsmith/.nuget/NuGet/NuGet.Config"],
+        "originalTargetFrameworks": ["net472"],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
@@ -29,12 +25,8 @@
           }
         },
         "warningProperties": {
-          "noWarn": [
-            "NU1701"
-          ],
-          "warnAsError": [
-            "NU1605"
-          ]
+          "noWarn": ["NU1701"],
+          "warnAsError": ["NU1605"]
         },
         "restoreAuditProperties": {
           "enableAudit": "true",

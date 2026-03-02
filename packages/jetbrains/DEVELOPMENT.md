@@ -20,24 +20,29 @@ Complete guide for developing, testing, building, and deploying the Web Componen
 ### Required Software
 
 **JDK 17 or 21** (NOT Java 25)
+
 - The Kotlin compiler and IntelliJ Gradle plugin don't support Java 25 yet
 - Recommended: JDK 17 for maximum compatibility
 
 **Node.js 16+**
+
 - Required to run the language server
 - Check version: `node --version`
 
 **Gradle 8.10.2+**
+
 - Included via wrapper (`./gradlew`)
 - No separate installation needed
 
 ### Recommended Software
 
 **IntelliJ IDEA** (any edition)
+
 - Best IDE for developing JetBrains plugins
 - Provides built-in Gradle support and Kotlin development tools
 
 **Git**
+
 - For version control and contributing
 
 ## Setting Up Your Development Environment
@@ -47,16 +52,19 @@ Complete guide for developing, testing, building, and deploying the Web Componen
 If you have Java 25 or another incompatible version, install JDK 17:
 
 **macOS (Homebrew):**
+
 ```bash
 brew install --cask temurin17
 ```
 
 **Linux (Ubuntu/Debian):**
+
 ```bash
 sudo apt install openjdk-17-jdk
 ```
 
 **Linux (Fedora):**
+
 ```bash
 sudo dnf install java-17-openjdk-devel
 ```
@@ -65,6 +73,7 @@ sudo dnf install java-17-openjdk-devel
 Download from [Adoptium](https://adoptium.net/temurin/releases/?version=17)
 
 **Verify installation:**
+
 ```bash
 # macOS - list all installed Java versions
 /usr/libexec/java_home -V
@@ -95,6 +104,7 @@ pnpm build
 ```
 
 This creates:
+
 - `packages/language-server/dist/` - Language server executable and dependencies
 - `packages/vscode/dist/` - MCP server and shared utilities
 
@@ -168,22 +178,26 @@ packages/jetbrains/
 ### Key Files Explained
 
 **build.gradle.kts**
+
 - Gradle build configuration
 - Dependencies (IntelliJ Platform, Kotlin stdlib)
 - Plugin version synced from `package.json`
-- Build target: IntelliJ 2024.2+ (build 242-243.*)
+- Build target: IntelliJ 2024.2+ (build 242-243.\*)
 
 **plugin.xml**
+
 - Plugin metadata (ID, name, description, vendor)
 - Extension points (LSP provider, settings, actions)
 - Dependencies (IntelliJ platform, JavaScript plugin)
 
 **WCLanguageServerProvider.kt**
+
 - Implements IntelliJ's LSP framework
 - Starts/stops the language server process
 - Handles file open events
 
 **WCLanguageServerService.kt**
+
 - Manages language server lifecycle
 - Node.js process execution
 - Server state tracking
@@ -200,6 +214,7 @@ pnpm build
 Output: `build/distributions/wc-language-server-jetbrains-<version>.zip`
 
 This ZIP file can be:
+
 - Installed manually in any JetBrains IDE
 - Uploaded to the JetBrains Marketplace
 - Distributed to users for testing
@@ -219,6 +234,7 @@ Check for common issues before publishing:
 ```
 
 This validates:
+
 - Plugin descriptor (`plugin.xml`)
 - API compatibility
 - Binary compatibility
@@ -236,6 +252,7 @@ pnpm dev
 ```
 
 This will:
+
 - Build the plugin
 - Download the target IDE version (WebStorm 2024.2)
 - Create an isolated sandbox environment
@@ -266,10 +283,10 @@ Once the IDE launches:
 1. **Open a demo project:**
    - `File → Open`
    - Navigate to `demos/html` in the repository
-   
 2. **Open `test.html`**
 
 3. **Test features:**
+
    - Type `<sl-` and press `Ctrl+Space` (autocomplete)
    - Hover over `sl-button` (documentation)
    - Add an invalid attribute (diagnostics)
@@ -294,6 +311,7 @@ Currently, the plugin has minimal automated tests. Testing is primarily manual (
 Test with real web component libraries:
 
 **Shoelace:**
+
 ```bash
 # In sandbox IDE: File → Open
 # Open demos/html
@@ -301,6 +319,7 @@ Test with real web component libraries:
 ```
 
 **Custom project:**
+
 ```bash
 # Create a new project with web components
 npm install @shoelace-style/shoelace
@@ -316,13 +335,16 @@ npm install @shoelace-style/shoelace
 ### Option 1: Debug from IntelliJ IDEA
 
 1. **Open the plugin project:**
+
    - `File → Open → packages/jetbrains/build.gradle.kts`
 
 2. **Set breakpoints:**
+
    - Open any `.kt` file (e.g., `WCLanguageServerProvider.kt`)
    - Click in the gutter to add a breakpoint
 
 3. **Start debugging:**
+
    - Open Gradle tool window (right sidebar)
    - Navigate: `Tasks → intellij → runIde`
    - Right-click `runIde` → **Debug**
@@ -344,6 +366,7 @@ Then attach your IDE's debugger to `localhost:5005`.
 ### Debug Output
 
 View logs in the sandbox IDE:
+
 - **Mac:** `Help → Show Log in Finder`
 - **Linux:** `Help → Show Log in Files`
 - **Windows:** `Help → Show Log in Explorer`
@@ -373,18 +396,22 @@ The repository uses GitHub Actions for automated publishing:
 **Workflow:** `.github/workflows/publish.yml`
 
 **When it runs:**
+
 - On push to `main` branch
 - When Changesets publishes a new version
 
 **What it does:**
+
 1. Builds the language server packages
 2. Builds the JetBrains plugin
 3. Publishes to JetBrains Marketplace (if version changed)
 
 **Required secrets:**
+
 - `JETBRAINS_PUBLISH_TOKEN` - JetBrains Marketplace token
 
 **Get your token:**
+
 1. Go to https://plugins.jetbrains.com/author/me/tokens
 2. Create a new token with "Upload plugin" scope
 3. Add to GitHub: Repository Settings → Secrets → Actions → New secret
@@ -400,6 +427,7 @@ export PUBLISH_TOKEN="perm:your-token-here"
 ```
 
 **First time setup:**
+
 1. Create account at https://plugins.jetbrains.com/
 2. Generate token at https://plugins.jetbrains.com/author/me/tokens
 3. Add token to environment or `gradle.properties`:
@@ -485,12 +513,14 @@ chmod +x gradlew
 **Language server won't start**
 
 1. Verify Node.js is accessible:
+
    ```bash
    which node
    node --version  # Should be 16+
    ```
 
 2. Check language server files exist:
+
    ```bash
    ls -la packages/language-server/dist
    ```
@@ -509,10 +539,11 @@ chmod +x gradlew
 **MCP Server won't start**
 
 1. Check if port is already in use:
+
    ```bash
    # macOS/Linux
    lsof -i :3000
-   
+
    # Windows
    netstat -ano | findstr :3000
    ```
@@ -525,12 +556,14 @@ chmod +x gradlew
 **WebStorm vs IntelliJ IDEA**
 
 The plugin works in both, but:
+
 - **WebStorm:** JavaScript plugin is built-in ✅
 - **IntelliJ IDEA:** Must install JavaScript plugin manually
 
 **Compatibility testing:**
 
 Test on different IDE versions:
+
 ```bash
 # Test on specific version
 ./gradlew runIde -PideaVersion=2024.2
@@ -546,11 +579,13 @@ Test on different IDE versions:
 1. **Make code changes** in `src/main/kotlin/` or `src/main/resources/`
 
 2. **Rebuild:**
+
    ```bash
    pnpm build
    ```
 
 3. **Test in sandbox:**
+
    ```bash
    pnpm dev
    ```
@@ -562,6 +597,7 @@ Test on different IDE versions:
 Example: Add a new settings option
 
 1. **Update `WCSettings.kt`:**
+
    ```kotlin
    @State(name = "WCSettings", storages = [Storage("wc-language-server.xml")])
    class WCSettings : PersistentStateComponent<WCSettings> {
@@ -571,14 +607,15 @@ Example: Add a new settings option
    ```
 
 2. **Update `WCSettingsConfigurable.kt`:**
+
    ```kotlin
    class WCSettingsConfigurable : Configurable {
        private val myNewSettingCheckbox = JBCheckBox("Enable My Feature")
-       
+
        override fun createComponent(): JComponent {
            // Add to UI
        }
-       
+
        override fun apply() {
            settings.myNewSetting = myNewSettingCheckbox.isSelected
        }
@@ -586,6 +623,7 @@ Example: Add a new settings option
    ```
 
 3. **Use the setting:**
+
    ```kotlin
    val settings = WCSettings.getInstance()
    if (settings.myNewSetting) {
@@ -600,6 +638,7 @@ Example: Add a new settings option
 **Update IntelliJ Platform version:**
 
 Edit `build.gradle.kts`:
+
 ```kotlin
 intellij {
     version.set("2024.3")  // Change version
@@ -610,6 +649,7 @@ intellij {
 **Update Kotlin version:**
 
 Edit `build.gradle.kts`:
+
 ```kotlin
 kotlin("jvm") version "2.0.21"  // Change version
 ```
@@ -617,6 +657,7 @@ kotlin("jvm") version "2.0.21"  // Change version
 **Add a dependency:**
 
 Edit `build.gradle.kts`:
+
 ```kotlin
 dependencies {
     implementation("com.example:library:1.0.0")
@@ -629,7 +670,7 @@ dependencies {
 2. Register in `plugin.xml`:
    ```xml
    <actions>
-     <action id="wc.MyAction" 
+     <action id="wc.MyAction"
              class="com.wctoolkit.webcomponents.actions.MyAction"
              text="My Action"
              description="Does something useful">

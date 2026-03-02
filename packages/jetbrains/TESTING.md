@@ -5,6 +5,7 @@ This guide will help you test the Web Components Language Server plugin in WebSt
 ## Prerequisites
 
 1. **Install JDK 17 or higher**
+
    ```bash
    # Check your Java version
    java -version
@@ -24,25 +25,30 @@ This is the fastest way to test the plugin during development.
 ### Steps
 
 1. **Navigate to the plugin directory**
+
    ```bash
    cd packages/jetbrains
    ```
 
 2. **Run the plugin in a sandbox IDE**
+
    ```bash
    ./gradlew runIde
    ```
-   
+
    On Windows:
+
    ```bash
    gradlew.bat runIde
    ```
 
 3. **Wait for WebStorm to start**
+
    - A new WebStorm window will open with the plugin pre-installed
    - This is a completely separate sandbox environment
 
 4. **Open a demo project**
+
    - In the sandbox WebStorm: `File → Open`
    - Navigate to `[repository]/demos/html`
    - Click `Open`
@@ -69,15 +75,18 @@ If you want to install the plugin in your regular WebStorm installation:
 ### Steps
 
 1. **Build the plugin**
+
    ```bash
    cd packages/jetbrains
    ./gradlew buildPlugin
    ```
 
 2. **Locate the built plugin**
+
    - The plugin ZIP will be at: `build/distributions/wc-language-server-jetbrains-0.0.1.zip`
 
 3. **Install in WebStorm**
+
    - Open WebStorm
    - Go to `Settings → Plugins`
    - Click the gear icon ⚙️
@@ -109,18 +118,21 @@ If you want to install the plugin in your regular WebStorm installation:
 ### Test Features
 
 **Autocomplete:**
+
 ```html
 <!-- Type this and trigger autocomplete -->
 <sl-
 ```
 
 **Hover:**
+
 ```html
 <!-- Hover over this to see docs -->
 <sl-button variant="primary">Click me</sl-button>
 ```
 
 **Diagnostics:**
+
 ```html
 <!-- This should show an error for unknown attribute -->
 <sl-button invalid-attribute="test">Button</sl-button>
@@ -131,18 +143,22 @@ If you want to install the plugin in your regular WebStorm installation:
 ### In IntelliJ IDEA (Plugin Development)
 
 1. **Open the plugin project**
+
    - Open `packages/jetbrains` in IntelliJ IDEA
 
 2. **Set breakpoints**
+
    - Open any Kotlin file (e.g., `WCLanguageServerProvider.kt`)
    - Click in the gutter to set a breakpoint
 
 3. **Run in Debug mode**
+
    ```bash
    ./gradlew runIde --debug-jvm
    ```
-   
+
    Or use the IDE's Gradle tool window:
+
    - Open Gradle tool window
    - Navigate to `Tasks → intellij → runIde`
    - Right-click → Debug
@@ -156,6 +172,7 @@ If you want to install the plugin in your regular WebStorm installation:
 ### "Node.js not found" Error
 
 **Solution:**
+
 1. Ensure Node.js is installed: `node --version`
 2. Add Node.js to your PATH
 3. Or configure the path manually in Settings
@@ -163,11 +180,13 @@ If you want to install the plugin in your regular WebStorm installation:
 ### Language Server Won't Start
 
 **Check:**
+
 1. Built the language server: `pnpm build` in repository root
 2. The `dist` folder exists in `packages/language-server`
 3. The `dist` folder exists in `packages/vscode`
 
 **Rebuild everything:**
+
 ```bash
 # From repository root
 pnpm clean
@@ -178,6 +197,7 @@ pnpm build
 ### MCP Server Port Already in Use
 
 **Solution:**
+
 1. Change the port in Settings
 2. Or stop the conflicting process:
    ```bash
@@ -189,11 +209,13 @@ pnpm build
 ### No Autocomplete/Diagnostics
 
 **Verify:**
+
 1. The file type is supported (HTML, Vue, JSX, etc.)
 2. A `custom-elements.json` file exists in the project
 3. The language server has started (check logs)
 
 **Try:**
+
 1. Restart the language server: `Tools → Restart Web Components Language Server`
 2. Restart WebStorm
 3. Rebuild the plugin: `./gradlew clean buildPlugin`
@@ -230,16 +252,19 @@ pnpm build
 ## IDE Logs Location
 
 **Mac:**
+
 ```
 ~/Library/Logs/JetBrains/WebStorm2023.2/idea.log
 ```
 
 **Linux:**
+
 ```
 ~/.cache/JetBrains/WebStorm2023.2/log/idea.log
 ```
 
 **Windows:**
+
 ```
 %USERPROFILE%\AppData\Local\JetBrains\WebStorm2023.2\log\idea.log
 ```

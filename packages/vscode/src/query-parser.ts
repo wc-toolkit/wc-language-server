@@ -8,7 +8,14 @@ export interface ComponentInfo {
 }
 
 export interface QueryResult {
-  type: "single" | "multiple" | "search" | "all" | "none" | "property" | "reasoning";
+  type:
+    | "single"
+    | "multiple"
+    | "search"
+    | "all"
+    | "none"
+    | "property"
+    | "reasoning";
   components: ComponentInfo[];
   searchTerm?: string;
   message?: string;
@@ -87,7 +94,7 @@ function extractSemanticTerms(prompt: string): string[] {
  */
 function calculateSemanticScore(
   searchTerm: string,
-  componentName: string
+  componentName: string,
 ): number {
   let score = 0;
   const lower = searchTerm.toLowerCase();
@@ -127,7 +134,7 @@ export function extractDesignKeywords(prompt: string): string[] {
 export function findRelevantComponents(
   searchTerms: string[],
   componentDocs: Record<string, string>,
-  maxResults: number = 10
+  maxResults: number = 10,
 ): ComponentInfo[] {
   const scored: Array<{ tagName: string; score: number }> = [];
 
@@ -173,9 +180,9 @@ export function findRelevantComponents(
 /**
  * Unified query type detection
  */
-function detectQueryType(query: string): { 
-  type: string; 
-  keywords: string[]; 
+function detectQueryType(query: string): {
+  type: string;
+  keywords: string[];
   propertyType?: string;
   comparisonTarget?: string;
 } {
@@ -183,18 +190,64 @@ function detectQueryType(query: string): {
 
   // Property-specific queries (NEW)
   const propertyPatterns = [
-    { pattern: /what\s+(events?|event\s+handlers?)\s+(?:does\s+)?(.+?)\s+(?:have|emit|fire|trigger)/i, property: "events" },
-    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(events?|event\s+handlers?)\s+(?:of\s+|for\s+)?(.+)/i, property: "events" },
-    { pattern: /what\s+(attributes?|props?|properties)\s+(?:does\s+)?(.+?)\s+(?:have|accept|support)/i, property: "attributes" },
-    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(attributes?|props?|properties)\s+(?:of\s+|for\s+)?(.+)/i, property: "attributes" },
-    { pattern: /what\s+(slots?)\s+(?:does\s+)?(.+?)\s+(?:have|accept|support)/i, property: "slots" },
-    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(slots?)\s+(?:of\s+|for\s+)?(.+)/i, property: "slots" },
-    { pattern: /what\s+(methods?|functions?)\s+(?:does\s+)?(.+?)\s+(?:have|support|provide)/i, property: "methods" },
-    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(methods?|functions?)\s+(?:of\s+|for\s+)?(.+)/i, property: "methods" },
-    { pattern: /what\s+(css\s+parts?|parts?)\s+(?:does\s+)?(.+?)\s+(?:have|support|expose)/i, property: "css-parts" },
-    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(css\s+parts?|parts?)\s+(?:of\s+|for\s+)?(.+)/i, property: "css-parts" },
-    { pattern: /what\s+(css\s+variables?|custom\s+properties)\s+(?:does\s+)?(.+?)\s+(?:have|support|use)/i, property: "css-variables" },
-    { pattern: /(?:show\s+me\s+)?(?:the\s+)?(css\s+variables?|custom\s+properties)\s+(?:of\s+|for\s+)?(.+)/i, property: "css-variables" }
+    {
+      pattern:
+        /what\s+(events?|event\s+handlers?)\s+(?:does\s+)?(.+?)\s+(?:have|emit|fire|trigger)/i,
+      property: "events",
+    },
+    {
+      pattern:
+        /(?:show\s+me\s+)?(?:the\s+)?(events?|event\s+handlers?)\s+(?:of\s+|for\s+)?(.+)/i,
+      property: "events",
+    },
+    {
+      pattern:
+        /what\s+(attributes?|props?|properties)\s+(?:does\s+)?(.+?)\s+(?:have|accept|support)/i,
+      property: "attributes",
+    },
+    {
+      pattern:
+        /(?:show\s+me\s+)?(?:the\s+)?(attributes?|props?|properties)\s+(?:of\s+|for\s+)?(.+)/i,
+      property: "attributes",
+    },
+    {
+      pattern: /what\s+(slots?)\s+(?:does\s+)?(.+?)\s+(?:have|accept|support)/i,
+      property: "slots",
+    },
+    {
+      pattern: /(?:show\s+me\s+)?(?:the\s+)?(slots?)\s+(?:of\s+|for\s+)?(.+)/i,
+      property: "slots",
+    },
+    {
+      pattern:
+        /what\s+(methods?|functions?)\s+(?:does\s+)?(.+?)\s+(?:have|support|provide)/i,
+      property: "methods",
+    },
+    {
+      pattern:
+        /(?:show\s+me\s+)?(?:the\s+)?(methods?|functions?)\s+(?:of\s+|for\s+)?(.+)/i,
+      property: "methods",
+    },
+    {
+      pattern:
+        /what\s+(css\s+parts?|parts?)\s+(?:does\s+)?(.+?)\s+(?:have|support|expose)/i,
+      property: "css-parts",
+    },
+    {
+      pattern:
+        /(?:show\s+me\s+)?(?:the\s+)?(css\s+parts?|parts?)\s+(?:of\s+|for\s+)?(.+)/i,
+      property: "css-parts",
+    },
+    {
+      pattern:
+        /what\s+(css\s+variables?|custom\s+properties)\s+(?:does\s+)?(.+?)\s+(?:have|support|use)/i,
+      property: "css-variables",
+    },
+    {
+      pattern:
+        /(?:show\s+me\s+)?(?:the\s+)?(css\s+variables?|custom\s+properties)\s+(?:of\s+|for\s+)?(.+)/i,
+      property: "css-variables",
+    },
   ];
 
   for (const { pattern, property } of propertyPatterns) {
@@ -202,12 +255,12 @@ function detectQueryType(query: string): {
     if (match) {
       const componentText = match[2] || match[1];
       const components = extractComponentNames(componentText);
-      
+
       if (components.length > 0) {
-        return { 
-          type: "property", 
-          keywords: components, 
-          propertyType: property 
+        return {
+          type: "property",
+          keywords: components,
+          propertyType: property,
         };
       }
     }
@@ -220,74 +273,87 @@ function detectQueryType(query: string): {
 
   // Enhanced comparison query detection
   if (
-    ["compare", "vs", "versus", "difference", "differ", "better", "between"].some((k) =>
-      lower.includes(k)
-    ) || 
+    [
+      "compare",
+      "vs",
+      "versus",
+      "difference",
+      "differ",
+      "better",
+      "between",
+    ].some((k) => lower.includes(k)) ||
     /what.*(difference|different).*between/i.test(query) ||
     /\b(\w+-\w+)\s+(vs|versus|and)\s+(\w+-\w+)\b/i.test(query) ||
     // NEW: Reasoning/justification patterns
-    (/why\s+(would|should|use|choose)/i.test(query) && /instead\s+of/i.test(query)) ||
+    (/why\s+(would|should|use|choose)/i.test(query) &&
+      /instead\s+of/i.test(query)) ||
     /what.*(advantage|benefit|reason).*over/i.test(query) ||
     /when\s+(to\s+use|should\s+I\s+use).*instead\s+of/i.test(query) ||
     /better\s+than/i.test(query)
   ) {
     const components = extractComponentNames(query);
-    
+
     // Check for "instead of" pattern with HTML elements
-    const insteadMatch = query.match(/(.+?)\s+instead\s+of\s+(?:a\s+)?(?:standard\s+)?(?:html\s+)?(button|input|div|span|form|select|textarea|img|link|anchor)/i);
+    const insteadMatch = query.match(
+      /(.+?)\s+instead\s+of\s+(?:a\s+)?(?:standard\s+)?(?:html\s+)?(button|input|div|span|form|select|textarea|img|link|anchor)/i,
+    );
     if (insteadMatch) {
       const componentText = insteadMatch[1];
       const htmlElement = insteadMatch[2];
       const extractedComponents = extractComponentNames(componentText);
-      
+
       if (extractedComponents.length > 0) {
-        return { 
-          type: "reasoning", 
+        return {
+          type: "reasoning",
           keywords: extractedComponents,
-          comparisonTarget: htmlElement
+          comparisonTarget: htmlElement,
         };
       }
     }
-    
+
     // Check for "over" pattern with HTML elements
-    const overMatch = query.match(/(.+?)\s+(?:have\s+)?over\s+(?:a\s+)?(?:standard\s+)?(?:html\s+)?(button|input|div|span|form|select|textarea|img|link|anchor)/i);
+    const overMatch = query.match(
+      /(.+?)\s+(?:have\s+)?over\s+(?:a\s+)?(?:standard\s+)?(?:html\s+)?(button|input|div|span|form|select|textarea|img|link|anchor)/i,
+    );
     if (overMatch) {
       const componentText = overMatch[1];
       const htmlElement = overMatch[2];
       const extractedComponents = extractComponentNames(componentText);
-      
+
       if (extractedComponents.length > 0) {
-        return { 
-          type: "reasoning", 
+        return {
+          type: "reasoning",
           keywords: extractedComponents,
-          comparisonTarget: htmlElement
+          comparisonTarget: htmlElement,
         };
       }
     }
-    
+
     // If we found exactly 2 components, it's definitely a comparison
     if (components.length === 2) {
       return { type: "compare", keywords: components };
     }
-    
+
     // Try to extract components from "between X and Y" pattern
-    const betweenMatch = query.match(/between\s+[`"]?([a-z]+-[a-z0-9-]+)[`"]?\s+and\s+[`"]?([a-z]+-[a-z0-9-]+)[`"]?/i);
+    const betweenMatch = query.match(
+      /between\s+[`"]?([a-z]+-[a-z0-9-]+)[`"]?\s+and\s+[`"]?([a-z]+-[a-z0-9-]+)[`"]?/i,
+    );
     if (betweenMatch) {
       return { type: "compare", keywords: [betweenMatch[1], betweenMatch[2]] };
     }
-    
+
     // Fallback: look for any components mentioned
     if (components.length >= 2) {
       return { type: "compare", keywords: components.slice(0, 2) };
     }
-    
+
     return { type: "compare", keywords: components };
   }
 
   // Implementation query
   if (
     ["how to", "how can", "create", "build", "make"].some((k) =>
-      lower.includes(k)
+      lower.includes(k),
     )
   ) {
     return { type: "implementation", keywords: extractDesignKeywords(query) };
@@ -316,7 +382,7 @@ function detectQueryType(query: string): {
  */
 export function parseQuery(
   query: string,
-  componentDocs: Record<string, string>
+  componentDocs: Record<string, string>,
 ): QueryResult {
   if (!query.trim()) {
     return {
@@ -357,7 +423,7 @@ export function parseQuery(
         message: `Comparing ${components[0].tagName} with HTML ${comparisonTarget}`,
       };
     }
-    
+
     // No explicit components found, but it's a reasoning query
     return {
       type: "none",
@@ -381,7 +447,7 @@ export function parseQuery(
         message: `Finding ${propertyType} for ${components[0].tagName}`,
       };
     }
-    
+
     // No explicit components found, but it's a property query
     return {
       type: "none",
@@ -439,7 +505,7 @@ export function parseQuery(
  */
 export function formatQueryResult(
   result: QueryResult,
-  originalQuery?: string
+  originalQuery?: string,
 ): string {
   if (result.type === "none") {
     return result.message || "No components found.";

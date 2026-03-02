@@ -1,10 +1,13 @@
 import * as css from "vscode-css-languageservice";
 import { NullableProviderResult } from "@volar/language-server";
-import { ComponentMetadata, componentService } from "../../services/component-service.js";
+import {
+  ComponentMetadata,
+  componentService,
+} from "../../services/component-service.js";
 
 export function getCssHoverContent(
   document: css.TextDocument,
-  position: css.Position
+  position: css.Position,
 ): NullableProviderResult<css.Hover> {
   const text = document.getText();
   const offset = document.offsetAt(position);
@@ -85,7 +88,7 @@ export function getCssHoverContent(
 function isPositionInRange(
   offset: number,
   wordRange: { start: number; end: number },
-  matchText: string
+  matchText: string,
 ): boolean {
   // Simple check if the cursor is within the matched text
   return wordRange.start >= 0 && wordRange.end <= offset + matchText.length;
@@ -93,7 +96,7 @@ function isPositionInRange(
 
 function getWordRangeAtPosition(
   text: string,
-  offset: number
+  offset: number,
 ): { start: number; end: number } | null {
   // Match CSS custom properties, identifiers, and words
   const before = text.substring(0, offset);

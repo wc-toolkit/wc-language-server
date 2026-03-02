@@ -52,12 +52,12 @@ On macOS the script launches a new Terminal window via `osascript`; on other pla
 
 ## Debugging Checklist
 
-| Symptom | Steps |
-| --- | --- |
-| Client never attaches | Run `:LspInfo`. If the server is absent, check `filetype`, `root_dir_patterns`, and make sure `cmd` resolves (logs will show "Unable to locate wc-language-server"). |
-| Hover errors | `K` calls `build_hover_with_diagnostics`. Check `:messages` for stack traces; these originate from `packages/neovim/lua/wc_language_server/init.lua`. |
-| File watchers not firing | The plugin watches `wc.config.*`, `custom-elements.json`, `package.json`, and `node_modules` by default. Edit `watch_patterns`/`watch_files` in the config to cover additional paths, then restart the client. |
-| Completion polluted by buffer words | Limit completion sources via your completion plugin or set `completion.set_omnifunc = false` and manage `omnifunc` yourself. |
+| Symptom                             | Steps                                                                                                                                                                                                          |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Client never attaches               | Run `:LspInfo`. If the server is absent, check `filetype`, `root_dir_patterns`, and make sure `cmd` resolves (logs will show "Unable to locate wc-language-server").                                           |
+| Hover errors                        | `K` calls `build_hover_with_diagnostics`. Check `:messages` for stack traces; these originate from `packages/neovim/lua/wc_language_server/init.lua`.                                                          |
+| File watchers not firing            | The plugin watches `wc.config.*`, `custom-elements.json`, `package.json`, and `node_modules` by default. Edit `watch_patterns`/`watch_files` in the config to cover additional paths, then restart the client. |
+| Completion polluted by buffer words | Limit completion sources via your completion plugin or set `completion.set_omnifunc = false` and manage `omnifunc` yourself.                                                                                   |
 
 ## Running Tests
 
@@ -68,12 +68,13 @@ There are currently no automated tests for the Neovim package. Manual testing vi
 1. Ensure `pnpm build:ls` succeeds.
 2. Bundle the language server into the plugin for distribution:
 
-	```bash
-	pnpm build:ls
-	pnpm --filter @wc-toolkit/neovim run bundle
-	```
+   ```bash
+   pnpm build:ls
+   pnpm --filter @wc-toolkit/neovim run bundle
+   ```
 
-	This produces a single-file build at `packages/neovim/server/bin/wc-language-server` (ignored by git) so you can ship the plugin with a self-contained server.
+   This produces a single-file build at `packages/neovim/server/bin/wc-language-server` (ignored by git) so you can ship the plugin with a self-contained server.
+
 3. Verify the plugin works in the dev profile and in a clean Neovim session (preferably with only the bundled server available).
 4. Update `CHANGELOG.md` at the repo root or include a Changeset if you are publishing a release.
 5. Commit only the Lua/docs changes you touched—do **not** check in generated `server/` artifacts.

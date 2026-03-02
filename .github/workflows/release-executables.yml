@@ -3,7 +3,7 @@ name: Release Executables
 on:
   push:
     tags:
-      - '@wc-toolkit/language-server@*'
+      - "@wc-toolkit/language-server@*"
   workflow_dispatch:
 
 permissions:

@@ -24,7 +24,9 @@ function runStep(label, command, args, options = {}) {
   });
 
   if (result.status !== 0) {
-    console.error(`\n[zed dev] Failed while executing: ${command} ${args.join(" ")}`);
+    console.error(
+      `\n[zed dev] Failed while executing: ${command} ${args.join(" ")}`,
+    );
     process.exit(result.status ?? 1);
   }
 }
@@ -47,12 +49,15 @@ function resolveWorkspaceDir() {
   return repoRoot;
 }
 
-runStep(
-  "Build extension artifacts",
-  nodeCmd,
-  [resolve(__dirname, "build-extension.mjs")]
-);
+runStep("Build extension artifacts", nodeCmd, [
+  resolve(__dirname, "build-extension.mjs"),
+]);
 
 const workspaceDir = resolveWorkspaceDir();
-console.log("\n[zed dev] Build complete. Launching Zed with workspace", workspaceDir);
-runStep("Launch Zed", zedBinary, ["--foreground", workspaceDir], { cwd: workspaceDir });
+console.log(
+  "\n[zed dev] Build complete. Launching Zed with workspace",
+  workspaceDir,
+);
+runStep("Launch Zed", zedBinary, ["--foreground", workspaceDir], {
+  cwd: workspaceDir,
+});

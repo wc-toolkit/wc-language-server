@@ -41,7 +41,8 @@ export class WebComponentMCPServer {
   private componentDocs: Record<string, string> = {};
   private options: MCPServerOptions;
   private httpServer?: http.Server;
-  private keepAliveIntervals: Map<http.ServerResponse, NodeJS.Timeout> = new Map();
+  private keepAliveIntervals: Map<http.ServerResponse, NodeJS.Timeout> =
+    new Map();
 
   constructor(options: MCPServerOptions = {}) {
     this.options = {
@@ -61,7 +62,7 @@ export class WebComponentMCPServer {
           tools: {},
           prompts: {},
         },
-      }
+      },
     );
 
     this.setupHandlers();
@@ -76,32 +77,28 @@ export class WebComponentMCPServer {
 
   private setupHandlers(): void {
     // List available prompts
-    this.server.setRequestHandler(
-      ListPromptsRequestSchema,
-      async () => ({
-        prompts: [
-          {
-            name: "component-docs",
-            description:
-              "Get documentation for all web components in the workspace",
-            arguments: [],
-          },
-          {
-            name: "component-info",
-            description:
-              "Get detailed information about a specific web component",
-            arguments: [
-              {
-                name: "tagName",
-                description:
-                  "The tag name of the component (e.g., 'sl-button')",
-                required: true,
-              },
-            ],
-          },
-        ],
-      })
-    );
+    this.server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+      prompts: [
+        {
+          name: "component-docs",
+          description:
+            "Get documentation for all web components in the workspace",
+          arguments: [],
+        },
+        {
+          name: "component-info",
+          description:
+            "Get detailed information about a specific web component",
+          arguments: [
+            {
+              name: "tagName",
+              description: "The tag name of the component (e.g., 'sl-button')",
+              required: true,
+            },
+          ],
+        },
+      ],
+    }));
 
     // Handle prompt requests
     this.server.setRequestHandler(
@@ -155,7 +152,7 @@ export class WebComponentMCPServer {
         }
 
         throw new Error(`Unknown prompt: ${name}`);
-      }
+      },
     );
 
     // List available tools (simplified set with query tool)
@@ -221,7 +218,9 @@ export class WebComponentMCPServer {
           const result = parseQuery(query, this.componentDocs);
           const formattedResult = formatQueryResult(result, query);
 
-          log(`Query result: ${result.type}, ${result.components.length} component(s)`);
+          log(
+            `Query result: ${result.type}, ${result.components.length} component(s)`,
+          );
 
           return {
             content: [
@@ -232,7 +231,9 @@ export class WebComponentMCPServer {
             ],
           };
         } catch (error) {
-          log(`Error handling tool call: ${error instanceof Error ? error.message : String(error)}`);
+          log(
+            `Error handling tool call: ${error instanceof Error ? error.message : String(error)}`,
+          );
           return {
             content: [
               {
@@ -243,7 +244,7 @@ export class WebComponentMCPServer {
             isError: true,
           };
         }
-      }
+      },
     );
 
     // List available resources
@@ -274,8 +275,7 @@ export class WebComponentMCPServer {
         if (uri.startsWith("wc://component/")) {
           const tagName = uri.replace("wc://component/", "");
           const documentation =
-            this.componentDocs[tagName] ||
-            `# Component not found: ${tagName}`;
+            this.componentDocs[tagName] || `# Component not found: ${tagName}`;
 
           return {
             contents: [
@@ -288,7 +288,7 @@ export class WebComponentMCPServer {
           };
         }
         throw new Error(`Unknown resource URI: ${uri}`);
-      }
+      },
     );
   }
 
@@ -338,7 +338,7 @@ export class WebComponentMCPServer {
       JSON.stringify({
         status: "ok",
         componentsLoaded: Object.keys(this.componentDocs).length,
-      })
+      }),
     );
   }
 
@@ -386,10 +386,10 @@ export class WebComponentMCPServer {
    */
   private handleMessageRequest(
     req: http.IncomingMessage,
-    res: http.ServerResponse
+    res: http.ServerResponse,
   ): void {
     let body = "";
-    
+
     req.on("data", (chunk) => {
       body += chunk.toString();
     });
@@ -408,9 +408,8 @@ export class WebComponentMCPServer {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
-            error:
-              error instanceof Error ? error.message : "Invalid JSON",
-          })
+            error: error instanceof Error ? error.message : "Invalid JSON",
+          }),
         );
       }
     });
@@ -429,7 +428,7 @@ export class WebComponentMCPServer {
    */
   private async routeRequest(
     req: http.IncomingMessage,
-    res: http.ServerResponse
+    res: http.ServerResponse,
   ): Promise<void> {
     this.setCorsHeaders(res);
 
@@ -476,10 +475,10 @@ export class WebComponentMCPServer {
       const errorHandler = (error: NodeJS.ErrnoException) => {
         if (error.code === "EADDRINUSE") {
           log(
-            `Port ${this.options.port} is already in use. MCP server could not start.`
+            `Port ${this.options.port} is already in use. MCP server could not start.`,
           );
           log(
-            `Try changing the port in settings (wctools.mcp.port) or restart VS Code.`
+            `Try changing the port in settings (wctools.mcp.port) or restart VS Code.`,
           );
         } else {
           log(`MCP HTTP server error: ${error.message}`);
@@ -489,27 +488,23 @@ export class WebComponentMCPServer {
 
       this.httpServer!.once("error", errorHandler);
 
-      this.httpServer!.listen(
-        this.options.port,
-        this.options.host,
-        () => {
-          // Remove the error handler since we're now listening successfully
-          this.httpServer!.removeListener("error", errorHandler);
-          
-          // Add a persistent error handler for runtime errors
-          this.httpServer!.on("error", (error: NodeJS.ErrnoException) => {
-            log(`MCP HTTP server runtime error: ${error.message}`);
-          });
+      this.httpServer!.listen(this.options.port, this.options.host, () => {
+        // Remove the error handler since we're now listening successfully
+        this.httpServer!.removeListener("error", errorHandler);
 
-          log(
-            `MCP server started with HTTP/SSE transport on http://${this.options.host}:${this.options.port}`
-          );
-          log(
-            `Connect using: http://${this.options.host}:${this.options.port}/sse`
-          );
-          resolve();
-        }
-      );
+        // Add a persistent error handler for runtime errors
+        this.httpServer!.on("error", (error: NodeJS.ErrnoException) => {
+          log(`MCP HTTP server runtime error: ${error.message}`);
+        });
+
+        log(
+          `MCP server started with HTTP/SSE transport on http://${this.options.host}:${this.options.port}`,
+        );
+        log(
+          `Connect using: http://${this.options.host}:${this.options.port}/sse`,
+        );
+        resolve();
+      });
     });
   }
 

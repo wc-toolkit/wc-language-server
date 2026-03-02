@@ -1,6 +1,13 @@
-export type BindingPrefix = typeof BINDING_CHARACTERS[number] | undefined;
+export type BindingPrefix = (typeof BINDING_CHARACTERS)[number] | undefined;
 
-export const BINDING_CHARACTERS: string[] = [".", ":", "[", "(", "?", "@"] as const;
+export const BINDING_CHARACTERS: string[] = [
+  ".",
+  ":",
+  "[",
+  "(",
+  "?",
+  "@",
+] as const;
 
 // Shared regex building blocks for template-binding prefixes and contexts
 export const BINDING_PREFIX_CLASS = "[.:?@\\[\\(]";
@@ -22,7 +29,9 @@ export function getBaseAttributeName(attr: string): string {
   const typed = getAttributePrefix(attr);
   let normalizedName = attr.replace(TYPED_PREFIX_REGEX, "");
   if (typed === "[") {
-    normalizedName = normalizedName.replace(TRAILING_BINDING_BRACKET_REGEX, "").replace('attr.', "");
+    normalizedName = normalizedName
+      .replace(TRAILING_BINDING_BRACKET_REGEX, "")
+      .replace("attr.", "");
   }
   if (typed === "(") {
     normalizedName = normalizedName.replace(TRAILING_BINDING_BRACE_REGEX, "");

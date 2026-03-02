@@ -65,7 +65,7 @@ export function webComponentPlugin(): LanguageServicePlugin {
             change.uri.endsWith("custom-elements.json") ||
             change.uri.endsWith("wc.config.js") ||
             change.uri.endsWith("wc.config.ts") ||
-            change.uri.endsWith("wc.config.mjs")
+            change.uri.endsWith("wc.config.mjs"),
         );
 
         if (shouldReload) {
@@ -76,7 +76,7 @@ export function webComponentPlugin(): LanguageServicePlugin {
       return {
         /**
          * Enhanced completion provider for HTML with web component support
-         * 
+         *
          * Note: This provider only returns custom web component completions.
          * Volar automatically merges these with completions from other services
          * (HTML, CSS, Emmet) at the LSP layer.
@@ -90,12 +90,12 @@ export function webComponentPlugin(): LanguageServicePlugin {
           // Get custom web component completions
           const htmlCompletions = getAutoCompleteSuggestions(
             document,
-            position
+            position,
           );
 
           const cssCompletions = getCssAutoCompleteSuggestions(
             document,
-            position
+            position,
           );
 
           // Combine our custom completions
@@ -132,7 +132,6 @@ export function webComponentPlugin(): LanguageServicePlugin {
           return;
         },
 
-
         /**
          * Definition provider for custom elements using manifest locations
          */
@@ -149,10 +148,10 @@ export function webComponentPlugin(): LanguageServicePlugin {
           if (!shouldProvideEnhancedService(document)) {
             return [];
           }
-          
+
           // Wait for manifests to be loaded before validating
           await manifestService.waitForManifestsLoaded();
-          
+
           return getValidation(document, html.getLanguageService());
         },
 

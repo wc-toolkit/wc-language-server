@@ -53,21 +53,18 @@ export async function validateFiles(
     }
   }
 
-  debug(
-    `Configuration:`,
-    JSON.stringify(resolvedConfig, null, 2),
-  );
+  debug(`Configuration:`, JSON.stringify(resolvedConfig, null, 2));
 
   configurationService.updateConfig(resolvedConfig);
-  
+
   // Wait for all manifests (including external URLs) to finish loading
   await manifestService.waitForManifestsLoaded();
-  
+
   // Initialize services with configuration
 
   // Find files to validate
   const files = await findFiles(patterns, resolvedConfig);
-  debug(`${files.length} file(s) found to validate.`)
+  debug(`${files.length} file(s) found to validate.`);
 
   // Validate each file
   const results: ValidationResult[] = [];

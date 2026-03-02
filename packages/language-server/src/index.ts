@@ -55,26 +55,24 @@ connection.listen();
  */
 connection.onInitialize((params: InitializeParams) => {
   try {
-    return server.initialize(
-      params,
-      createSimpleProject([]),
-      [
-        // Order matters: base services first, then our custom plugin
-        // This ensures HTML/CSS/Emmet completions are available first
-        webComponentPlugin(),
-        createHtmlService(),
-        createCssService({
-          getCustomData: () => [{
-            providePseudoClasses: () => [{ name: 'state' }],
-            providePseudoElements: () => [{ name: 'state' }],
+    return server.initialize(params, createSimpleProject([]), [
+      // Order matters: base services first, then our custom plugin
+      // This ensures HTML/CSS/Emmet completions are available first
+      webComponentPlugin(),
+      createHtmlService(),
+      createCssService({
+        getCustomData: () => [
+          {
+            providePseudoClasses: () => [{ name: "state" }],
+            providePseudoElements: () => [{ name: "state" }],
             provideProperties: () => [],
             provideAtDirectives: () => [],
-            provideFunctions: () => []
-          }]
-        }),
-        createEmmetService(),
-      ]
-    );
+            provideFunctions: () => [],
+          },
+        ],
+      }),
+      createEmmetService(),
+    ]);
   } catch (error) {
     console.error("Error in onInitialize:", error);
     throw error;

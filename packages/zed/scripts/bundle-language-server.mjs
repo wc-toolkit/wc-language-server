@@ -22,12 +22,12 @@ const extensionDir = resolve(__dirname, "..");
 const serverDir = resolve(extensionDir, "server");
 const bundleSource = resolve(
   repoRoot,
-  "packages/language-server/bin/wc-language-server.js"
+  "packages/language-server/bin/wc-language-server.js",
 );
 const binariesSourceDir = resolve(repoRoot, "packages/language-server/bin");
 const bundleCjsSource = resolve(
   repoRoot,
-  "packages/language-server/dist/wc-language-server.bundle.cjs"
+  "packages/language-server/dist/wc-language-server.bundle.cjs",
 );
 const targetBinary = resolve(serverDir, "bin/wc-language-server.js");
 const targetBundle = resolve(serverDir, "dist/wc-language-server.bundle.cjs");
@@ -41,16 +41,22 @@ const buildResult = spawnSync(
   {
     cwd: repoRoot,
     stdio: "inherit",
-  }
+  },
 );
 
 if (buildResult.status !== 0) {
-  console.error("[zed] Failed to build language server bundle. See logs above.");
+  console.error(
+    "[zed] Failed to build language server bundle. See logs above.",
+  );
   process.exit(buildResult.status ?? 1);
 }
 
 if (!existsSync(bundleSource) || !existsSync(bundleCjsSource)) {
-  console.error("[zed] Language server files missing:", bundleSource, bundleCjsSource);
+  console.error(
+    "[zed] Language server files missing:",
+    bundleSource,
+    bundleCjsSource,
+  );
   process.exit(1);
 }
 
@@ -63,12 +69,19 @@ copyFileSync(bundleSource, targetBinary);
 mkdirSync(dirname(targetBundle), { recursive: true });
 copyFileSync(bundleCjsSource, targetBundle);
 
-console.log("[zed] Language server JavaScript bundled successfully ->", targetBinary);
+console.log(
+  "[zed] Language server JavaScript bundled successfully ->",
+  targetBinary,
+);
 console.log("[zed] Language server bundle copied ->", targetBundle);
 
 if (existsSync(binariesSourceDir)) {
   const binaries = readdirSync(binariesSourceDir)
-    .filter((entry) => entry.startsWith("wc-language-server-") && entry !== "wc-language-server.js")
+    .filter(
+      (entry) =>
+        entry.startsWith("wc-language-server-") &&
+        entry !== "wc-language-server.js",
+    )
     .map((entry) => ({
       name: entry,
       source: resolve(binariesSourceDir, entry),
@@ -85,7 +98,10 @@ if (existsSync(binariesSourceDir)) {
     console.log("[zed] No language server binaries found to copy.");
   }
 } else {
-  console.log("[zed] Language server binaries directory missing:", binariesSourceDir);
+  console.log(
+    "[zed] Language server binaries directory missing:",
+    binariesSourceDir,
+  );
 }
 
 const tsSource = resolve(repoRoot, "node_modules", "typescript");
@@ -101,7 +117,7 @@ if (existsSync(tsSource)) {
   console.warn(
     "[zed] Warning: Could not find TypeScript runtime at",
     tsSource,
-    "— language server will need tsdk from the workspace"
+    "— language server will need tsdk from the workspace",
   );
 }
 

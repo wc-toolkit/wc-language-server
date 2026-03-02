@@ -90,7 +90,6 @@ This plugin currently works with any file type, but additional configurations wi
 
 ![Demonstration of the web components language server with AI integration](https://wc-toolkit.com/_astro/wc-toolkit_ai_demo.CxGKU86C_ZDSnDU.webp)
 
-
 The Web Components Language Server provides built-in AI integration to help you work with Web Components more efficiently.
 
 ### VS Code Chat Participant
@@ -109,12 +108,14 @@ If you're using VS Code (version 1.90+), you can use the `@wctools` chat partici
 For editors like Cursor that support Language Model Tools, the extension registers the `wctools-docs` tool that AI assistants can use automatically to retrieve component documentation.
 
 **The AI can:**
+
 - Look up component properties, methods, and events
 - Get type information for attributes
 - Access component descriptions and usage examples
 - Query all components at once
 
 **Example conversation with Cursor:**
+
 ```
 You: "How do I use the my-button component?"
 Cursor AI: *automatically uses wctools-docs tool* "The my-button component has..."
@@ -184,6 +185,7 @@ When running in HTTP mode, the server exposes:
 #### Checking MCP Server Status
 
 Run the command `Web Components: Check MCP Server Status` from the Command Palette to verify:
+
 - Whether the MCP server is enabled
 - Current configuration (transport, port, host)
 - Number of components loaded
@@ -295,13 +297,13 @@ type DiagnosticSeverity = "error" | "warning" | "info" | "hint" | "off";
 // wc.config.js
 export default {
   /** Fetch manifest from a local directory */
-  manifestSrc: './build/custom-elements.json',
+  manifestSrc: "./build/custom-elements.json",
 
   /**
    * Only enable the Language Server feature for the TypeScript
    * and HTML files in the `src` directory of the project.
    */
-  include: ['src/**/*.ts', 'src/**/*.html'],
+  include: ["src/**/*.ts", "src/**/*.html"],
 
   /**
    * Add the custom suffix `_global` for all components.
@@ -313,7 +315,7 @@ export default {
     /**
      * Show duplicate attributes only as a warning instead of an error (global default override).
      */
-    duplicateAttribute: 'warning'
+    duplicateAttribute: "warning",
   },
 
   /** Library specific configurations (override root settings for that library only). */
@@ -323,20 +325,21 @@ export default {
        * Fetch manifest from a URL.
        * (Optional if the NPM package is installed and exposes custom-elements.json)
        */
-      manifestSrc: 'https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0-beta.4/dist/custom-elements.json',
+      manifestSrc:
+        "https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3.0.0-beta.4/dist/custom-elements.json",
 
       /**
        * Replace `wa-` prefix with `awesome-` for all Web Awesome components.
        * Language server options will now work for `awesome-button` instead of `wa-button`.
        */
-      tagFormatter: (tagName) => tagName.replace('wa-', 'awesome-'),
+      tagFormatter: (tagName) => tagName.replace("wa-", "awesome-"),
 
       diagnosticSeverity: {
         /** Treat duplicate attributes as warnings just for this library (overrides global). */
-        duplicateAttribute: 'warning'
-      }
-    }
-  }
+        duplicateAttribute: "warning",
+      },
+    },
+  },
 };
 ```
 

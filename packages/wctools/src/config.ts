@@ -35,7 +35,7 @@ export function validateConfig(config: WCConfig): string[] {
  * Creates a sample configuration file in JavaScript format
  */
 export async function createConfigFile(
-  filePath: string = "wc.config.mjs"
+  filePath: string = "wc.config.mjs",
 ): Promise<void> {
   const sampleConfig: Partial<WCConfig> = {
     manifestSrc: "custom-elements.json",
@@ -46,9 +46,9 @@ export async function createConfigFile(
 
   let type = "module";
 
-  if (fs.existsSync('./package.json')) {
-    const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
-    type = pkg.type !== 'module' ? 'commonjs' : 'module';
+  if (fs.existsSync("./package.json")) {
+    const pkg = JSON.parse(fs.readFileSync("./package.json", "utf-8"));
+    type = pkg.type !== "module" ? "commonjs" : "module";
     filePath = type === "module" ? "wc.config.mjs" : "wc.config.js";
   }
 

@@ -5,7 +5,7 @@ import { componentService } from "../../services/component-service.js";
 
 export function getHoverContent(
   document: html.TextDocument,
-  position: html.Position
+  position: html.Position,
 ): NullableProviderResult<Hover> {
   const htmlLanguageService = html.getLanguageService();
   const htmlDocument = htmlLanguageService.parseHTMLDocument(document);
@@ -47,7 +47,7 @@ export function getHoverContent(
       ) {
         const attribute = componentService.getAttributeByPrefix(
           node.tag,
-          attrName
+          attrName,
         );
 
         if (!attribute) {
