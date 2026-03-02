@@ -76,7 +76,7 @@ jobs:
       - name: Build
         run: |
           pnpm lint
-          pnpm -r --filter "${{ steps.changed_scope.outputs.pnpm_filter }}" --filter "!@wc-toolkit/jetbrains-plugin" run build
+          pnpm -r --filter "${{ steps.changed_scope.outputs.pnpm_filter }}" --filter "!@wc-toolkit/jetbrains-plugin" --filter "!@wc-toolkit/visual-studio" run build
 
       # - name: Run tests
       #   run: pnpm test
