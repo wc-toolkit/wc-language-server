@@ -28,7 +28,7 @@ jobs:
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
               - 'package.json'
-              - '.github/workflows/ci.yml'
+              - '.github/workflows/release-jetbrains-plugin.yml'
 
   build:
     needs: changes
@@ -76,7 +76,17 @@ jobs:
       - name: Build
         run: |
           pnpm lint
-          pnpm -r --filter "${{ steps.changed_scope.outputs.pnpm_filter }}" --filter "!@wc-toolkit/jetbrains-plugin" --filter "!@wc-toolkit/visual-studio" run build
+          pnpm -r \
+            --filter "${{ steps.changed_scope.outputs.pnpm_filter }}" \
+            --filter "!@wc-toolkit/jetbrains-plugin" \
+            --filter "!@wc-toolkit/visual-studio" \
+            run build 2>&1 | tee /tmp/pnpm_build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          if [[ $BUILD_EXIT -ne 0 ]] && grep -q "No projects matched the filters" /tmp/pnpm_build.log; then
+            echo "No packages matched filters, nothing to build"
+            exit 0
+          fi
+          exit $BUILD_EXIT
 
       # - name: Run tests
       #   run: pnpm test
