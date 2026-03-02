@@ -1,9 +1,49 @@
+# Build outputs
 out
 dist
 node_modules
 *.tsbuildinfo
 *.vsix
-.DS_STORE
 test-tmp
 packages/**/bin
-packages/**/obj
+
+# .NET build artifacts
+**/obj/
+**/bin/
+*.user
+*.suo
+*.cache
+*.ilk
+*.log
+*.pdb
+*.dll
+*.exe
+*.vshost.*
+*.userprefs
+*.DotSettings.user
+*.nupkg
+*.snupkg
+
+# Visual Studio
+.vs/
+.vscode/
+*.swp
+*.swo
+*~
+.idea/
+
+# OS files
+.DS_STORE
+Thumbs.db
+Desktop.ini
+
+# NuGet
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.publishproj

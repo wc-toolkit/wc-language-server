@@ -101,6 +101,8 @@ importers:
 
   packages/neovim: {}
 
+  packages/visual-studio: {}
+
   packages/vscode:
     devDependencies:
       "@modelcontextprotocol/sdk":

@@ -154,11 +154,14 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
       - name: Build Visual Studio extension
         shell: pwsh
         run: |
           dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
-          dotnet build ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj -c Release --no-restore
+          msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj /p:Configuration=Release /p:DeployExtension=false /p:CreateVsixContainer=true
 
   jetbrains-build:
     needs: changes
