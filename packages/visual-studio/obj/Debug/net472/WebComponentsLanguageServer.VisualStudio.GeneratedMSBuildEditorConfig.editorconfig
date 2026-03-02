@@ -1,8 +1,0 @@
-is_global = true
-build_property.RootNamespace = WebComponentsLanguageServer.VisualStudio
-build_property.ProjectDir = /Users/burtonsmith/Documents/Projects/wc-toolkit/wc-language-server/packages/visual-studio/
-build_property.EnableComHosting = 
-build_property.EnableGeneratedComInterfaceComImportInterop = 
-build_property.CsWinRTUseWindowsUIXamlProjections = false
-build_property.EffectiveAnalysisLevelStyle = 
-build_property.EnableCodeStyleSeverity = 
