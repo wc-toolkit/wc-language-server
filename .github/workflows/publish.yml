@@ -73,8 +73,8 @@ jobs:
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build
-        run: pnpm lint && pnpm build
+      - name: Build (excluding JetBrains plugin)
+        run: pnpm lint && pnpm -r --filter=!@wc-toolkit/jetbrains run build
       # Only run the following steps if packages were actually published
       - name: Get VSCode Extension Version
         id: vscode_version
@@ -172,15 +172,9 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
+          cache: "gradle"
 
-      - name: Build JetBrains Plugin
-        if: steps.check_jetbrains.outputs.exists == 'false'
-        run: |
-          cd packages/jetbrains
-          chmod +x gradlew
-          ./gradlew buildPlugin
-
-      - name: Publish JetBrains Plugin
+      - name: Build and Publish JetBrains Plugin
         if: steps.check_jetbrains.outputs.exists == 'false'
         id: publishJetBrains
         continue-on-error: true
@@ -188,4 +182,5 @@ jobs:
           PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
         run: |
           cd packages/jetbrains
-          ./gradlew publishPlugin
+          chmod +x gradlew
+          ./gradlew --no-daemon buildPlugin publishPlugin

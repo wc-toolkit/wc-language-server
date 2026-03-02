@@ -8,7 +8,30 @@ on:
       - main
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      jetbrains: ${{ steps.filter.outputs.jetbrains }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            jetbrains:
+              - 'packages/jetbrains/**'
+              - 'packages/language-server/**'
+              - 'packages/vscode/**'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
+              - '.github/workflows/ci.yml'
+
   build:
+    needs: changes
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -33,7 +56,61 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: pnpm lint && pnpm build
+        run: pnpm lint && pnpm -r --filter=!@wc-toolkit/jetbrains run build
 
       # - name: Run tests
       #   run: pnpm test
+
+  jetbrains-build:
+    needs: changes
+    if: needs.changes.outputs.jetbrains == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Java for JetBrains Plugin
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
+
+      - name: Build JetBrains Plugin
+        run: |
+          cd packages/jetbrains
+          chmod +x gradlew
+          ./gradlew --no-daemon buildPlugin
+
+  ci-summary:
+    needs: [changes, build, jetbrains-build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: CI Workflow Summary
+        run: |
+          {
+            echo "## CI Summary"
+            echo ""
+            echo "- JetBrains relevant changes detected: ${{ needs.changes.outputs.jetbrains }}"
+            echo "- Core build result: ${{ needs.build.result }}"
+            echo "- JetBrains build result: ${{ needs.jetbrains-build.result }}"
+          } >> "$GITHUB_STEP_SUMMARY"
