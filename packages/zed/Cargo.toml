@@ -1,6 +1,6 @@
 [package]
 name = "zed-web-components"
-version = "0.0.1"
+version = "0.0.8"
 edition = "2024"
 
 [lib]

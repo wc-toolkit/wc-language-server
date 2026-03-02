@@ -16,7 +16,14 @@ function getDevExtensionsDir() {
   }
 
   if (process.platform === "darwin") {
-    return join(homedir(), "Library", "Application Support", "Zed", "extensions", "dev");
+    return join(
+      homedir(),
+      "Library",
+      "Application Support",
+      "Zed",
+      "extensions",
+      "dev",
+    );
   }
 
   const xdg = process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
@@ -39,6 +46,9 @@ function main() {
 try {
   main();
 } catch (error) {
-  console.error("[zed] Failed to create dev symlink:", error instanceof Error ? error.message : error);
+  console.error(
+    "[zed] Failed to create dev symlink:",
+    error instanceof Error ? error.message : error,
+  );
   process.exit(1);
 }

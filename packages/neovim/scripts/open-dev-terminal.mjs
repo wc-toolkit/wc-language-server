@@ -23,7 +23,8 @@ function shEscape(value) {
 const shellCommand = `cd ${shEscape(demosDir)} && NVIM_APPNAME=wc-ls-dev nvim -u ${shEscape(devInit)}`;
 
 if (process.platform === "darwin") {
-  const osaScript = `tell application "Terminal"\n` +
+  const osaScript =
+    `tell application "Terminal"\n` +
     `  activate\n` +
     `  do script "${shellCommand.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"\n` +
     `end tell`;

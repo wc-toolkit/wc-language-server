@@ -22,7 +22,9 @@ function runStep(label, command, args, options = {}) {
   });
 
   if (result.status !== 0) {
-    console.error(`\n[zed build] Failed while executing: ${command} ${args.join(" ")}`);
+    console.error(
+      `\n[zed build] Failed while executing: ${command} ${args.join(" ")}`,
+    );
     process.exit(result.status ?? 1);
   }
 }
@@ -35,7 +37,9 @@ function syncExtensionVersion() {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
     const packageVersion = packageJson.version;
     if (!packageVersion) {
-      console.warn("\n[zed build] package.json missing version field; skipping version sync.");
+      console.warn(
+        "\n[zed build] package.json missing version field; skipping version sync.",
+      );
       return;
     }
 
@@ -44,23 +48,44 @@ function syncExtensionVersion() {
     const match = tomlContents.match(versionPattern);
 
     if (match?.[1] === packageVersion) {
-      console.log(`\n[zed build] extension.toml already at version ${packageVersion}.`);
+      console.log(
+        `\n[zed build] extension.toml already at version ${packageVersion}.`,
+      );
       return;
     }
 
-    const updatedToml = tomlContents.replace(versionPattern, `version = "${packageVersion}"`);
+    const updatedToml = tomlContents.replace(
+      versionPattern,
+      `version = "${packageVersion}"`,
+    );
     writeFileSync(extensionTomlPath, updatedToml);
-    console.log(`\n[zed build] Synced extension.toml version -> ${packageVersion}.`);
+    console.log(
+      `\n[zed build] Synced extension.toml version -> ${packageVersion}.`,
+    );
   } catch (error) {
-    console.warn("\n[zed build] Unable to sync extension version:", error instanceof Error ? error.message : error);
+    console.warn(
+      "\n[zed build] Unable to sync extension version:",
+      error instanceof Error ? error.message : error,
+    );
   }
 }
 
 syncExtensionVersion();
 
-runStep("Bundle language server", nodeCmd, [resolve(__dirname, "bundle-language-server.mjs")]);
-runStep("Install wasm32-wasip2 target", "rustup", ["target", "add", wasmTarget]);
-runStep("Build extension", "cargo", ["build", "--release", "--target", wasmTarget]);
+runStep("Bundle language server", nodeCmd, [
+  resolve(__dirname, "bundle-language-server.mjs"),
+]);
+runStep("Install wasm32-wasip2 target", "rustup", [
+  "target",
+  "add",
+  wasmTarget,
+]);
+runStep("Build extension", "cargo", [
+  "build",
+  "--release",
+  "--target",
+  wasmTarget,
+]);
 
 const cargoTomlPath = resolve(extensionDir, "Cargo.toml");
 let crateName = "wc_language_server_extension";
@@ -73,7 +98,10 @@ try {
     crateName = nameMatch[1].replace(/-/g, "_");
   }
 } catch (error) {
-  console.warn("\n[zed build] Could not read Cargo.toml, falling back to", crateName);
+  console.warn(
+    "\n[zed build] Could not read Cargo.toml, falling back to",
+    crateName,
+  );
   console.warn(error instanceof Error ? error.message : error);
 }
 
@@ -82,7 +110,7 @@ const wasmSource = resolve(
   "target",
   wasmTarget,
   "release",
-  `${crateName}.wasm`
+  `${crateName}.wasm`,
 );
 const wasmOutput = resolve(extensionDir, "extension.wasm");
 
@@ -94,4 +122,6 @@ if (!existsSync(wasmSource)) {
 console.log("\n[zed build] Copying wasm ->", wasmOutput);
 copyFileSync(wasmSource, wasmOutput);
 
-console.log("\n[zed build] Done. Generated extension.wasm and bundled language server.");
+console.log(
+  "\n[zed build] Done. Generated extension.wasm and bundled language server.",
+);

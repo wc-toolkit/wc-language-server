@@ -15,7 +15,4 @@ export {
   DEFAULT_CONFIG,
   BaseConfigurationManager,
 } from "./shared-configuration.js";
-export {
-  manifestService,
-  ManifestService
-} from "./manifest-service.js";
+export { manifestService, ManifestService } from "./manifest-service.js";

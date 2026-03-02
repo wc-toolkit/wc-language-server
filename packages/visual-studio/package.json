@@ -1,13 +1,13 @@
 {
   "name": "@wc-toolkit/visual-studio",
-  "version": "0.0.2",
+  "version": "0.0.6",
   "description": "Visual Studio extension for the Web Components Language Server",
   "private": true,
   "license": "MIT",
   "scripts": {
     "build": "dotnet build WebComponentsLanguageServer.VisualStudio.csproj -c Release",
     "clean": "dotnet clean WebComponentsLanguageServer.VisualStudio.csproj",
-    "pack": "dotnet build WebComponentsLanguageServer.VisualStudio.csproj -c Release",
+    "pack": "node -e \"if(process.platform!=='win32'){console.error('VSIX packaging currently requires Windows with Visual Studio build tools. Use the release-visual-studio-vsix GitHub workflow or run pack on Windows.'); process.exit(1)}\" && dotnet build WebComponentsLanguageServer.VisualStudio.csproj -c Release",
     "release": "echo 'Visual Studio extension published via GitHub Actions release workflow'"
   },
   "keywords": [

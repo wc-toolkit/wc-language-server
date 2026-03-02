@@ -42,18 +42,18 @@ type ExpandedValidationOptions = ValidateWebComponentsOptions & {
 
 program
   .description(
-    "CLI tool for validating Web Components using Custom Elements Manifest"
+    "CLI tool for validating Web Components using Custom Elements Manifest",
   )
   .command("validate")
   .argument(
     "[patterns...]",
-    "File patterns to validate (defaults to config include patterns)"
+    "File patterns to validate (defaults to config include patterns)",
   )
   .option("-c, --config <path>", "Path to configuration file")
   .option(
     "-f, --format <format>",
     "Output format (text, json, junit, checkstyle, sarif, html)",
-    "text"
+    "text",
   )
   .option("-o, --output <file>", "Write formatted output to a file")
   .option("--no-color", "Disable colored output")
@@ -75,7 +75,7 @@ program
  */
 export async function validateWebComponents(
   patterns: string[] = [],
-  options: ExpandedValidationOptions = {}
+  options: ExpandedValidationOptions = {},
 ): Promise<number> {
   const start = Date.now();
   try {
@@ -107,7 +107,7 @@ export async function validateWebComponents(
 
     debug(
       "Invoking validateFiles with patterns:",
-      patterns.length ? patterns : "(using config include patterns)"
+      patterns.length ? patterns : "(using config include patterns)",
     );
     // Validate files
     info(chalk.blue("🔍 Validating Web Components..."));
@@ -134,7 +134,7 @@ export async function validateWebComponents(
 
     // Return non-zero on validation errors
     const hasErrors = results.some((result) =>
-      result.diagnostics.some((diagnostic) => diagnostic.severity === 1)
+      result.diagnostics.some((diagnostic) => diagnostic.severity === 1),
     );
 
     if (config.debug) {
@@ -142,11 +142,11 @@ export async function validateWebComponents(
 
       const totalDiagnostics = results.reduce(
         (sum, r) => sum + r.diagnostics.length,
-        0
+        0,
       );
       const errorCount = results.reduce(
         (sum, r) => sum + r.diagnostics.filter((d) => d.severity === 1).length,
-        0
+        0,
       );
       const warningCount = totalDiagnostics - errorCount;
 
@@ -177,8 +177,8 @@ program
       info(chalk.green(`✓ Created configuration file: ${options.file}`));
       info(
         chalk.blue(
-          "You can now customize the configuration to fit your project needs."
-        )
+          "You can now customize the configuration to fit your project needs.",
+        ),
       );
       process.exit(0);
     } catch (err) {

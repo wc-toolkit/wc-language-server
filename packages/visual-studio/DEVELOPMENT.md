@@ -51,7 +51,9 @@ Useful commands in the experimental instance (Tools menu):
 
 ## Package / install VSIX
 
-Build in **Release** and locate the generated `.vsix` under `packages/visual-studio/bin/**`.
+Build/package on **Windows** (with Visual Studio build tools) and locate the generated `.vsix` under `packages/visual-studio/bin/**`.
+
+If you're on macOS/Linux, use the GitHub Actions workflow `.github/workflows/release-visual-studio-vsix.yml` to produce and download the VSIX artifact.
 
 To install locally:
 
@@ -82,3 +84,7 @@ To install locally:
 The repo includes workflow automation for VSIX builds and release artifacts in:
 
 - `.github/workflows/release-visual-studio-vsix.yml`
+
+To enable automatic publishing to Visual Studio Marketplace from that workflow, set this repository secret:
+
+- `VSCODE_MARKETPLACE`

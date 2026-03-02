@@ -69,5 +69,11 @@
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
     </None>
+    <None Include="LICENSE">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </None>
+    <None Include="assets\icon.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </None>
   </ItemGroup>
 </Project>

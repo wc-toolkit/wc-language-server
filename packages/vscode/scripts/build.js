@@ -17,12 +17,12 @@ function runLanguageServerBuild() {
     {
       cwd: repoRoot,
       stdio: "inherit",
-    }
+    },
   );
 
   if (result.status !== 0) {
     throw new Error(
-      "[vscode] Failed to build the language server executable. See logs above."
+      "[vscode] Failed to build the language server executable. See logs above.",
     );
   }
 }
@@ -36,16 +36,16 @@ function ensureLanguageServerBundle() {
 function copyBundleIntoExtension() {
   const serverDir = path.resolve(__dirname, "../dist/server");
   mkdirSync(serverDir, { recursive: true });
-  
+
   // Copy all platform executables
   const executables = [
-    'wc-language-server-linux-x64',
-    'wc-language-server-linux-arm64',
-    'wc-language-server-macos-x64', 
-    'wc-language-server-macos-arm64',
-    'wc-language-server-windows-x64.exe'
+    "wc-language-server-linux-x64",
+    "wc-language-server-linux-arm64",
+    "wc-language-server-macos-x64",
+    "wc-language-server-macos-arm64",
+    "wc-language-server-windows-x64.exe",
   ];
-  
+
   for (const exe of executables) {
     const source = path.resolve(repoRoot, "packages/language-server/bin", exe);
     const target = path.resolve(serverDir, exe);
@@ -97,7 +97,9 @@ require("esbuild")
   })
   .then(async (ctx) => {
     const copyAfterBuild = (error) => {
-      const hasErrors = Array.isArray(error) ? error.length > 0 : Boolean(error);
+      const hasErrors = Array.isArray(error)
+        ? error.length > 0
+        : Boolean(error);
       if (hasErrors) {
         console.error("[vscode] esbuild failed, skipping bundle copy", error);
         return;
@@ -105,7 +107,10 @@ require("esbuild")
       try {
         copyBundleIntoExtension();
       } catch (copyError) {
-        console.error("[vscode] Failed to copy language server bundle", copyError);
+        console.error(
+          "[vscode] Failed to copy language server bundle",
+          copyError,
+        );
       }
     };
 
@@ -119,7 +124,9 @@ require("esbuild")
       console.log("watching...");
     } else {
       const result = await ctx.rebuild();
-      copyAfterBuild(result.errors && result.errors.length ? result.errors : null);
+      copyAfterBuild(
+        result.errors && result.errors.length ? result.errors : null,
+      );
       await ctx.dispose();
       console.log("finished.");
     }

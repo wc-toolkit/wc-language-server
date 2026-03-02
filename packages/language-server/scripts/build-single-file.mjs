@@ -29,7 +29,7 @@ const umdToEsmPlugin = {
           .replace("/umd/", "/esm/")
           .replace("\\umd\\", "\\esm\\");
         return { path: pathEsm };
-      }
+      },
     );
   },
 };

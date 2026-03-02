@@ -45,6 +45,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
+          version: pnpm changeset:version
           publish: pnpm release
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -72,8 +73,8 @@ jobs:
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build
-        run: pnpm lint && pnpm build
+      - name: Build (excluding JetBrains plugin)
+        run: pnpm lint && pnpm -r --filter=!@wc-toolkit/jetbrains-plugin run build
       # Only run the following steps if packages were actually published
       - name: Get VSCode Extension Version
         id: vscode_version
@@ -81,7 +82,7 @@ jobs:
           VERSION=$(node -p "require('./packages/vscode/package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "VSCode extension version: $VERSION"
-      
+
       - name: Check if version exists on Open VSX
         id: check_openvsx
         continue-on-error: true
@@ -94,7 +95,7 @@ jobs:
             echo "exists=true" >> $GITHUB_OUTPUT
             echo "Version already exists on Open VSX, skipping publish"
           fi
-      
+
       - name: Publish to Open VSX Registry
         if: steps.check_openvsx.outputs.exists == 'false'
         uses: HaaLeo/publish-vscode-extension@v2
@@ -103,7 +104,7 @@ jobs:
         with:
           pat: ${{ secrets.OPENVSX_TOKEN }}
           packagePath: ./packages/vscode
-      
+
       - name: Check if version exists on VS Marketplace
         id: check_marketplace
         continue-on-error: true
@@ -120,7 +121,7 @@ jobs:
               "flags": 914
             }' \
             https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery)
-          
+
           if echo "$RESPONSE" | grep -q '"versions":\['; then
             CURRENT_VERSION=$(echo "$RESPONSE" | grep -o '"version":"${{ steps.vscode_version.outputs.version }}"' || echo "")
             if [ -z "$CURRENT_VERSION" ]; then
@@ -134,7 +135,7 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
             echo "Extension not found on VS Marketplace, will publish"
           fi
-      
+
       - name: Publish to Visual Studio Marketplace
         if: steps.check_marketplace.outputs.exists == 'false'
         uses: HaaLeo/publish-vscode-extension@v2
@@ -144,14 +145,14 @@ jobs:
           packagePath: ./packages/vscode
           registryUrl: https://marketplace.visualstudio.com
           extensionFile: ${{ steps.publishToOpenVSX.outputs.vsixPath }}
-      
+
       - name: Get JetBrains Plugin Version
         id: jetbrains_version
         run: |
           VERSION=$(node -p "require('./packages/jetbrains/package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "JetBrains plugin version: $VERSION"
-      
+
       - name: Check if version exists on JetBrains Marketplace
         id: check_jetbrains
         continue-on-error: true
@@ -164,22 +165,16 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
             echo "Version does not exist on JetBrains Marketplace"
           fi
-      
+
       - name: Setup Java for JetBrains Plugin
         if: steps.check_jetbrains.outputs.exists == 'false'
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-      
-      - name: Build JetBrains Plugin
-        if: steps.check_jetbrains.outputs.exists == 'false'
-        run: |
-          cd packages/jetbrains
-          chmod +x gradlew
-          ./gradlew buildPlugin
-      
-      - name: Publish JetBrains Plugin
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
+
+      - name: Build and Publish JetBrains Plugin
         if: steps.check_jetbrains.outputs.exists == 'false'
         id: publishJetBrains
         continue-on-error: true
@@ -187,4 +182,5 @@ jobs:
           PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
         run: |
           cd packages/jetbrains
-          ./gradlew publishPlugin
+          chmod +x gradlew
+          ./gradlew --no-daemon buildPlugin publishPlugin

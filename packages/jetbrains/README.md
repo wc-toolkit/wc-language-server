@@ -19,6 +19,7 @@ Advanced editor support for using Web Components and custom elements in WebStorm
 
 - **JetBrains IDE**: WebStorm 2024.2+ or IntelliJ IDEA 2024.2+ (with JavaScript plugin)
 - **Custom Elements Manifest**: A component library with a `custom-elements.json` ([Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest)) file
+
 ## Installation
 
 1. Open your JetBrains IDE (WebStorm, IntelliJ IDEA, etc.)
@@ -45,6 +46,7 @@ Open an HTML file and type:
 ```
 
 You'll get:
+
 - **Autocomplete**: Type `<wa-` and press `Ctrl+Space` to see all Shoelace components
 - **Attribute suggestions**: Type `variant="` to see available options (`primary`, `success`, `neutral`, etc.)
 - **Hover documentation**: Hover over `sl-button` to see component documentation
@@ -61,12 +63,14 @@ Set manually if Node.js isn't in your system PATH.
 
 **Custom Manifest Path**  
 If your library's `custom-elements.json` is in a non-standard location, specify the path here. The plugin automatically searches:
+
 - `node_modules/*/custom-elements.json`
 - `custom-elements.json` (project root)
 - Any path specified in your project's `package.json`
 
 **MCP Server (Advanced)**  
 Enable Model Context Protocol server for AI agent integration:
+
 - Check `Enable MCP Server`
 - Configure transport (`http` recommended), port (`3000`), and host (`localhost`)
 - Check status: `Tools → Check Web Components MCP Server Status`
@@ -78,11 +82,13 @@ Enable Model Context Protocol server for AI agent integration:
 ### No Autocomplete or Hover
 
 **The component library may not provide a Custom Elements Manifest:**
+
 - Check if `node_modules/[library-name]/custom-elements.json` exists
 - Verify your library supports the [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest) format
 - Try manually restarting: `Tools → Restart Web Components Language Server`
 
 **Multiple libraries installed:**
+
 - The plugin automatically discovers manifests from all installed libraries
 - If a specific library isn't working, check its `custom-elements.json` format
 

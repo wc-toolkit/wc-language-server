@@ -82,7 +82,7 @@ export interface LibraryConfig {
   componentModulePath?: (
     componentName: string,
     tagName: string,
-    modulePath: string
+    modulePath: string,
   ) => string;
 
   /** Path to a global module to include in all files. */
@@ -157,7 +157,7 @@ export class BaseConfigurationManager {
     if (userConfig.libraries) {
       mergedConfig.libraries = {};
       for (const [libraryName, libraryConfig] of Object.entries(
-        userConfig.libraries
+        userConfig.libraries,
       )) {
         mergedConfig.libraries[libraryName] = {
           ...DEFAULT_CONFIG,
@@ -199,7 +199,7 @@ export class BaseConfigurationManager {
 
     if (config.diagnosticSeverity) {
       const diagnosticKeys = Object.keys(
-        DEFAULT_CONFIG.diagnosticSeverity!
+        DEFAULT_CONFIG.diagnosticSeverity!,
       ) as DiagnosticOptions[];
 
       for (const key of diagnosticKeys) {
@@ -208,7 +208,7 @@ export class BaseConfigurationManager {
           !validSeverities.includes(config.diagnosticSeverity[key]!)
         ) {
           warn(
-            `Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`
+            `Invalid diagnostic severity "${config.diagnosticSeverity[key]}" for ${key}. Using "error" instead.`,
           );
           debug("config:validate:severityCorrected", {
             key,
@@ -250,8 +250,8 @@ export class BaseConfigurationManager {
         if (typeof value === "string" && !validSeverities.includes(value)) {
           errors.push(
             `diagnosticSeverity.${key} must be one of: ${validSeverities.join(
-              ", "
-            )}`
+              ", ",
+            )}`,
           );
         }
       }
@@ -286,7 +286,7 @@ export class BaseConfigurationManager {
       if (this.config.exclude?.length) {
         const excluded = this.config.exclude?.length
           ? this.config.exclude.some((pattern) =>
-              candidates.some((p) => minimatch(p, pattern, { dot: true }))
+              candidates.some((p) => minimatch(p, pattern, { dot: true })),
             )
           : false;
         const decision = !excluded;
@@ -302,7 +302,7 @@ export class BaseConfigurationManager {
     }
 
     const includeMatch = this.config.include.some((pattern) =>
-      candidates.some((p) => minimatch(p, pattern, { dot: true }))
+      candidates.some((p) => minimatch(p, pattern, { dot: true })),
     );
     if (!includeMatch) {
       debug("config:file:includeDecision", {
@@ -315,7 +315,7 @@ export class BaseConfigurationManager {
 
     if (this.config.exclude && this.config.exclude.length > 0) {
       const excludeMatch = this.config.exclude.some((pattern) =>
-        candidates.some((p) => minimatch(p, pattern, { dot: true }))
+        candidates.some((p) => minimatch(p, pattern, { dot: true })),
       );
       if (excludeMatch) {
         debug("config:file:includeDecision", {
@@ -389,7 +389,7 @@ export function findConfigFile(directory: string): string | undefined {
  * Loads and parses a configuration file (supports JS, TS, and MJS)
  */
 export async function loadConfigFile(
-  filePath: string
+  filePath: string,
 ): Promise<Partial<WCConfig>> {
   debug("config:file:load", { filePath });
   const ext = path.extname(filePath);
@@ -426,7 +426,7 @@ export async function loadConfigFile(
     }
   } else {
     throw new Error(
-      `Unsupported configuration file format: ${ext}. Supported formats: .js, .mjs, .ts, .json`
+      `Unsupported configuration file format: ${ext}. Supported formats: .js, .mjs, .ts, .json`,
     );
   }
 }
@@ -436,7 +436,7 @@ export async function loadConfigFile(
  */
 export async function loadConfig(
   configPath?: string,
-  workingDirectory = process.cwd()
+  workingDirectory = process.cwd(),
 ): Promise<WCConfig> {
   debug("config:load:entry", { explicit: configPath, cwd: workingDirectory });
   const manager = new BaseConfigurationManager();
@@ -472,7 +472,7 @@ export async function loadConfig(
     return merged;
   } catch (error) {
     throw new Error(
-      `Failed to load configuration from ${configFile}: ${error}`
+      `Failed to load configuration from ${configFile}: ${error}`,
     );
   }
 }

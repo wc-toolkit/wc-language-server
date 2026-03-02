@@ -32,7 +32,7 @@ export class ConfigurationService extends BaseConfigurationManager {
         debug("config:load:explicitFound", { path: configPath });
         const userConfig = await loadConfigFileOrDir(
           configPath,
-          this.workspaceRoot
+          this.workspaceRoot,
         );
 
         const validated = this.validateConfig(userConfig || {});
@@ -48,10 +48,10 @@ export class ConfigurationService extends BaseConfigurationManager {
         // Otherwise, allow loader to search for config files within the workspace root
         const userConfig = (await loadConfigFileOrDir(
           undefined,
-          this.workspaceRoot
+          this.workspaceRoot,
         )) as Partial<WCConfig> | undefined;
         this.config = this.mergeWithDefaults(
-          this.validateConfig(userConfig || {})
+          this.validateConfig(userConfig || {}),
         );
         debug("config:load:searchMerged", {
           debug: this.config.debug,

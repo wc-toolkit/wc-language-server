@@ -60,7 +60,7 @@ export function parseAttributeValueOptions(
 
   const GENERIC_CHECK = /\b[A-Za-z_]\w*\s*<[^<>]*?>/g;
 
-  if(value?.match(GENERIC_CHECK)) {
+  if (value?.match(GENERIC_CHECK)) {
     return "string";
   }
 
@@ -75,19 +75,20 @@ export function parseAttributeValueOptions(
   // Check for intersection type patterns like (number & {}) or (string & {})
   // These indicate "accept this primitive type but suggest specific literals"
   const intersectionMatch = splitValues.find((type) =>
-    /^\((?:number|string)\s*&\s*\{\s*\}\)$/.test(type)
+    /^\((?:number|string)\s*&\s*\{\s*\}\)$/.test(type),
   );
 
   if (intersectionMatch) {
     // Extract the base type from intersection (e.g., "number" from "(number & {})")
     const baseType = intersectionMatch.match(/^\((\w+)\s*&/)?.[1];
-    
+
     if (baseType === "number" || baseType === "string") {
       // If there are literals, return them (validation will also accept the base type)
       const literalValues = splitValues
-        .filter((type) => 
-          !EXCLUDED_TYPES.includes(type) && 
-          !/^\((?:number|string)\s*&\s*\{\s*\}\)$/.test(type)
+        .filter(
+          (type) =>
+            !EXCLUDED_TYPES.includes(type) &&
+            !/^\((?:number|string)\s*&\s*\{\s*\}\)$/.test(type),
         )
         .map((type) => removeQuotes(type))
         .filter(Boolean);

@@ -5,9 +5,11 @@ This module provides intelligent CSS autocomplete functionality for web componen
 ## Features
 
 ### 1. **CSS Custom Properties (CSS Variables)**
+
 Autocomplete for component-specific CSS custom properties defined in the Custom Elements Manifest.
 
 **Example:**
+
 ```css
 sl-alert {
   --sl-alert-border-radius: 0.5rem;
@@ -17,15 +19,18 @@ sl-alert {
 ```
 
 **Triggers:**
+
 - Typing `--` in a CSS rule block
 - Shows all CSS custom properties from all components in the manifest
 - Displays which component defines each property
 - Shows description and deprecation status
 
 ### 2. **CSS Parts (::part() selector)**
+
 Autocomplete for CSS parts exposed by web components for styling shadow DOM elements.
 
 **Example:**
+
 ```css
 sl-alert::part(base) {
   background: white;
@@ -37,15 +42,18 @@ sl-alert::part(message) {
 ```
 
 **Triggers:**
-- Typing `::part(` 
+
+- Typing `::part(`
 - Shows all CSS parts exposed by components
 - Filters suggestions as you type the part name
 - Displays which component exposes each part
 
 ### 3. **CSS Custom States (:state() selector)**
+
 Autocomplete for custom element states using the `:state()` pseudo-class.
 
 **Example:**
+
 ```css
 my-element:state(loading) {
   opacity: 0.5;
@@ -57,14 +65,17 @@ sl-button:state(disabled) {
 ```
 
 **Triggers:**
+
 - Typing `:state(`
 - Shows custom states defined in components
 - Detected from `CustomStateSet` members in the manifest
 
 ### 4. **Component Selector Autocomplete**
+
 Autocomplete for custom element tag names when typing selectors.
 
 **Example:**
+
 ```css
 /* Type 'sl-' to see all Shoelace components */
 sl-button {
@@ -77,6 +88,7 @@ sl-dropdown {
 ```
 
 **Triggers:**
+
 - Typing a component name (with hyphen)
 - Shows all matching custom elements
 - Displays component description and deprecation status
@@ -110,20 +122,20 @@ interface Component {
   tagName: string;
   description?: string;
   deprecated?: boolean | string;
-  
+
   // CSS-related properties
   cssProperties?: {
     name: string;
     description?: string;
     deprecated?: boolean | string;
   }[];
-  
+
   cssParts?: {
     name: string;
     description?: string;
     deprecated?: boolean | string;
   }[];
-  
+
   // States detected from members
   members?: {
     name: string;
@@ -136,26 +148,29 @@ interface Component {
 ### Helper Functions
 
 **Get CSS properties for a specific element:**
-```typescript
-import { getCssPropertiesForElement } from './plugins/css';
 
-const properties = getCssPropertiesForElement('sl-alert');
+```typescript
+import { getCssPropertiesForElement } from "./plugins/css";
+
+const properties = getCssPropertiesForElement("sl-alert");
 // Returns: [{ name: '--sl-alert-border-radius', description: '...' }, ...]
 ```
 
 **Get CSS parts for a specific element:**
-```typescript
-import { getCssPartsForElement } from './plugins/css';
 
-const parts = getCssPartsForElement('sl-alert');
+```typescript
+import { getCssPartsForElement } from "./plugins/css";
+
+const parts = getCssPartsForElement("sl-alert");
 // Returns: [{ name: 'base', description: '...' }, { name: 'message', ... }]
 ```
 
 **Get CSS states for a specific element:**
-```typescript
-import { getCssStatesForElement } from './plugins/css';
 
-const states = getCssStatesForElement('my-element');
+```typescript
+import { getCssStatesForElement } from "./plugins/css";
+
+const states = getCssStatesForElement("my-element");
 // Returns: [{ name: 'loading', description: '...' }]
 ```
 
@@ -180,18 +195,18 @@ export default {
 ## Usage Example
 
 ```typescript
-import { getCssAutoCompleteSuggestions } from './plugins/css';
-import * as css from 'vscode-css-languageservice';
+import { getCssAutoCompleteSuggestions } from "./plugins/css";
+import * as css from "vscode-css-languageservice";
 
 // In your language server
 connection.onCompletion((params) => {
   const document = documents.get(params.textDocument.uri);
   if (!document) return null;
-  
-  if (document.languageId === 'css') {
+
+  if (document.languageId === "css") {
     return getCssAutoCompleteSuggestions(document, params.position);
   }
-  
+
   return null;
 });
 ```
@@ -201,19 +216,20 @@ connection.onCompletion((params) => {
 CSS autocomplete works seamlessly with HTML autocomplete:
 
 **HTML:**
+
 ```html
-<sl-alert variant="primary" closable>
-  Alert message
-</sl-alert>
+<sl-alert variant="primary" closable> Alert message </sl-alert>
 ```
 
 **CSS:**
+
 ```css
 sl-alert {
   --sl-alert-border-radius: 8px; /* Autocomplete suggests this */
 }
 
-sl-alert::part(base) { /* Autocomplete suggests 'base', 'icon', 'message', etc. */
+sl-alert::part(base) {
+  /* Autocomplete suggests 'base', 'icon', 'message', etc. */
   padding: 1rem;
 }
 ```
