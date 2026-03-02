@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.5
+
+### Patch Changes
+
+- 6ecfa19: Fixed publish silent failures
+
 ## 0.0.4
 
 ### Patch Changes
