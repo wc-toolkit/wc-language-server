@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.8
+
+### Patch Changes
+
+- f9b2116: Fixed `msbuild` command failure
+
 ## 0.0.7
 
 ### Patch Changes
