@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.9
+
+### Patch Changes
+
+- 31df62a: Hardcoded VSIX output path
+
 ## 0.0.8
 
 ### Patch Changes
