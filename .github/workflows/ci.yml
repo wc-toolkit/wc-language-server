@@ -138,6 +138,8 @@ jobs:
     needs: [changes, visual-studio-build-ls]
     if: needs.changes.outputs.visualstudio == 'true'
     runs-on: windows-latest
+    env:
+      VSIX_OUTPUT_PATH: ${{ github.workspace }}\vsix-output
     steps:
       - uses: actions/checkout@v4
         with:
@@ -161,7 +163,19 @@ jobs:
         shell: pwsh
         run: |
           dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
-          dotnet msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj /p:Configuration=Release /p:DeployExtension=false /p:CreateVsixContainer=true
+          dotnet msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj `
+            /p:Configuration=Release `
+            /p:DeployExtension=false `
+            /p:CreateVsixContainer=true `
+            /p:CopyVsixExtensionFiles=true `
+            /p:VsixOutputPath="$env:VSIX_OUTPUT_PATH\" `
+            /v:n
+
+      - name: Verify VSIX output
+        shell: pwsh
+        run: |
+          $vsix = Get-ChildItem -Path $env:VSIX_OUTPUT_PATH -Filter *.vsix -ErrorAction Stop | Select-Object -First 1
+          Write-Host "VSIX found: $($vsix.FullName) ($($vsix.Length) bytes)"
 
   jetbrains-build:
     needs: changes
