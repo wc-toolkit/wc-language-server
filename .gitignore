@@ -6,3 +6,4 @@ node_modules
 .DS_STORE
 test-tmp
 packages/**/bin
+packages/**/obj

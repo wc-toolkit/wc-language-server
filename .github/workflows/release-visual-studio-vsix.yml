@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - "*"
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -11,6 +15,7 @@ permissions:
 
 jobs:
   build-vsix:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: windows-latest
     env:
       VISUAL_STUDIO_MARKETPLACE_TOKEN: ${{ secrets.VSCODE_MARKETPLACE }}
@@ -35,6 +40,38 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
+
+      - name: Install pnpm
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js 22
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Setup Bun
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build language server binaries
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        run: pnpm run build:ls
+
+      - name: Preflight binary check
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        shell: pwsh
+        run: |
+          Write-Host "Listing packages/language-server/bin contents:"
+          Get-ChildItem -Path ./packages/language-server/bin -File | Select-Object Name, Length, LastWriteTime
 
       - name: Build Visual Studio extension (Release)
         if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
@@ -74,7 +111,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish VSIX to Visual Studio Marketplace
-        if: (github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true') && startsWith(github.ref, 'refs/tags/') && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
+        if: (github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true') && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_run') && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}
