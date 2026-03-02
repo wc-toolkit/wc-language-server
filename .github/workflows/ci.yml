@@ -161,7 +161,7 @@ jobs:
         shell: pwsh
         run: |
           dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
-          msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj /p:Configuration=Release /p:DeployExtension=false /p:CreateVsixContainer=true
+          dotnet msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj /p:Configuration=Release /p:DeployExtension=false /p:CreateVsixContainer=true
 
   jetbrains-build:
     needs: changes
