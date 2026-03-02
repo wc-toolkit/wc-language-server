@@ -38,6 +38,8 @@ jobs:
         node-version: [22]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
@@ -55,8 +57,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Determine changed package scope
+        id: changed_scope
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            BASE_REF="origin/${GITHUB_BASE_REF}"
+          elif [[ -n "${BEFORE_SHA}" && "${BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]]; then
+            BASE_REF="${BEFORE_SHA}"
+          else
+            BASE_REF="HEAD~1"
+          fi
+
+          echo "base_ref=${BASE_REF}" >> "$GITHUB_OUTPUT"
+          echo "pnpm_filter=...[${BASE_REF}]..." >> "$GITHUB_OUTPUT"
+
       - name: Build
-        run: pnpm lint && pnpm -r --filter=!@wc-toolkit/jetbrains-plugin run build
+        run: |
+          pnpm lint
+          pnpm -r --filter "${{ steps.changed_scope.outputs.pnpm_filter }}" --filter "!@wc-toolkit/jetbrains-plugin" run build
 
       # - name: Run tests
       #   run: pnpm test
