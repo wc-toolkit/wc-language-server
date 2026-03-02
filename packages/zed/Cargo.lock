@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "zed-web-components"
-version = "0.0.1"
+version = "0.0.8"
 dependencies = [
  "zed_extension_api",
 ]
