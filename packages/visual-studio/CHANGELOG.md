@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.7
+
+### Patch Changes
+
+- 433ab03: Fixed VSIX build location
+
 ## 0.0.6
 
 ### Patch Changes
