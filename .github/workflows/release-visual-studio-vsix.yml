@@ -116,23 +116,28 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
-      - name: Add MSBuild to PATH
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
-        uses: microsoft/setup-msbuild@v2
-
       - name: Build Visual Studio extension (Release)
         shell: pwsh
         run: |
           dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
-          dotnet msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj /p:Configuration=Release /p:DeployExtension=false /p:CreateVsixContainer=true
+          dotnet msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj /p:Configuration=Release /p:DeployExtension=false /p:CreateVsixContainer=true /p:CopyVsixExtensionFiles=true /v:m
+
+      - name: Debug - List all files in bin directory
+        shell: pwsh
+        run: |
+          Write-Host "Contents of packages/visual-studio/bin:"
+          Get-ChildItem -Path ./packages/visual-studio/bin -Recurse | Select-Object FullName, Length
 
       - name: Find VSIX output
         id: find_vsix
         shell: pwsh
         run: |
-          $vsix = Get-ChildItem -Path ./packages/visual-studio/bin -Recurse -Filter *.vsix | Select-Object -First 1
+          Write-Host "Searching for VSIX under packages/visual-studio:"
+          Get-ChildItem -Path ./packages/visual-studio -Recurse -Filter *.vsix | Select-Object FullName
+
+          $vsix = Get-ChildItem -Path ./packages/visual-studio -Recurse -Filter *.vsix | Select-Object -First 1
           if (-not $vsix) {
-            Write-Error "No VSIX file found under packages/visual-studio/bin"
+            Write-Error "No VSIX file found under packages/visual-studio"
             exit 1
           }
 
