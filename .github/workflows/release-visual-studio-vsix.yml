@@ -35,53 +35,77 @@ jobs:
               - 'packages/language-server/bin/**'
               - '.github/workflows/release-visual-studio-vsix.yml'
 
+      - name: Decide whether to run
+        id: gate
+        shell: pwsh
+        run: |
+          $shouldRun = $false
+
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') { $shouldRun = $true }
+          if ('${{ github.event_name }}' -eq 'workflow_run') { $shouldRun = $true }
+          if ('${{ github.event_name }}' -eq 'push' -and '${{ startsWith(github.ref, 'refs/tags/') }}' -eq 'true') { $shouldRun = $true }
+          if ('${{ steps.changes.outputs.visualstudio }}' -eq 'true') { $shouldRun = $true }
+
+          "should_run=$($shouldRun.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+
+      - name: Workflow summary
+        shell: pwsh
+        run: |
+          $tokenPresent = if ([string]::IsNullOrWhiteSpace("${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}")) { "false" } else { "true" }
+          Write-Host "event_name=${{ github.event_name }}"
+          Write-Host "ref=${{ github.ref }}"
+          Write-Host "is_tag=${{ startsWith(github.ref, 'refs/tags/') }}"
+          Write-Host "paths_filter_visualstudio=${{ steps.changes.outputs.visualstudio }}"
+          Write-Host "should_run=${{ steps.gate.outputs.should_run }}"
+          Write-Host "marketplace_token_present=$tokenPresent"
+
       - name: Setup .NET SDK
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        if: steps.gate.outputs.should_run == 'true'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
 
       - name: Install pnpm
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        if: steps.gate.outputs.should_run == 'true'
         uses: pnpm/action-setup@v4
 
       - name: Use Node.js 22
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        if: steps.gate.outputs.should_run == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "pnpm"
 
       - name: Setup Bun
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        if: steps.gate.outputs.should_run == 'true'
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
       - name: Install dependencies
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        if: steps.gate.outputs.should_run == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build language server binaries
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        if: steps.gate.outputs.should_run == 'true'
         run: pnpm run build:ls
 
       - name: Preflight binary check
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        if: steps.gate.outputs.should_run == 'true'
         shell: pwsh
         run: |
           Write-Host "Listing packages/language-server/bin contents:"
           Get-ChildItem -Path ./packages/language-server/bin -File | Select-Object Name, Length, LastWriteTime
 
       - name: Build Visual Studio extension (Release)
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        if: steps.gate.outputs.should_run == 'true'
         shell: pwsh
         run: |
           dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
           dotnet build ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj -c Release --no-restore
 
       - name: Find VSIX output
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        if: steps.gate.outputs.should_run == 'true'
         id: find_vsix
         shell: pwsh
         run: |
@@ -95,14 +119,14 @@ jobs:
           "vsix_name=$($vsix.Name)" >> $env:GITHUB_OUTPUT
 
       - name: Upload workflow artifact
-        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true'
+        if: steps.gate.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: visual-studio-vsix
           path: ${{ steps.find_vsix.outputs.vsix_path }}
 
       - name: Attach VSIX to GitHub Release
-        if: (github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true') && startsWith(github.ref, 'refs/tags/')
+        if: steps.gate.outputs.should_run == 'true' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -110,8 +134,61 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get Visual Studio extension metadata
+        if: steps.gate.outputs.should_run == 'true'
+        id: vs_meta
+        shell: pwsh
+        run: |
+          [xml]$manifest = Get-Content ./packages/visual-studio/source.extension.vsixmanifest
+          $ns = New-Object System.Xml.XmlNamespaceManager($manifest.NameTable)
+          $ns.AddNamespace("vs", "http://schemas.microsoft.com/developer/vsx-schema/2011")
+
+          $identity = $manifest.SelectSingleNode("//vs:PackageManifest/vs:Metadata/vs:Identity", $ns)
+          $publisher = $identity.Publisher
+          $id = $identity.Id
+          $version = $identity.Version
+          $itemName = "$publisher.$id"
+
+          "publisher=$publisher" >> $env:GITHUB_OUTPUT
+          "id=$id" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "itemName=$itemName" >> $env:GITHUB_OUTPUT
+
+      - name: Check if Visual Studio extension version exists on Marketplace
+        if: steps.gate.outputs.should_run == 'true' && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
+        id: check_vs_marketplace
+        shell: bash
+        continue-on-error: true
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json;api-version=3.0-preview.1" \
+            -d '{
+              "filters": [{
+                "criteria": [
+                  {"filterType": 7, "value": "${{ steps.vs_meta.outputs.itemName }}"}
+                ]
+              }],
+              "flags": 914
+            }' \
+            https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery)
+
+          if echo "$RESPONSE" | grep -q '"versions":\['; then
+            CURRENT_VERSION=$(echo "$RESPONSE" | grep -o '"version":"${{ steps.vs_meta.outputs.version }}"' || echo "")
+            if [ -z "$CURRENT_VERSION" ]; then
+              echo "exists=false" >> $GITHUB_OUTPUT
+              echo "Version does not exist on VS Marketplace"
+            else
+              echo "exists=true" >> $GITHUB_OUTPUT
+              echo "Version already exists on VS Marketplace, skipping publish"
+            fi
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Extension not found on VS Marketplace, will publish"
+          fi
+
       - name: Publish VSIX to Visual Studio Marketplace
-        if: (github.event_name == 'workflow_dispatch' || steps.changes.outputs.visualstudio == 'true') && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_run') && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
+        if: steps.gate.outputs.should_run == 'true' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_run') && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != '' && steps.check_vs_marketplace.outputs.exists == 'false'
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}
