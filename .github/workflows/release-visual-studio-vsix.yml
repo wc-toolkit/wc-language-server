@@ -208,8 +208,44 @@ jobs:
 
       - name: Publish VSIX to Visual Studio Marketplace
         if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_run') && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != '' && steps.check_vs_marketplace.outputs.exists == 'false'
-        uses: HaaLeo/publish-vscode-extension@v2
-        with:
-          pat: ${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}
-          extensionFile: ${{ steps.build_vsix.outputs.vsix_path }}
-          registryUrl: https://marketplace.visualstudio.com
+        shell: pwsh
+        run: |
+          $vsixPath = "${{ steps.build_vsix.outputs.vsix_path }}"
+          $publisher = "${{ steps.vs_meta.outputs.publisher }}"
+          $extensionId = "${{ steps.vs_meta.outputs.id }}"
+          $pat = "${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}"
+
+          Write-Host "Publishing VSIX to Visual Studio Marketplace..."
+          Write-Host "Publisher: $publisher"
+          Write-Host "Extension ID: $extensionId"
+          Write-Host "VSIX Path: $vsixPath"
+
+          # Convert PAT to Base64 for authentication
+          $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$pat"))
+
+          # Read VSIX file
+          $vsixContent = [System.IO.File]::ReadAllBytes($vsixPath)
+
+          # Publish to Visual Studio Marketplace
+          $uri = "https://marketplace.visualstudio.com/_apis/gallery"
+          $headers = @{
+              "Authorization" = "Basic $base64AuthInfo"
+              "Content-Type" = "application/octet-stream"
+              "X-Market-Client-Id" = "GitHubActions"
+          }
+
+          try {
+              $response = Invoke-WebRequest -Uri $uri -Method Post -Headers $headers -Body $vsixContent -UseBasicParsing
+              Write-Host "? Successfully published to Visual Studio Marketplace"
+              Write-Host "Response: $($response.StatusCode) - $($response.StatusDescription)"
+          }
+          catch {
+              Write-Error "Failed to publish VSIX: $_"
+              Write-Error "Response: $($_.Exception.Response.StatusCode) - $($_.Exception.Response.StatusDescription)"
+              if ($_.Exception.Response) {
+                  $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+                  $responseBody = $reader.ReadToEnd()
+                  Write-Error "Response Body: $responseBody"
+              }
+              exit 1
+          }
