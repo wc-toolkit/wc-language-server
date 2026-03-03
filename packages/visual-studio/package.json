@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/visual-studio",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Visual Studio extension for the Web Components Language Server",
   "private": true,
   "license": "MIT",

@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.12
+
+### Patch Changes
+
+- e1cb79e: Fixed build script for VSIX output
+
 ## 0.0.11
 
 ### Patch Changes
