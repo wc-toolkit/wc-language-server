@@ -21,13 +21,13 @@ New-Item -ItemType Directory -Force -Path $OutputPath | Out-Null
 
 # Step 1: Build the project
 Write-Host "`nStep 1: Building project..."
-dotnet restore $projectFile
+dotnet restore $projectFile | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed" }
 
 dotnet msbuild $projectFile `
     /p:Configuration=$Configuration `
     /p:DeployExtension=false `
-    /v:minimal
+    /v:minimal | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "dotnet msbuild failed" }
 
 $buildOutputDir = Join-Path $projectDir "bin\$Configuration\net472"
