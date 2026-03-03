@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.13
+
+### Patch Changes
+
+- c558a14: Updated to use VSIX publisher instead of REST API
+
 ## 0.0.12
 
 ### Patch Changes
