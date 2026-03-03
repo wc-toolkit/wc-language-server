@@ -226,12 +226,12 @@ jobs:
           # Read VSIX file
           $vsixContent = [System.IO.File]::ReadAllBytes($vsixPath)
 
-          # Publish to Visual Studio Marketplace
-          $uri = "https://marketplace.visualstudio.com/_apis/gallery"
+          # Publish to Visual Studio Marketplace using the correct API endpoint
+          $uri = "https://marketplace.visualstudio.com/_apis/gallery/publisher/$publisher/extension?api-version=7.1-preview.1"
           $headers = @{
               "Authorization" = "Basic $base64AuthInfo"
               "Content-Type" = "application/octet-stream"
-              "X-Market-Client-Id" = "GitHubActions"
+              "Accept" = "application/json;api-version=7.1-preview.1"
           }
 
           try {
