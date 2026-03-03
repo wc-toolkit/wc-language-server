@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.11
+
+### Patch Changes
+
+- 9dcd8de: Updated to call `msbuild` directly to generate VSIX
+
 ## 0.0.10
 
 ### Patch Changes
