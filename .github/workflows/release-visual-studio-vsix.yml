@@ -117,6 +117,9 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
       - name: Build Visual Studio extension (Release)
         shell: pwsh
         run: |
@@ -134,10 +137,18 @@ jobs:
         id: find_vsix
         shell: pwsh
         run: |
-          $vsix = Get-ChildItem -Path $env:VSIX_OUTPUT_PATH -Filter *.vsix -ErrorAction Stop | Select-Object -First 1
+          $vsix = Get-ChildItem -Path $env:VSIX_OUTPUT_PATH -Filter *.vsix -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $vsix) {
+            Write-Host "VSIX not found in VSIX_OUTPUT_PATH, searching workspace recursively..."
+            $vsix = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Recurse -Filter *.vsix -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $vsix) {
+            Write-Error "No .vsix file found in workspace. Build may have failed or output path is incorrect."
+            exit 1
+          }
           Write-Host "VSIX found: $($vsix.FullName) ($($vsix.Length) bytes)"
-          "vsix_path=$($vsix.FullName)" >> $env:GITHUB_OUTPUT
-          "vsix_name=$($vsix.Name)" >> $env:GITHUB_OUTPUT
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "vsix_path=$($vsix.FullName)"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "vsix_name=$($vsix.Name)"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
