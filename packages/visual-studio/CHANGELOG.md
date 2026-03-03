@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.10
+
+### Patch Changes
+
+- 271aac3: Update GitHub path resolver for VSIX
+
 ## 0.0.9
 
 ### Patch Changes
