@@ -124,8 +124,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path $env:VSIX_OUTPUT_PATH | Out-Null
-          dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
-          dotnet msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj `
+          msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj `
+            /t:Restore
+          msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj `
             /p:Configuration=Release `
             /p:DeployExtension=false `
             /p:CreateVsixContainer=true `
