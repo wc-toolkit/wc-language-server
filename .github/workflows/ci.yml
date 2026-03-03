@@ -162,21 +162,9 @@ jobs:
       - name: Build Visual Studio extension
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path $env:VSIX_OUTPUT_PATH | Out-Null
-          dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
-          dotnet msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj `
-            /p:Configuration=Release `
-            /p:DeployExtension=false `
-            /p:CreateVsixContainer=true `
-            /p:CopyVsixExtensionFiles=true `
-            /p:VsixOutputPath="$env:VSIX_OUTPUT_PATH\" `
-            /v:n
-
-      - name: Verify VSIX output
-        shell: pwsh
-        run: |
-          $vsix = Get-ChildItem -Path $env:VSIX_OUTPUT_PATH -Filter *.vsix -ErrorAction Stop | Select-Object -First 1
-          Write-Host "VSIX found: $($vsix.FullName) ($($vsix.Length) bytes)"
+          $vsixPath = ./packages/visual-studio/build-vsix.ps1 -OutputPath $env:VSIX_OUTPUT_PATH -Configuration Release
+          $vsix = Get-Item $vsixPath
+          Write-Host "VSIX created: $($vsix.FullName) ($($vsix.Length) bytes)"
 
   jetbrains-build:
     needs: changes

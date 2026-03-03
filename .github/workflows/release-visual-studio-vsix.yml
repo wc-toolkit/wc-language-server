@@ -121,32 +121,12 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Build Visual Studio extension (Release)
+        id: build_vsix
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path $env:VSIX_OUTPUT_PATH | Out-Null
-          dotnet restore ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj
-          dotnet msbuild ./packages/visual-studio/WebComponentsLanguageServer.VisualStudio.csproj `
-            /p:Configuration=Release `
-            /p:DeployExtension=false `
-            /p:CreateVsixContainer=true `
-            /p:CopyVsixExtensionFiles=true `
-            /p:VsixOutputPath="$env:VSIX_OUTPUT_PATH\" `
-            /v:n
-
-      - name: Find VSIX output
-        id: find_vsix
-        shell: pwsh
-        run: |
-          $vsix = Get-ChildItem -Path $env:VSIX_OUTPUT_PATH -Filter *.vsix -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $vsix) {
-            Write-Host "VSIX not found in VSIX_OUTPUT_PATH, searching workspace recursively..."
-            $vsix = Get-ChildItem -Path $env:GITHUB_WORKSPACE -Recurse -Filter *.vsix -ErrorAction SilentlyContinue | Select-Object -First 1
-          }
-          if (-not $vsix) {
-            Write-Error "No .vsix file found in workspace. Build may have failed or output path is incorrect."
-            exit 1
-          }
-          Write-Host "VSIX found: $($vsix.FullName) ($($vsix.Length) bytes)"
+          $vsixPath = ./packages/visual-studio/build-vsix.ps1 -OutputPath $env:VSIX_OUTPUT_PATH -Configuration Release
+          $vsix = Get-Item $vsixPath
+          Write-Host "VSIX created: $($vsix.FullName) ($($vsix.Length) bytes)"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "vsix_path=$($vsix.FullName)"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "vsix_name=$($vsix.Name)"
 
@@ -154,14 +134,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: visual-studio-vsix
-          path: ${{ steps.find_vsix.outputs.vsix_path }}
+          path: ${{ steps.build_vsix.outputs.vsix_path }}
 
       - name: Attach VSIX to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: ${{ steps.find_vsix.outputs.vsix_path }}
+          files: ${{ steps.build_vsix.outputs.vsix_path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -231,5 +211,5 @@ jobs:
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}
-          extensionFile: ${{ steps.find_vsix.outputs.vsix_path }}
+          extensionFile: ${{ steps.build_vsix.outputs.vsix_path }}
           registryUrl: https://marketplace.visualstudio.com
