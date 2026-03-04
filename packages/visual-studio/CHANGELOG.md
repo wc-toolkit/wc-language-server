@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.18
+
+### Patch Changes
+
+- f018c6d: Simplified the VSIX build to use native MSBuild tooling
+
 ## 0.0.17
 
 ### Patch Changes
