@@ -211,15 +211,12 @@ jobs:
         if: env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
         shell: pwsh
         run: |
-          Write-Host "Installing VsixPublisher from VSSDK.BuildTools..."
-          $version = "17.11.40252"
-          nuget install Microsoft.VSSDK.BuildTools -Version $version -OutputDirectory "$env:TEMP\vssdk"
-          $vsixPublisher = Get-ChildItem -Path "$env:TEMP\vssdk" -Recurse -Filter "VsixPublisher.exe" | Select-Object -First 1
+          $vsixPublisher = Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio" -Recurse -Filter "VsixPublisher.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($vsixPublisher) {
             Write-Host "VsixPublisher found at: $($vsixPublisher.FullName)"
             "VSIX_PUBLISHER_PATH=$($vsixPublisher.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
           } else {
-            Write-Error "VsixPublisher.exe not found"
+            Write-Error "VsixPublisher.exe not found in Visual Studio installation"
             exit 1
           }
 
