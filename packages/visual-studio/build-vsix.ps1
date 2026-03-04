@@ -107,6 +107,22 @@ try {
         Get-ChildItem $sourceAssetsDir -File | ForEach-Object { Copy-Item $_.FullName $assetsDir }
     }
 
+    # Write catalog.json and manifest.json (required for VS 2017+ marketplace validation)
+    $allStagedFiles = Get-ChildItem $stagingDir -Recurse -File
+    $totalSize = ($allStagedFiles | Measure-Object -Property Length -Sum).Sum
+    $fileEntries = $allStagedFiles | ForEach-Object {
+        $rel = '/' + ($_.FullName.Substring($stagingDir.Length).TrimStart('\').Replace('\', '/'))
+        [ordered]@{ fileName = $rel }
+    }
+    $catalogObj = [ordered]@{
+        manifestVersion = '1.1'
+        info = [ordered]@{ id = "$id,version=$version"; manifestType = 'Extension' }
+        packages = @([ordered]@{ id = $id; version = $version; type = 'Vsix'; extensionDir = '[installdir]'; files = @($fileEntries); dependencies = [ordered]@{}; msiProperties = [ordered]@{} })
+    }
+    $catalogObj | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $stagingDir 'catalog.json') -Encoding UTF8
+    $manifestObj = [ordered]@{ id = $id; version = $version; type = 'Vsix'; vsixId = $id; displayName = 'Web Components Language Server'; description = 'Language Server Protocol integration for Web Components and Custom Elements in Visual Studio.'; installSizes = [ordered]@{ targetDrive = [int]$totalSize } }
+    $manifestObj | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $stagingDir 'manifest.json') -Encoding UTF8
+
     # Build [Content_Types].xml dynamically
     $extensionMap = @{ vsixmanifest='text/xml'; xml='text/xml'; dll='application/octet-stream'; exe='application/octet-stream'; js='application/javascript'; pkgdef='text/plain'; txt='text/plain'; png='image/png' }
     $allFiles = Get-ChildItem $stagingDir -Recurse -File
