@@ -2,4 +2,4 @@
 "@wc-toolkit/visual-studio": patch
 ---
 
-Simplified the VSIX build
+Simplified the VSIX build to use native MSBuild tooling
