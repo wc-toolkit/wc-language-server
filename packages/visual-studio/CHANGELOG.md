@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.17
+
+### Patch Changes
+
+- 28d8a37: Fixed language server executable
+
 ## 0.0.16
 
 ### Patch Changes
