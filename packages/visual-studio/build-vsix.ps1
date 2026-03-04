@@ -30,7 +30,7 @@ dotnet msbuild $projectFile `
     /v:minimal | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "dotnet msbuild failed" }
 
-$buildOutputDir = Join-Path $projectDir "bin\$Configuration\net472"
+$buildOutputDir = Join-Path $projectDir "bin\$Configuration"
 
 # Step 2: Read manifest to get extension info
 Write-Host "`nStep 2: Reading manifest..."
@@ -49,123 +49,22 @@ Write-Host "Publisher: $publisher"
 Write-Host "Version: $version"
 Write-Host "VSIX Name: $vsixFileName"
 
-# Step 3: Create temporary VSIX staging directory
-Write-Host "`nStep 3: Creating VSIX staging directory..."
-$stagingDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
-New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
-
-try {
-    # Copy manifest
-    Copy-Item $manifestFile (Join-Path $stagingDir "extension.vsixmanifest")
-    
-    # Copy main assembly and dependencies
-    Get-ChildItem -Path $buildOutputDir -Filter "*.dll" | ForEach-Object {
-        Copy-Item $_.FullName $stagingDir
-    }
-    
-    # Copy pkgdef
-    Get-ChildItem -Path $buildOutputDir -Filter "*.pkgdef" | ForEach-Object {
-        Copy-Item $_.FullName $stagingDir
-    }
-    
-    # Copy language server binaries (Windows only - VS extension is Windows-only)
-    $lsBinDir = Join-Path $stagingDir "LanguageServer\bin"
-    New-Item -ItemType Directory -Force -Path $lsBinDir | Out-Null
-
-    $sourceLsBinDir = Join-Path $buildOutputDir "LanguageServer\bin"
-    if (Test-Path $sourceLsBinDir) {
-        Get-ChildItem -Path $sourceLsBinDir -Filter "*.exe" -File | ForEach-Object {
-            Copy-Item $_.FullName $lsBinDir
-        }
-        Get-ChildItem -Path $sourceLsBinDir -Filter "*.js" -File | ForEach-Object {
-            Copy-Item $_.FullName $lsBinDir
-        }
-    }
-    
-    # Copy assets
-    $assetsDir = Join-Path $stagingDir "assets"
-    New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
-    
-    $sourceAssetsDir = Join-Path $projectDir "assets"
-    if (Test-Path $sourceAssetsDir) {
-        Get-ChildItem -Path $sourceAssetsDir -File | ForEach-Object {
-            Copy-Item $_.FullName $assetsDir
-        }
-    }
-    
-    # Copy LICENSE
-    $licenseFile = Join-Path $projectDir "LICENSE"
-    if (Test-Path $licenseFile) {
-        Copy-Item $licenseFile $stagingDir
-    }
-    
-    # Create [Content_Types].xml dynamically based on actual files
-    $extensionMap = @{
-        'vsixmanifest' = 'text/xml'
-        'xml'          = 'text/xml'
-        'dll'          = 'application/octet-stream'
-        'exe'          = 'application/octet-stream'
-        'js'           = 'application/javascript'
-        'json'         = 'application/json'
-        'pkgdef'       = 'text/plain'
-        'txt'          = 'text/plain'
-        'md'           = 'text/plain'
-        'png'          = 'image/png'
-        'jpg'          = 'image/jpeg'
-        'jpeg'         = 'image/jpeg'
-    }
-
-    $allFiles = Get-ChildItem -Path $stagingDir -Recurse -File
-    $seenExtensions = @{}
-    $overrides = @()
-
-    foreach ($file in $allFiles) {
-        $ext = $file.Extension.TrimStart('.')
-        $relativePath = '/' + ($file.FullName.Substring($stagingDir.Length).TrimStart('\').Replace('\', '/'))
-
-        if ([string]::IsNullOrEmpty($ext)) {
-            $overrides += "  <Override PartName=""$relativePath"" ContentType=""application/octet-stream"" />"
-        } elseif (-not $seenExtensions.ContainsKey($ext)) {
-            $seenExtensions[$ext] = $true
-        }
-    }
-
-    $defaults = $seenExtensions.Keys | ForEach-Object {
-        $ct = if ($extensionMap.ContainsKey($_)) { $extensionMap[$_] } else { 'application/octet-stream' }
-        "  <Default Extension=""$_"" ContentType=""$ct"" />"
-    }
-
-    $contentTypesXml = "<?xml version=""1.0"" encoding=""utf-8""?>`n"
-    $contentTypesXml += "<Types xmlns=""http://schemas.openxmlformats.org/package/2006/content-types"">`n"
-    $contentTypesXml += ($defaults -join "`n") + "`n"
-    if ($overrides.Count -gt 0) { $contentTypesXml += ($overrides -join "`n") + "`n" }
-    $contentTypesXml += "</Types>"
-
-    $contentTypesPath = Join-Path $stagingDir "[Content_Types].xml"
-    [System.IO.File]::WriteAllText($contentTypesPath, $contentTypesXml, [System.Text.Encoding]::UTF8)
-    
-    # Step 4: Package as VSIX (ZIP)
-    Write-Host "`nStep 4: Creating VSIX package..."
-    $vsixPath = Join-Path $OutputPath $vsixFileName
-    
-    # Remove existing VSIX if present
-    if (Test-Path $vsixPath) {
-        Remove-Item $vsixPath -Force
-    }
-    
-    # Create ZIP file (VSIX is just a renamed ZIP)
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::CreateFromDirectory($stagingDir, $vsixPath, [System.IO.Compression.CompressionLevel]::Optimal, $false)
-    
-    Write-Host "`nVSIX created successfully!"
-    Write-Host "Path: $vsixPath"
-    Write-Host "Size: $((Get-Item $vsixPath).Length) bytes"
-    
-    return $vsixPath
+# Step 3: Find the VSSDK-generated VSIX
+Write-Host "`nStep 3: Locating VSSDK-generated VSIX..."
+$generatedVsix = Get-ChildItem -Path $buildOutputDir -Filter "*.vsix" -Recurse | Select-Object -First 1
+if (-not $generatedVsix) {
+    throw "No VSIX file found in $buildOutputDir. Ensure CreateVsixContainer=true in the project."
 }
-finally {
-    # Clean up staging directory
-    if (Test-Path $stagingDir) {
-        Remove-Item -Path $stagingDir -Recurse -Force
-    }
-}
+Write-Host "Found: $($generatedVsix.FullName)"
+
+# Step 4: Copy to output with publisher-prefixed name
+Write-Host "`nStep 4: Copying VSIX to output..."
+$vsixPath = Join-Path $OutputPath $vsixFileName
+if (Test-Path $vsixPath) { Remove-Item $vsixPath -Force }
+Copy-Item $generatedVsix.FullName $vsixPath
+
+Write-Host "`nVSIX created successfully!"
+Write-Host "Path: $vsixPath"
+Write-Host "Size: $((Get-Item $vsixPath).Length) bytes"
+
+return $vsixPath

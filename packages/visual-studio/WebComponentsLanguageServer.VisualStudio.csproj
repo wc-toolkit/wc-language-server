@@ -32,26 +32,6 @@
       <IncludeInVSIX>true</IncludeInVSIX>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\language-server\bin\wc-language-server-linux-x64">
-      <Link>LanguageServer\bin\wc-language-server-linux-x64</Link>
-      <IncludeInVSIX>true</IncludeInVSIX>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\language-server\bin\wc-language-server-linux-arm64">
-      <Link>LanguageServer\bin\wc-language-server-linux-arm64</Link>
-      <IncludeInVSIX>true</IncludeInVSIX>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\language-server\bin\wc-language-server-macos-x64">
-      <Link>LanguageServer\bin\wc-language-server-macos-x64</Link>
-      <IncludeInVSIX>true</IncludeInVSIX>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\language-server\bin\wc-language-server-macos-arm64">
-      <Link>LanguageServer\bin\wc-language-server-macos-arm64</Link>
-      <IncludeInVSIX>true</IncludeInVSIX>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="..\language-server\bin\wc-language-server-windows-x64.exe">
       <Link>LanguageServer\bin\wc-language-server-windows-x64.exe</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
