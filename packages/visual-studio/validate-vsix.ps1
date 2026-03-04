@@ -5,6 +5,11 @@ if ($IsLinux -or $IsMacOS) {
   exit 1
 }
 
+if (-not (Get-Command msbuild -ErrorAction SilentlyContinue)) {
+  Write-Error "msbuild not found. Open this script from a Visual Studio Developer PowerShell, or run 'Import-Module VSSetup' first."
+  exit 1
+}
+
 $outputPath = Join-Path $PSScriptRoot "..\..\local-vsix-output"
 $binPath = Join-Path $PSScriptRoot "..\language-server\bin"
 
