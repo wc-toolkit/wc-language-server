@@ -11,11 +11,7 @@ $binPath = Join-Path $PSScriptRoot "..\language-server\bin"
 # Create stub binaries if not present so the build doesn't fail locally
 $stubs = @(
   "wc-language-server.js",
-  "wc-language-server-windows-x64.exe",
-  "wc-language-server-linux-x64",
-  "wc-language-server-linux-arm64",
-  "wc-language-server-macos-x64",
-  "wc-language-server-macos-arm64"
+  "wc-language-server-windows-x64.exe"
 )
 $createdStubs = @()
 New-Item -ItemType Directory -Force -Path $binPath | Out-Null
