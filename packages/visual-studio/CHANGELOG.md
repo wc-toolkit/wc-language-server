@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.14
+
+### Patch Changes
+
+- 4362f9e: Updated to deploy using VSIX executable
+
 ## 0.0.13
 
 ### Patch Changes
