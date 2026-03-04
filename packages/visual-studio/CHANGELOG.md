@@ -1,5 +1,12 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.16
+
+### Patch Changes
+
+- 7a4e231: Fixed package name
+- 7a4e231: Added VSIX validator
+
 ## 0.0.15
 
 ### Patch Changes
