@@ -179,6 +179,7 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
+          echo "exists=false" >> $GITHUB_OUTPUT
           RESPONSE=$(curl -s -X POST \
             -H "Content-Type: application/json" \
             -H "Accept: application/json;api-version=3.0-preview.1" \
@@ -207,10 +208,11 @@ jobs:
           fi
 
       - name: Install VsixPublisher
+        if: env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
         shell: pwsh
         run: |
           Write-Host "Installing VsixPublisher from VSSDK.BuildTools..."
-          $version = "17.14.2120"
+          $version = "17.11.40252"
           nuget install Microsoft.VSSDK.BuildTools -Version $version -OutputDirectory "$env:TEMP\vssdk"
           $vsixPublisher = Get-ChildItem -Path "$env:TEMP\vssdk" -Recurse -Filter "VsixPublisher.exe" | Select-Object -First 1
           if ($vsixPublisher) {
@@ -234,18 +236,32 @@ jobs:
           Write-Host "VSIX Path: $vsixPath"
           Write-Host "VsixPublisher Path: $env:VSIX_PUBLISHER_PATH"
 
+          # Copy README for marketplace overview
+          $readmePath = Join-Path $env:GITHUB_WORKSPACE "README.md"
+          $readmeDestPath = Join-Path $env:TEMP "README.md"
+          if (Test-Path $readmePath) {
+            Copy-Item $readmePath $readmeDestPath
+            Write-Host "README.md copied for publishing"
+          } else {
+            Write-Warning "README.md not found, publishing without overview"
+          }
+
           $manifest = @{
             '$schema' = 'http://json.schemastore.org/vsix-publish'
             categories = @('Other')
             identity = @{
               internalName = "${{ steps.vs_meta.outputs.id }}"
             }
-            overview = 'README.md'
             priceCategory = 'free'
             publisher = $publisher
             private = $false
             qna = $true
             repo = 'https://github.com/wc-toolkit/wc-language-server'
+          }
+          
+          # Add overview if README exists
+          if (Test-Path $readmeDestPath) {
+            $manifest['overview'] = 'README.md'
           }
           $manifestPath = Join-Path $env:TEMP 'publishManifest.json'
           $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $manifestPath
