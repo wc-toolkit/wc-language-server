@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.20
+
+### Patch Changes
+
+- 3e90823: Added missing VSIX manifest files
+
 ## 0.0.19
 
 ### Patch Changes
