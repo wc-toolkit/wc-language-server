@@ -68,13 +68,16 @@ try {
         Copy-Item $_.FullName $stagingDir
     }
     
-    # Copy language server binaries
+    # Copy language server binaries (Windows only - VS extension is Windows-only)
     $lsBinDir = Join-Path $stagingDir "LanguageServer\bin"
     New-Item -ItemType Directory -Force -Path $lsBinDir | Out-Null
-    
+
     $sourceLsBinDir = Join-Path $buildOutputDir "LanguageServer\bin"
     if (Test-Path $sourceLsBinDir) {
-        Get-ChildItem -Path $sourceLsBinDir -File | ForEach-Object {
+        Get-ChildItem -Path $sourceLsBinDir -Filter "*.exe" -File | ForEach-Object {
+            Copy-Item $_.FullName $lsBinDir
+        }
+        Get-ChildItem -Path $sourceLsBinDir -Filter "*.js" -File | ForEach-Object {
             Copy-Item $_.FullName $lsBinDir
         }
     }
@@ -96,22 +99,48 @@ try {
         Copy-Item $licenseFile $stagingDir
     }
     
-    # Create [Content_Types].xml
-    $contentTypesXml = @"
-<?xml version="1.0" encoding="utf-8"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="vsixmanifest" ContentType="text/xml" />
-  <Default Extension="dll" ContentType="application/octet-stream" />
-  <Default Extension="exe" ContentType="application/octet-stream" />
-  <Default Extension="js" ContentType="application/javascript" />
-  <Default Extension="json" ContentType="application/json" />
-  <Default Extension="pkgdef" ContentType="text/plain" />
-  <Default Extension="txt" ContentType="text/plain" />
-  <Default Extension="png" ContentType="image/png" />
-  <Default Extension="jpg" ContentType="image/jpeg" />
-  <Default Extension="jpeg" ContentType="image/jpeg" />
-</Types>
-"@
+    # Create [Content_Types].xml dynamically based on actual files
+    $extensionMap = @{
+        'vsixmanifest' = 'text/xml'
+        'xml'          = 'text/xml'
+        'dll'          = 'application/octet-stream'
+        'exe'          = 'application/octet-stream'
+        'js'           = 'application/javascript'
+        'json'         = 'application/json'
+        'pkgdef'       = 'text/plain'
+        'txt'          = 'text/plain'
+        'md'           = 'text/plain'
+        'png'          = 'image/png'
+        'jpg'          = 'image/jpeg'
+        'jpeg'         = 'image/jpeg'
+    }
+
+    $allFiles = Get-ChildItem -Path $stagingDir -Recurse -File
+    $seenExtensions = @{}
+    $overrides = @()
+
+    foreach ($file in $allFiles) {
+        $ext = $file.Extension.TrimStart('.')
+        $relativePath = '/' + ($file.FullName.Substring($stagingDir.Length).TrimStart('\').Replace('\', '/'))
+
+        if ([string]::IsNullOrEmpty($ext)) {
+            $overrides += "  <Override PartName=""$relativePath"" ContentType=""application/octet-stream"" />"
+        } elseif (-not $seenExtensions.ContainsKey($ext)) {
+            $seenExtensions[$ext] = $true
+        }
+    }
+
+    $defaults = $seenExtensions.Keys | ForEach-Object {
+        $ct = if ($extensionMap.ContainsKey($_)) { $extensionMap[$_] } else { 'application/octet-stream' }
+        "  <Default Extension=""$_"" ContentType=""$ct"" />"
+    }
+
+    $contentTypesXml = "<?xml version=""1.0"" encoding=""utf-8""?>`n"
+    $contentTypesXml += "<Types xmlns=""http://schemas.openxmlformats.org/package/2006/content-types"">`n"
+    $contentTypesXml += ($defaults -join "`n") + "`n"
+    if ($overrides.Count -gt 0) { $contentTypesXml += ($overrides -join "`n") + "`n" }
+    $contentTypesXml += "</Types>"
+
     $contentTypesPath = Join-Path $stagingDir "[Content_Types].xml"
     [System.IO.File]::WriteAllText($contentTypesPath, $contentTypesXml, [System.Text.Encoding]::UTF8)
     
