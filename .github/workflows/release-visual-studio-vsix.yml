@@ -220,6 +220,26 @@ jobs:
             exit 1
           }
 
+      - name: Validate VSIX publish manifest
+        if: env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
+        shell: pwsh
+        run: |
+          $vsixPath = "${{ steps.build_vsix.outputs.vsix_path }}"
+          $internalName = ("${{ steps.vs_meta.outputs.id }}" -replace '[^a-zA-Z0-9-]', '-')
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($vsixPath)
+          $entries = $zip.Entries | Select-Object -ExpandProperty FullName
+          $zip.Dispose()
+          foreach ($f in @('extension.vsixmanifest', '[Content_Types].xml')) {
+            if ($entries -notcontains $f) { Write-Error "Missing: $f"; exit 1 }
+            Write-Host "OK: $f"
+          }
+          if ($internalName.Length -ge 63) { Write-Error "internalName too long"; exit 1 }
+          if ($internalName -notmatch '^[a-zA-Z0-9][a-zA-Z0-9-]*$') { Write-Error "internalName invalid: $internalName"; exit 1 }
+          Write-Host "OK: publisher=${{ steps.vs_meta.outputs.publisher }}, internalName=$internalName"
+          Write-Host "Validation passed"
+
+
       - name: Publish VSIX to Visual Studio Marketplace
         if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_run') && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != '' && steps.check_vs_marketplace.outputs.exists == 'false'
         shell: pwsh
@@ -247,7 +267,7 @@ jobs:
             '$schema' = 'http://json.schemastore.org/vsix-publish'
             categories = @('Other')
             identity = @{
-              internalName = "${{ steps.vs_meta.outputs.id }}"
+              internalName = ("${{ steps.vs_meta.outputs.id }}" -replace '[^a-zA-Z0-9-]', '-')
             }
             priceCategory = 'free'
             publisher = $publisher
