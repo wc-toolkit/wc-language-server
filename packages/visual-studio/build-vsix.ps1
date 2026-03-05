@@ -155,15 +155,15 @@ try {
     }
     $defaults = $seenExts.Keys | ForEach-Object {
         $ct = if ($extMap[$_]) { $extMap[$_] } else { 'application/octet-stream' }
-        "  <Default Extension=\"$_\" ContentType=\"$ct\" />"
+        "  <Default Extension=`"$_`" ContentType=`"$ct`" />"
     }
     # OPC requires every part to have a content type; extensionless files need <Override>
     $overrides = $noExtFiles | ForEach-Object {
         $relPath = '/' + ($_.FullName.Substring($stagingDir.Length).TrimStart('\').Replace('\', '/'))
-        "  <Override PartName=\"$relPath\" ContentType=\"text/plain\" />"
+        "  <Override PartName=`"$relPath`" ContentType=`"text/plain`" />"
     }
-    $contentTypes = "<?xml version=\"1.0\" encoding=\"utf-8\">\`n<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">\`n" +
-        ($defaults -join "\`n") + "\`n" + ($overrides -join "\`n") + "\`n</Types>"
+    $contentTypes = "<?xml version=`"1.0`" encoding=`"utf-8`"?>`n<Types xmlns=`"http://schemas.openxmlformats.org/package/2006/content-types`">`n" +
+        ($defaults -join "`n") + "`n" + ($overrides -join "`n") + "`n</Types>"
     [System.IO.File]::WriteAllText(
         (Join-Path $stagingDir "[Content_Types].xml"),
         $contentTypes,
