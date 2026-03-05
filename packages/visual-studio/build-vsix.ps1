@@ -147,16 +147,23 @@ try {
         json = 'application/json'
     }
     $seenExts = @{}
+    $noExtFiles = @()
     foreach ($f in $allFiles) {
         $ext = $f.Extension.TrimStart('.')
         if ($ext -and -not $seenExts[$ext]) { $seenExts[$ext] = $true }
+        elseif (-not $ext) { $noExtFiles += $f }
     }
     $defaults = $seenExts.Keys | ForEach-Object {
         $ct = if ($extMap[$_]) { $extMap[$_] } else { 'application/octet-stream' }
-        "  <Default Extension=""$_"" ContentType=""$ct"" />"
+        "  <Default Extension=\"$_\" ContentType=\"$ct\" />"
     }
-    $contentTypes = "<?xml version=""1.0"" encoding=""utf-8""?>`n<Types xmlns=""http://schemas.openxmlformats.org/package/2006/content-types"">`n" +
-        ($defaults -join "`n") + "`n</Types>"
+    # OPC requires every part to have a content type; extensionless files need <Override>
+    $overrides = $noExtFiles | ForEach-Object {
+        $relPath = '/' + ($_.FullName.Substring($stagingDir.Length).TrimStart('\').Replace('\', '/'))
+        "  <Override PartName=\"$relPath\" ContentType=\"text/plain\" />"
+    }
+    $contentTypes = "<?xml version=\"1.0\" encoding=\"utf-8\">\`n<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">\`n" +
+        ($defaults -join "\`n") + "\`n" + ($overrides -join "\`n") + "\`n</Types>"
     [System.IO.File]::WriteAllText(
         (Join-Path $stagingDir "[Content_Types].xml"),
         $contentTypes,
@@ -209,9 +216,36 @@ try {
     $outputVsixPath = Join-Path $OutputPath $vsixFileName
     if (Test-Path $outputVsixPath) { Remove-Item $outputVsixPath -Force }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::CreateFromDirectory(
-        $stagingDir, $outputVsixPath,
-        [System.IO.Compression.CompressionLevel]::Optimal, $false)
+
+    # OPC requires [Content_Types].xml to be the FIRST entry in the ZIP.
+    # ZipFile::CreateFromDirectory sorts alphabetically and would place it 6th,
+    # so we build the archive manually.
+    $zipStream = [System.IO.File]::Create($outputVsixPath)
+    $archive = New-Object System.IO.Compression.ZipArchive($zipStream, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        # [Content_Types].xml MUST be first
+        $ctFile = Join-Path $stagingDir "[Content_Types].xml"
+        $ctEntry = $archive.CreateEntry("[Content_Types].xml", [System.IO.Compression.CompressionLevel]::Optimal)
+        $ctStream = $ctEntry.Open()
+        $ctBytes = [System.IO.File]::ReadAllBytes($ctFile)
+        $ctStream.Write($ctBytes, 0, $ctBytes.Length)
+        $ctStream.Dispose()
+
+        # All other files in arbitrary order
+        Get-ChildItem $stagingDir -Recurse -File |
+            Where-Object { $_.Name -ne "[Content_Types].xml" } |
+            ForEach-Object {
+                $relPath = $_.FullName.Substring($stagingDir.Length).TrimStart('\').Replace('\', '/')
+                $entry = $archive.CreateEntry($relPath, [System.IO.Compression.CompressionLevel]::Optimal)
+                $entryStream = $entry.Open()
+                $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
+                $entryStream.Write($bytes, 0, $bytes.Length)
+                $entryStream.Dispose()
+            }
+    } finally {
+        $archive.Dispose()
+        $zipStream.Dispose()
+    }
 
     Write-Host "`nVSIX ready!"
     Write-Host "Path: $outputVsixPath"
