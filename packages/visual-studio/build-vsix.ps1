@@ -19,15 +19,13 @@ $manifestFile = Join-Path $projectDir "source.extension.vsixmanifest"
 # Ensure output directory exists
 New-Item -ItemType Directory -Force -Path $OutputPath | Out-Null
 
-# Step 1: Build the project (VSSDK produces the VSIX via CreateVsixContainer)
+# Step 1: Build the project with single-pass restore+build (more reliable for VSSDK)
 Write-Host "`nStep 1: Building project..."
-dotnet restore $projectFile | Out-Host
-if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed" }
-
 msbuild $projectFile `
+    /restore `
     /p:Configuration=$Configuration `
     /p:DeployExtension=false `
-    /v:minimal | Out-Host
+    /v:normal | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "msbuild failed" }
 
 # Step 2: Find the VSSDK-generated VSIX
@@ -58,12 +56,124 @@ Write-Host "Publisher: $publisher"
 Write-Host "Version: $version"
 Write-Host "VSIX Name: $vsixFileName"
 
-# Step 4: Copy to output path with the desired name
-Write-Host "`nStep 4: Copying VSIX to output..."
-$vsixPath = Join-Path $OutputPath $vsixFileName
-Copy-Item $generatedVsix.FullName $vsixPath -Force
+# Step 4: Validate and fix-up VSIX for marketplace compliance (VSIX v3)
+Write-Host "`nStep 4: Validating VSIX for marketplace compliance..."
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+$vsixPath = $generatedVsix.FullName
+
+# Open the VSIX and inspect contents
+$zip = [System.IO.Compression.ZipFile]::Open($vsixPath, [System.IO.Compression.ZipArchiveMode]::Update)
+try {
+    Write-Host "VSIX entries:"
+    foreach ($entry in $zip.Entries) {
+        Write-Host "  $($entry.FullName)  ($($entry.Length) bytes)"
+    }
+
+    # Check extension.vsixmanifest for unresolved template variables
+    $vsixManifestEntry = $zip.GetEntry("extension.vsixmanifest")
+    if (-not $vsixManifestEntry) { throw "VSIX is missing extension.vsixmanifest" }
+    
+    $reader = New-Object System.IO.StreamReader($vsixManifestEntry.Open())
+    $vsixManifestContent = $reader.ReadToEnd()
+    $reader.Dispose()
+    Write-Host "`nextension.vsixmanifest content:"
+    Write-Host $vsixManifestContent
+
+    if ($vsixManifestContent -match '\|%') {
+        Write-Warning "extension.vsixmanifest contains unresolved MSBuild template variables!"
+        Write-Warning "This would cause marketplace rejection. The VSSDK did not resolve templates properly."
+    }
+
+    # Check for VSIX v3 metadata
+    $hasCatalog = $null -ne $zip.GetEntry("catalog.json")
+    $hasManifestJson = $null -ne $zip.GetEntry("manifest.json")
+    
+    Write-Host "`nVSIX v3 status: catalog.json=$hasCatalog, manifest.json=$hasManifestJson"
+
+    if (-not $hasCatalog -or -not $hasManifestJson) {
+        Write-Host "VSIX v3 metadata missing - generating..."
+
+        # Gather all files for catalog
+        $allEntries = @()
+        foreach ($entry in $zip.Entries) {
+            $allEntries += @{
+                FullName = $entry.FullName
+                Length = $entry.Length
+            }
+        }
+
+        if (-not $hasCatalog) {
+            $fileEntries = $allEntries | ForEach-Object {
+                [ordered]@{ fileName = "/$($_.FullName.Replace('\','/'))" }
+            }
+            $catalogObj = [ordered]@{
+                manifestVersion = '1.1'
+                info = [ordered]@{
+                    id = "$id,version=$version"
+                    manifestType = 'Extension'
+                }
+                packages = @([ordered]@{
+                    id = $id
+                    version = $version
+                    type = 'Vsix'
+                    extensionDir = '[installdir]'
+                    files = @($fileEntries)
+                    dependencies = [ordered]@{}
+                    msiProperties = [ordered]@{}
+                })
+            }
+            $catalogJson = $catalogObj | ConvertTo-Json -Depth 10
+            $catalogEntry = $zip.CreateEntry("catalog.json")
+            $writer = New-Object System.IO.StreamWriter($catalogEntry.Open())
+            $writer.Write($catalogJson)
+            $writer.Dispose()
+            Write-Host "Added catalog.json"
+        }
+
+        if (-not $hasManifestJson) {
+            $totalSize = ($allEntries | Measure-Object -Property Length -Sum).Sum
+            $manifestObj = [ordered]@{
+                id = $id
+                version = $version
+                type = 'Vsix'
+                vsixId = $id
+                displayName = 'Web Components Language Server'
+                description = 'Language Server Protocol integration for Web Components and Custom Elements in Visual Studio.'
+                installSizes = [ordered]@{
+                    targetDrive = [int]$totalSize
+                }
+            }
+            $manifestJson = $manifestObj | ConvertTo-Json -Depth 5
+            $manifestEntry = $zip.CreateEntry("manifest.json")
+            $writer = New-Object System.IO.StreamWriter($manifestEntry.Open())
+            $writer.Write($manifestJson)
+            $writer.Dispose()
+            Write-Host "Added manifest.json"
+        }
+    } else {
+        # Dump existing v3 metadata for diagnostics
+        foreach ($name in @('catalog.json', 'manifest.json')) {
+            $entry = $zip.GetEntry($name)
+            $reader = New-Object System.IO.StreamReader($entry.Open())
+            $content = $reader.ReadToEnd()
+            $reader.Dispose()
+            Write-Host "`n${name}:"
+            Write-Host $content
+        }
+    }
+}
+finally {
+    $zip.Dispose()
+}
+
+# Step 5: Copy to output path with the desired name
+Write-Host "`nStep 5: Copying VSIX to output..."
+$outputVsixPath = Join-Path $OutputPath $vsixFileName
+Copy-Item $vsixPath $outputVsixPath -Force
 
 Write-Host "`nVSIX ready!"
-Write-Host "Path: $vsixPath"
-Write-Host "Size: $((Get-Item $vsixPath).Length) bytes"
-return $vsixPath
+Write-Host "Path: $outputVsixPath"
+Write-Host "Size: $((Get-Item $outputVsixPath).Length) bytes"
+return $outputVsixPath
