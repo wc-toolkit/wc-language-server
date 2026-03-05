@@ -220,7 +220,43 @@ jobs:
             exit 1
           }
 
-      - name: Validate VSIX publish manifest
+      - name: Inspect VSIX contents
+        shell: pwsh
+        run: |
+          $vsixPath = "${{ steps.build_vsix.outputs.vsix_path }}"
+          Write-Host "=== VSIX File ==="
+          $vsixFile = Get-Item $vsixPath
+          Write-Host "Path: $($vsixFile.FullName)"
+          Write-Host "Size: $($vsixFile.Length) bytes"
+          Write-Host ""
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($vsixPath)
+
+          Write-Host "=== All entries ==="
+          foreach ($entry in $zip.Entries) {
+            Write-Host "  $($entry.FullName)  ($($entry.Length) bytes)"
+          }
+          Write-Host ""
+
+          # Extract and display key files
+          foreach ($name in @('extension.vsixmanifest', '[Content_Types].xml', 'catalog.json', 'manifest.json')) {
+            $entry = $zip.GetEntry($name)
+            if ($entry) {
+              $reader = New-Object System.IO.StreamReader($entry.Open())
+              $content = $reader.ReadToEnd()
+              $reader.Dispose()
+              Write-Host "=== $name ==="
+              Write-Host $content
+              Write-Host ""
+            } else {
+              Write-Host "=== $name: MISSING ==="
+              Write-Host ""
+            }
+          }
+          $zip.Dispose()
+
+      - name: Validate VSIX package
         if: env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
         shell: pwsh
         run: |
@@ -230,8 +266,10 @@ jobs:
           $zip = [System.IO.Compression.ZipFile]::OpenRead($vsixPath)
           $entries = $zip.Entries | Select-Object -ExpandProperty FullName
           $zip.Dispose()
-          foreach ($f in @('extension.vsixmanifest', '[Content_Types].xml')) {
-            if ($entries -notcontains $f) { Write-Error "Missing: $f"; exit 1 }
+
+          $requiredFiles = @('extension.vsixmanifest', '[Content_Types].xml', 'catalog.json', 'manifest.json')
+          foreach ($f in $requiredFiles) {
+            if ($entries -notcontains $f) { Write-Error "VSIX v3 validation failed - missing required file: $f"; exit 1 }
             Write-Host "OK: $f"
           }
           if ($internalName.Length -ge 63) { Write-Error "internalName too long"; exit 1 }
