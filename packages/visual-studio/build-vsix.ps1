@@ -128,14 +128,23 @@ try {
     $licenseFile = Join-Path $projectDir "LICENSE"
     if (Test-Path $licenseFile) { Copy-Item $licenseFile $stagingDir }
 
+    # --- VSIX v3: catalog.json + manifest.json ---
+    # Write a placeholder catalog.json first so the .json extension exists when
+    # [Content_Types].xml is built; we will rewrite it with the full file list
+    # after all files (including catalog.json, manifest.json, [Content_Types].xml)
+    # are present in the staging directory.
+    '{}' | Set-Content (Join-Path $stagingDir "catalog.json") -Encoding UTF8
+    '{}' | Set-Content (Join-Path $stagingDir "manifest.json") -Encoding UTF8
+
     # --- [Content_Types].xml ---
+    # Built after catalog.json / manifest.json exist so .json gets an entry.
     $allFiles = Get-ChildItem $stagingDir -Recurse -File
     $extMap = @{
         vsixmanifest = 'text/xml'; xml = 'text/xml'
         dll  = 'application/octet-stream'; exe = 'application/octet-stream'
         js   = 'application/javascript';   pkgdef = 'text/plain'
         txt  = 'text/plain';               png = 'image/png'
-        json = 'application/json';
+        json = 'application/json'
     }
     $seenExts = @{}
     foreach ($f in $allFiles) {
@@ -153,7 +162,9 @@ try {
         $contentTypes,
         [System.Text.Encoding]::UTF8)
 
-    # --- VSIX v3: catalog.json + manifest.json (required for VS 2017+ marketplace) ---
+    # --- Final catalog.json + manifest.json ---
+    # Now that every file (including [Content_Types].xml) is present we can build
+    # the complete file list and write the real catalog.json / manifest.json.
     $stagedFiles = Get-ChildItem $stagingDir -Recurse -File
     $totalSize   = ($stagedFiles | Measure-Object -Property Length -Sum).Sum
     $fileEntries = $stagedFiles | ForEach-Object {
@@ -164,12 +175,12 @@ try {
         manifestVersion = '1.1'
         info = [ordered]@{ id = "$id,version=$version"; manifestType = 'Extension' }
         packages = @([ordered]@{
-            id           = $id
-            version      = $version
-            type         = 'Vsix'
-            extensionDir = '[installdir]'
-            files        = @($fileEntries)
-            dependencies = [ordered]@{}
+            id            = $id
+            version       = $version
+            type          = 'Vsix'
+            extensionDir  = '[installdir]'
+            files         = @($fileEntries)
+            dependencies  = [ordered]@{}
             msiProperties = [ordered]@{}
         })
     }
