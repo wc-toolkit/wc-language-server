@@ -19,22 +19,39 @@ $manifestFile = Join-Path $projectDir "source.extension.vsixmanifest"
 # Ensure output directory exists
 New-Item -ItemType Directory -Force -Path $OutputPath | Out-Null
 
-# Step 1: Build the project with single-pass restore+build (more reliable for VSSDK)
+# Step 1: Restore and build the project (separate steps — VSSDK targets
+# don't reliably produce the VSIX container during a single-pass /restore build)
 Write-Host "`nStep 1: Building project..."
+msbuild $projectFile /t:Restore /p:Configuration=$Configuration /v:minimal | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "msbuild restore failed" }
+
 msbuild $projectFile `
-    /restore `
     /p:Configuration=$Configuration `
     /p:DeployExtension=false `
+    /p:CreateVsixContainer=true `
     /v:normal | Out-Host
-if ($LASTEXITCODE -ne 0) { throw "msbuild failed" }
+if ($LASTEXITCODE -ne 0) { throw "msbuild build failed" }
 
 # Step 2: Find the VSSDK-generated VSIX
 Write-Host "`nStep 2: Locating VSSDK-generated VSIX..."
-$buildOutputDir = Join-Path $projectDir "bin\$Configuration"
-$generatedVsix = Get-ChildItem -Path $buildOutputDir -Filter "*.vsix" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+# VSSDK may place the .vsix in bin\Release, bin\Release\net472, or even the project dir
+$searchPaths = @(
+    (Join-Path $projectDir "bin\$Configuration"),
+    $projectDir
+)
+$generatedVsix = $null
+foreach ($searchPath in $searchPaths) {
+    if (Test-Path $searchPath) {
+        $generatedVsix = Get-ChildItem -Path $searchPath -Filter "*.vsix" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($generatedVsix) { break }
+    }
+}
 
 if (-not $generatedVsix) {
-    throw "VSSDK did not produce a .vsix file under $buildOutputDir. Check that CreateVsixContainer is true in the .csproj."
+    Write-Host "Directory listing for diagnostics:"
+    Get-ChildItem -Path (Join-Path $projectDir "bin") -Recurse -File -ErrorAction SilentlyContinue |
+        ForEach-Object { Write-Host "  $($_.FullName)  ($($_.Length) bytes)" }
+    throw "VSSDK did not produce a .vsix file. Check build output above for VSIX-related warnings."
 }
 
 Write-Host "Found VSIX: $($generatedVsix.FullName) ($($generatedVsix.Length) bytes)"
