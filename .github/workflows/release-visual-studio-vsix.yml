@@ -262,7 +262,7 @@ jobs:
               Write-Host $content
               Write-Host ""
             } else {
-              Write-Host "=== $name: MISSING ==="
+              Write-Host "=== $($name): MISSING ==="
               Write-Host ""
             }
           }
