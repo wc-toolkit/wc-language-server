@@ -211,13 +211,25 @@ jobs:
         if: env.VISUAL_STUDIO_MARKETPLACE_TOKEN != ''
         shell: pwsh
         run: |
-          $vsixPublisher = Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio" -Recurse -Filter "VsixPublisher.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($vsixPublisher) {
-            Write-Host "VsixPublisher found at: $($vsixPublisher.FullName)"
-            "VSIX_PUBLISHER_PATH=$($vsixPublisher.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          # Prefer the VsixPublisher that ships with the same VSSDK BuildTools NuGet
+          # package used to build the VSIX (ensures format compatibility).
+          $nugetPkgs = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget\packages' }
+          $nugetVsixPub = Get-ChildItem -Path $nugetPkgs -Recurse -Filter "VsixPublisher.exe" -ErrorAction SilentlyContinue |
+            Sort-Object { $_.Directory.FullName } -Descending | Select-Object -First 1
+
+          if ($nugetVsixPub) {
+            Write-Host "VsixPublisher (NuGet): $($nugetVsixPub.FullName)"
+            "VSIX_PUBLISHER_PATH=$($nugetVsixPub.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
           } else {
-            Write-Error "VsixPublisher.exe not found in Visual Studio installation"
-            exit 1
+            # Fall back to the one bundled with VS
+            $vsVsixPub = Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio" -Recurse -Filter "VsixPublisher.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($vsVsixPub) {
+              Write-Host "VsixPublisher (VS install): $($vsVsixPub.FullName)"
+              "VSIX_PUBLISHER_PATH=$($vsVsixPub.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+            } else {
+              Write-Error "VsixPublisher.exe not found"
+              exit 1
+            }
           }
 
       - name: Inspect VSIX contents
@@ -286,13 +298,16 @@ jobs:
           $publisher = "${{ steps.vs_meta.outputs.publisher }}"
           $pat = "${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}"
 
-          Write-Host "Publishing VSIX to Visual Studio Marketplace using VsixPublisher..."
+          Write-Host "Publishing VSIX to Visual Studio Marketplace..."
           Write-Host "Publisher: $publisher"
           Write-Host "VSIX Path: $vsixPath"
-          Write-Host "VsixPublisher Path: $env:VSIX_PUBLISHER_PATH"
+          Write-Host "VSIX Size: $((Get-Item $vsixPath).Length) bytes"
 
           # Copy README for marketplace overview
-          $readmePath = Join-Path $env:GITHUB_WORKSPACE "README.md"
+          $readmePath = Join-Path $env:GITHUB_WORKSPACE "packages\visual-studio\README.md"
+          if (-not (Test-Path $readmePath)) {
+            $readmePath = Join-Path $env:GITHUB_WORKSPACE "README.md"
+          }
           $readmeDestPath = Join-Path $env:TEMP "README.md"
           if (Test-Path $readmePath) {
             Copy-Item $readmePath $readmeDestPath
@@ -313,13 +328,58 @@ jobs:
             qna = $true
             repo = 'https://github.com/wc-toolkit/wc-language-server'
           }
-          
-          # Add overview if README exists
           if (Test-Path $readmeDestPath) {
             $manifest['overview'] = 'README.md'
           }
           $manifestPath = Join-Path $env:TEMP 'publishManifest.json'
           $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $manifestPath
+          Write-Host "Publish manifest:"
+          Get-Content $manifestPath | Write-Host
+
+          # --- Attempt 1: REST API (gives detailed error body) ---
+          Write-Host "`n=== Attempting publish via REST API ==="
+          $base64Auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$pat"))
+          $vsixBytes = [System.IO.File]::ReadAllBytes($vsixPath)
+
+          try {
+            $response = Invoke-WebRequest `
+              -Uri "https://marketplace.visualstudio.com/_apis/gallery/publishers/$publisher/extensions?api-version=7.1-preview.1" `
+              -Method Post `
+              -Headers @{ Authorization = "Basic $base64Auth" } `
+              -ContentType 'application/octet-stream' `
+              -Body $vsixBytes `
+              -UseBasicParsing `
+              -ErrorAction Stop
+
+            Write-Host "REST API publish succeeded (HTTP $($response.StatusCode))"
+            exit 0
+          }
+          catch {
+            $errResp = $_.Exception.Response
+            if ($errResp) {
+              $status = [int]$errResp.StatusCode
+              try {
+                $errStream = $errResp.GetResponseStream()
+                $errReader = New-Object System.IO.StreamReader($errStream)
+                $errBody = $errReader.ReadToEnd()
+                $errReader.Dispose()
+              } catch { $errBody = '(could not read response body)' }
+              Write-Host "REST API failed (HTTP $status):"
+              Write-Host $errBody
+
+              # If 409 Conflict, the extension version already exists
+              if ($status -eq 409) {
+                Write-Host "Version already exists on marketplace, treating as success."
+                exit 0
+              }
+            } else {
+              Write-Host "REST API error: $_"
+            }
+          }
+
+          # --- Attempt 2: VsixPublisher (fallback) ---
+          Write-Host "`n=== Falling back to VsixPublisher ==="
+          Write-Host "VsixPublisher Path: $env:VSIX_PUBLISHER_PATH"
 
           try {
               & $env:VSIX_PUBLISHER_PATH publish `
@@ -329,7 +389,7 @@ jobs:
                 -ignoreWarnings "VSIXValidatorWarning01,VSIXValidatorWarning02,VSIXValidatorWarning08"
 
               if ($LASTEXITCODE -eq 0) {
-                Write-Host "Successfully published to Visual Studio Marketplace"
+                Write-Host "Successfully published via VsixPublisher"
               } else {
                 Write-Error "VsixPublisher failed with exit code: $LASTEXITCODE"
                 exit 1
