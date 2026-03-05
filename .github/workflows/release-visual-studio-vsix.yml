@@ -240,7 +240,7 @@ jobs:
 
 
       - name: Publish VSIX to Visual Studio Marketplace
-        if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_run') && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != '' && steps.check_vs_marketplace.outputs.exists == 'false'
+        if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch') && env.VISUAL_STUDIO_MARKETPLACE_TOKEN != '' && steps.check_vs_marketplace.outputs.exists == 'false'
         shell: pwsh
         run: |
           $vsixPath = "${{ steps.build_vsix.outputs.vsix_path }}"

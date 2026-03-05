@@ -9,7 +9,8 @@
     "clean": "dotnet clean WebComponentsLanguageServer.VisualStudio.csproj",
     "pack": "node -e \"if(process.platform!=='win32'){console.error('VSIX packaging currently requires Windows with Visual Studio build tools. Use the release-visual-studio-vsix GitHub workflow or run pack on Windows.'); process.exit(1)}\" && dotnet build WebComponentsLanguageServer.VisualStudio.csproj -c Release",
     "release": "echo 'Visual Studio extension published via GitHub Actions release workflow'",
-    "validate-vsix": "node -e \"if(process.platform!=='win32'){console.error('validate-vsix requires Windows with Visual Studio installed.'); process.exit(1)}\" && pwsh -File validate-vsix.ps1"
+    "validate-vsix": "node -e \"if(process.platform!=='win32'){console.error('validate-vsix requires Windows with Visual Studio installed.'); process.exit(1)}\" && pwsh -File validate-vsix.ps1",
+    "deploy-vsix": "node -e \"if(process.platform!=='win32'){console.error('deploy-vsix requires Windows with Visual Studio installed.'); process.exit(1)}\" && pwsh -File deploy-vsix.ps1"
   },
   "keywords": [
     "visual-studio",
