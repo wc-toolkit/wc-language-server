@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.21
+
+### Patch Changes
+
+- 7b18e16: Fixed CI release step
+
 ## 0.0.20
 
 ### Patch Changes
