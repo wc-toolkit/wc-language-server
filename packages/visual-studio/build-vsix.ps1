@@ -19,17 +19,20 @@ $manifestFile = Join-Path $projectDir "source.extension.vsixmanifest"
 # Ensure output directory exists
 New-Item -ItemType Directory -Force -Path $OutputPath | Out-Null
 
-# Step 1: Restore and build the project (separate steps — VSSDK targets
-# don't reliably produce the VSIX container during a single-pass /restore build)
+# Step 1: Restore and build the project, explicitly invoking CreateVsixContainer.
+# With SDK-style projects (Sdk="Microsoft.NET.Sdk") the VSSDK CreateVsixContainer
+# target does not auto-hook into the default Build pipeline — it must be called
+# explicitly.
 Write-Host "`nStep 1: Building project..."
 msbuild $projectFile /t:Restore /p:Configuration=$Configuration /v:minimal | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "msbuild restore failed" }
 
 msbuild $projectFile `
+    "/t:Build;CreateVsixContainer" `
     /p:Configuration=$Configuration `
     /p:DeployExtension=false `
     /p:CreateVsixContainer=true `
-    /v:normal | Out-Host
+    /v:minimal | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "msbuild build failed" }
 
 # Step 2: Find the VSSDK-generated VSIX
