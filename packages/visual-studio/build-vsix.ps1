@@ -60,6 +60,11 @@ $stagingDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGui
 New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
 
 try {
+    # Use UTF-8 without BOM for all XML and JSON files — BOM in OPC parts
+    # (especially [Content_Types].xml) can cause VSIX validation failures on
+    # strict OPC parsers and the VS Marketplace server.
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
     # --- extension.vsixmanifest (resolved — no MSBuild template tokens) ---
     $pkgdefPath = Join-Path $buildOutputDir "$assemblyName.pkgdef"
     $hasPkgdef = Test-Path $pkgdefPath
@@ -98,7 +103,7 @@ try {
     [System.IO.File]::WriteAllText(
         (Join-Path $stagingDir "extension.vsixmanifest"),
         $resolvedManifest,
-        [System.Text.Encoding]::UTF8)
+        $utf8NoBom)
 
     # --- Extension assembly ---
     Copy-Item (Join-Path $buildOutputDir "$assemblyName.dll") $stagingDir
@@ -167,20 +172,24 @@ try {
     [System.IO.File]::WriteAllText(
         (Join-Path $stagingDir "[Content_Types].xml"),
         $contentTypes,
-        [System.Text.Encoding]::UTF8)
+        $utf8NoBom)
 
     # --- Final catalog.json + manifest.json ---
     # Now that every file (including [Content_Types].xml) is present we can build
     # the complete file list and write the real catalog.json / manifest.json.
     $stagedFiles = Get-ChildItem $stagingDir -Recurse -File
     $totalSize   = ($stagedFiles | Measure-Object -Property Length -Sum).Sum
-    $fileEntries = $stagedFiles | ForEach-Object {
-        [ordered]@{ fileName = '/' + ($_.FullName.Substring($stagingDir.Length).TrimStart('\').Replace('\', '/')) }
-    }
+    # [Content_Types].xml is OPC infrastructure, not extension payload — exclude
+    # it from the catalog file list to match the VSSDK-generated format exactly.
+    $fileEntries = $stagedFiles |
+        Where-Object { $_.Name -ne '[Content_Types].xml' } |
+        ForEach-Object {
+            [ordered]@{ fileName = '/' + ($_.FullName.Substring($stagingDir.Length).TrimStart('\').Replace('\', '/')) }
+        }
 
     $catalogObj = [ordered]@{
         manifestVersion = '1.1'
-        info = [ordered]@{ id = "$id,version=$version"; manifestType = 'Extension' }
+        info = [ordered]@{ id = "$id,Version=$version"; manifestType = 'Extension' }
         packages = @([ordered]@{
             id            = $id
             version       = $version
