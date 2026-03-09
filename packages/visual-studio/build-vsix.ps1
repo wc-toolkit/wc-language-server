@@ -73,6 +73,11 @@ $id = $identity.Id
 $version = $identity.Version
 $vsixFileName = "$publisher.$id.vsix"
 
+# Sanitize the publisher display name for use in the filename — display names
+# can contain spaces which VsixPublisher rejects in payload file paths.
+$vsixPublisherSlug = $publisher -replace '[^a-zA-Z0-9.]', '-' -replace '-{2,}', '-' -replace '^-|-$', ''
+$vsixFileName = "$vsixPublisherSlug.$id.vsix"
+
 Write-Host "Extension:  $id"
 Write-Host "Publisher:  $publisher"
 Write-Host "Version:    $version"

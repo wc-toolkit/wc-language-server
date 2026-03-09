@@ -157,9 +157,16 @@ jobs:
           $publisher = $identity.Publisher
           $id = $identity.Id
           $version = $identity.Version
-          $itemName = "$publisher.$id"
+
+          # The publisher ID (slug) is the Marketplace account identifier used in
+          # API URLs and publish manifests. It differs from the display name stored
+          # in the vsixmanifest Publisher attribute (which VsixPublisher validates
+          # against the Marketplace display name).
+          $publisherId = "wc-toolkit"
+          $itemName = "$publisherId.$id"
 
           "publisher=$publisher" >> $env:GITHUB_OUTPUT
+          "publisherId=$publisherId" >> $env:GITHUB_OUTPUT
           "id=$id" >> $env:GITHUB_OUTPUT
           "version=$version" >> $env:GITHUB_OUTPUT
           "itemName=$itemName" >> $env:GITHUB_OUTPUT
@@ -296,10 +303,11 @@ jobs:
         run: |
           $vsixPath = "${{ steps.build_vsix.outputs.vsix_path }}"
           $publisher = "${{ steps.vs_meta.outputs.publisher }}"
+          $publisherId = "${{ steps.vs_meta.outputs.publisherId }}"
           $pat = "${{ env.VISUAL_STUDIO_MARKETPLACE_TOKEN }}"
 
           Write-Host "Publishing VSIX to Visual Studio Marketplace..."
-          Write-Host "Publisher: $publisher"
+          Write-Host "Publisher: $publisher ($publisherId)"
           Write-Host "VSIX Path: $vsixPath"
           Write-Host "VSIX Size: $((Get-Item $vsixPath).Length) bytes"
 
@@ -323,7 +331,7 @@ jobs:
               internalName = ("${{ steps.vs_meta.outputs.id }}" -replace '[^a-zA-Z0-9-]', '-')
             }
             priceCategory = 'free'
-            publisher = $publisher
+            publisher = $publisherId
             private = $false
             qna = $true
             repo = 'https://github.com/wc-toolkit/wc-language-server'
@@ -343,7 +351,7 @@ jobs:
 
           try {
             $response = Invoke-WebRequest `
-              -Uri "https://marketplace.visualstudio.com/_apis/gallery/publishers/$publisher/extensions?api-version=7.1-preview.1" `
+              -Uri "https://marketplace.visualstudio.com/_apis/gallery/publishers/$publisherId/extensions?api-version=7.1-preview.1" `
               -Method Post `
               -Headers @{ Authorization = "Basic $base64Auth" } `
               -ContentType 'application/octet-stream' `
