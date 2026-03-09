@@ -19,13 +19,13 @@ $manifestFile = Join-Path $projectDir "source.extension.vsixmanifest"
 # Ensure output directory exists
 New-Item -ItemType Directory -Force -Path $OutputPath | Out-Null
 
-# Step 1: Restore NuGet packages.
-# dotnet restore resolves PackageReference items and writes obj/*.nuget.g.props /
-# obj/*.nuget.g.targets so msbuild can locate the NuGet-provided assemblies
-# (Microsoft.VisualStudio.SDK, Microsoft.VisualStudio.Threading, etc.).
+# Step 1: Restore NuGet packages using the same VS Build Tools msbuild that will
+# do the build. Mixing `dotnet restore` with VS Build Tools msbuild produces
+# incompatible NuGet asset files and triggers "RuntimeIdentifier 'win' not listed"
+# errors in Microsoft.NuGet.targets.
 Write-Host "`nStep 1: Restoring dependencies..."
-dotnet restore $projectFile | Out-Host
-if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed" }
+msbuild $projectFile /t:Restore /p:Configuration=$Configuration /v:minimal | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "msbuild restore failed" }
 
 # Step 2: Build using VS Build Tools MSBuild (set up by microsoft/setup-msbuild).
 # The .csproj uses the legacy project format which imports Microsoft.VsSDK.targets
