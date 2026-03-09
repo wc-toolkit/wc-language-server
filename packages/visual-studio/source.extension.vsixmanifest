@@ -4,9 +4,9 @@
     <Identity Id="WCToolkit.WebComponentsLanguageServer.VisualStudio" Version="0.1.0" Language="en-US" Publisher="wc-toolkit" />
     <DisplayName>Web Components Language Server</DisplayName>
     <Description xml:space="preserve">Language Server Protocol integration for Web Components and Custom Elements in Visual Studio.</Description>
-    <Icon>assets\icon.png</Icon>
     <MoreInfo>https://github.com/wc-toolkit/wc-language-server</MoreInfo>
     <License>LICENSE</License>
+    <Icon>assets\icon.png</Icon>
     <ReleaseNotes>https://github.com/wc-toolkit/wc-language-server/releases</ReleaseNotes>
     <Tags>web components;custom elements;language server;lsp;html;typescript;javascript</Tags>
   </Metadata>
