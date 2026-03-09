@@ -10,22 +10,22 @@
     <Tags>web components;custom elements;language server;lsp;html;typescript;javascript</Tags>
   </Metadata>
   <Installation>
-    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,18.0)">
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,)">
       <ProductArchitecture>amd64</ProductArchitecture>
     </InstallationTarget>
-    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.0,18.0)">
+    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.0,)">
       <ProductArchitecture>amd64</ProductArchitecture>
     </InstallationTarget>
-    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0,18.0)">
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.BuildTools" Version="[17.0,)">
       <ProductArchitecture>amd64</ProductArchitecture>
     </InstallationTarget>
   </Installation>
   <Dependencies>
     <Dependency Id="Microsoft.Framework.NDP" DisplayName=".NET Framework" d:Source="Manual" Version="[4.7.2,)" />
   </Dependencies>
-  <Prerequisites>
-    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,18.0)" DisplayName="Visual Studio core editor" />
-  </Prerequisites>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
     <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" Path="|%CurrentProject%|" />
