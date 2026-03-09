@@ -19,25 +19,25 @@ $manifestFile = Join-Path $projectDir "source.extension.vsixmanifest"
 # Ensure output directory exists
 New-Item -ItemType Directory -Force -Path $OutputPath | Out-Null
 
-# Step 1: Restore dependencies.
-# dotnet restore is required for SDK-style projects — it properly wires up the
-# Microsoft.VSSDK.BuildTools MSBuild targets (including CreateVsixContainer) in
-# the obj/ directory.  msbuild /t:Restore does NOT do this reliably for SDK-style
-# projects and will cause CreateVsixContainer to silently produce no VSIX.
+# Step 1: Restore NuGet packages.
+# dotnet restore resolves PackageReference items and writes obj/*.nuget.g.props /
+# obj/*.nuget.g.targets so msbuild can locate the NuGet-provided assemblies
+# (Microsoft.VisualStudio.SDK, Microsoft.VisualStudio.Threading, etc.).
 Write-Host "`nStep 1: Restoring dependencies..."
 dotnet restore $projectFile | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed" }
 
-# Step 2: Build using the .NET SDK's MSBuild (dotnet build). This ensures the
-# Microsoft.VSSDK.BuildTools NuGet package targets (including CreateVsixContainer)
-# are properly imported via the SDK's obj/*.nuget.g.targets mechanism. Plain
-# `msbuild` via microsoft/setup-msbuild does not reliably pick up those targets.
-Write-Host "`nStep 2: Building project (dotnet build)..."
-dotnet build $projectFile `
-    -c $Configuration `
-    --no-restore `
-    /p:DeployExtension=false | Out-Host
-if ($LASTEXITCODE -ne 0) { throw "dotnet build failed" }
+# Step 2: Build using VS Build Tools MSBuild (set up by microsoft/setup-msbuild).
+# The .csproj uses the legacy project format which imports Microsoft.VsSDK.targets
+# from $(VSToolsPath) — the same VSSDK installation used by Visual Studio. This is
+# the only reliable way to trigger CreateVsixContainer. `dotnet build` does NOT work
+# because it uses the .NET SDK's MSBuild which does not resolve $(VSToolsPath).
+Write-Host "`nStep 2: Building project (msbuild)..."
+msbuild $projectFile `
+    /p:Configuration=$Configuration `
+    /p:DeployExtension=false `
+    /v:minimal | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "msbuild build failed" }
 
 # Step 3: Locate the VSSDK-generated VSIX.
 # Depending on the VSSDK version and project type the .vsix may land in:
