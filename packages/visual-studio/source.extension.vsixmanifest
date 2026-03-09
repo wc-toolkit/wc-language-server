@@ -7,7 +7,6 @@
     <MoreInfo>https://github.com/wc-toolkit/wc-language-server</MoreInfo>
     <License>LICENSE</License>
     <Icon>assets\icon.png</Icon>
-    <ReleaseNotes>https://github.com/wc-toolkit/wc-language-server/releases</ReleaseNotes>
     <Tags>web components;custom elements;language server;lsp;html;typescript;javascript</Tags>
   </Metadata>
   <Installation>
