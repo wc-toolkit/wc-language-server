@@ -15,9 +15,27 @@ Write-Host "Output Path: $OutputPath"
 $projectDir = $PSScriptRoot
 $projectFile = Join-Path $projectDir "WebComponentsLanguageServer.VisualStudio.csproj"
 $manifestFile = Join-Path $projectDir "source.extension.vsixmanifest"
+$packageJsonFile = Join-Path $projectDir "package.json"
 
 # Ensure output directory exists
 New-Item -ItemType Directory -Force -Path $OutputPath | Out-Null
+
+# Step 0: Sync version from package.json -> source.extension.vsixmanifest
+Write-Host "`nStep 0: Syncing version from package.json..."
+$pkgVersion = (Get-Content $packageJsonFile -Raw | ConvertFrom-Json).version
+if (-not $pkgVersion) { throw "Could not read version from $packageJsonFile" }
+[xml]$manifestXml = Get-Content $manifestFile
+$ns = New-Object System.Xml.XmlNamespaceManager($manifestXml.NameTable)
+$ns.AddNamespace("vs", "http://schemas.microsoft.com/developer/vsx-schema/2011")
+$identity = $manifestXml.SelectSingleNode("//vs:PackageManifest/vs:Metadata/vs:Identity", $ns)
+$currentVersion = $identity.Version
+if ($currentVersion -ne $pkgVersion) {
+    Write-Host "Updating manifest version: $currentVersion -> $pkgVersion"
+    $identity.Version = $pkgVersion
+    $manifestXml.Save($manifestFile)
+} else {
+    Write-Host "Manifest version already matches: $pkgVersion"
+}
 
 # Step 1: Restore NuGet packages using the same VS Build Tools msbuild that will
 # do the build. Mixing `dotnet restore` with VS Build Tools msbuild produces
