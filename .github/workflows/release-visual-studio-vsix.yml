@@ -196,22 +196,20 @@ jobs:
                   {"filterType": 7, "value": "${{ steps.vs_meta.outputs.itemName }}"}
                 ]
               }],
-              "flags": 914
+              "flags": 915
             }' \
             https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery)
 
-          if echo "$RESPONSE" | grep -q '"versions":\['; then
-            CURRENT_VERSION=$(echo "$RESPONSE" | grep -o '"version":"${{ steps.vs_meta.outputs.version }}"' || echo "")
-            if [ -z "$CURRENT_VERSION" ]; then
-              echo "exists=false" >> $GITHUB_OUTPUT
-              echo "Version does not exist on VS Marketplace"
-            else
-              echo "exists=true" >> $GITHUB_OUTPUT
-              echo "Version already exists on VS Marketplace, skipping publish"
-            fi
+          # flags=915 includes IncludeVersions (1). Use jq for reliable parsing.
+          FOUND=$(echo "$RESPONSE" | jq -r --arg v "${{ steps.vs_meta.outputs.version }}" \
+            '[.results[].extensions[].versions[].version] | map(select(. == $v)) | length > 0' 2>/dev/null || echo "false")
+
+          if [ "$FOUND" = "true" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Version ${{ steps.vs_meta.outputs.version }} already exists on VS Marketplace, skipping publish"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Extension not found on VS Marketplace, will publish"
+            echo "Version ${{ steps.vs_meta.outputs.version }} not found on VS Marketplace, will publish"
           fi
 
       - name: Install VsixPublisher
