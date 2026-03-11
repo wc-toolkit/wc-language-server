@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.1.3
+
+### Patch Changes
+
+- 8da851d: Added version sync between package and extension
+
 ## 0.1.2
 
 ### Patch Changes
