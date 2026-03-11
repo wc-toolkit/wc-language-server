@@ -18,6 +18,7 @@ const targets = [
   { target: "bun-darwin-x64", suffix: "macos-x64" },
   { target: "bun-darwin-arm64", suffix: "macos-arm64" },
   { target: "bun-windows-x64", suffix: "windows-x64" },
+  { target: "bun-windows-arm64", suffix: "windows-arm64" },
 ];
 
 async function run() {
