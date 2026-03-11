@@ -1,5 +1,11 @@
 # @wc-toolkit/visual-studio
 
+## 0.0.22
+
+### Patch Changes
+
+- 62ee650: Fix VS VSIX publish
+
 ## 0.0.21
 
 ### Patch Changes
