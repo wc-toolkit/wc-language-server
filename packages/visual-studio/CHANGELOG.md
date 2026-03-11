@@ -1,5 +1,12 @@
 # @wc-toolkit/visual-studio
 
+## 0.1.2
+
+### Patch Changes
+
+- e33e885: Added Windows arm64 binary output
+- 35b7f4e: Updated to use native VSIX builder
+
 ## 0.0.22
 
 ### Patch Changes
