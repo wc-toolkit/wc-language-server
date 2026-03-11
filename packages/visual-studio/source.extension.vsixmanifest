@@ -1,25 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="WCToolkit.WebComponentsLanguageServer.VisualStudio" Version="0.0.22" Language="en-US" Publisher="wc-toolkit" />
+    <Identity Id="WCToolkit.WebComponentsLanguageServer.VisualStudio" Version="0.1.1" Language="en-US" Publisher="Web Components Toolkit" />
     <DisplayName>Web Components Language Server</DisplayName>
     <Description xml:space="preserve">Language Server Protocol integration for Web Components and Custom Elements in Visual Studio.</Description>
-    <Icon>assets\icon.png</Icon>
     <MoreInfo>https://github.com/wc-toolkit/wc-language-server</MoreInfo>
     <License>LICENSE</License>
-    <ReleaseNotes>https://github.com/wc-toolkit/wc-language-server/releases</ReleaseNotes>
+    <Icon>assets\icon.png</Icon>
     <Tags>web components;custom elements;language server;lsp;html;typescript;javascript</Tags>
   </Metadata>
   <Installation>
-    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,18.0)" />
-    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.0,18.0)" />
-    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0,18.0)" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,)">
+      <ProductArchitecture>arm64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.0,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.0,)">
+      <ProductArchitecture>arm64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0,)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0,)">
+      <ProductArchitecture>arm64</ProductArchitecture>
+    </InstallationTarget>
   </Installation>
   <Dependencies>
     <Dependency Id="Microsoft.Framework.NDP" DisplayName=".NET Framework" d:Source="Manual" Version="[4.7.2,)" />
   </Dependencies>
   <Prerequisites>
-    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,18.0)" DisplayName="Visual Studio core editor" />
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
   </Prerequisites>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />

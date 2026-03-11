@@ -366,12 +366,13 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
 
     private static string? GetPlatformSuffix()
     {
+        var architecture = RuntimeInformation.OSArchitecture;
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            return "windows-x64";
+            return architecture == Architecture.Arm64 ? "windows-arm64" : "windows-x64";
         }
 
-        var architecture = RuntimeInformation.OSArchitecture;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
