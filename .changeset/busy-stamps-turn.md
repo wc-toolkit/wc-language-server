@@ -2,4 +2,4 @@
 "@wc-toolkit/visual-studio": patch
 ---
 
-Added VSIX inspector
+Added Windows arm64 binary output
