@@ -9,16 +9,18 @@ using System.Threading.Tasks;
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.LanguageServer.Client;
+using Newtonsoft.Json.Linq;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Utilities;
+using StreamJsonRpc;
 
 namespace WCToolkit.VisualStudio;
 
 [Export(typeof(ILanguageClient))]
 [PartCreationPolicy(CreationPolicy.Shared)]
 [ContentType("text")]
-public sealed class WebComponentsLanguageClient : ILanguageClient
+public sealed class WebComponentsLanguageClient : ILanguageClient, ILanguageClientCustomMessage2
 {
     private static readonly HashSet<string> DefaultSupportedExtensions = ParseExtensions(WebComponentsOptionsPage.DefaultSupportedExtensions);
 
@@ -30,12 +32,17 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
     private DocumentEvents? _documentEvents;
     private bool _waitingForSupportedDocument;
     private HashSet<string> _supportedExtensions = new(DefaultSupportedExtensions, StringComparer.OrdinalIgnoreCase);
+    private readonly List<FileSystemWatcher> _fileWatchers = new List<FileSystemWatcher>();
+    private Timer? _restartDebounceTimer;
+    private readonly object _restartTimerLock = new object();
+    private const int RestartDebounceMs = 300;
 
     public static WebComponentsLanguageClient? Instance { get; private set; }
 
     public WebComponentsLanguageClient()
     {
         Instance = this;
+        Log("WebComponentsLanguageClient constructor called");
     }
 
     public string Name => "Web Components Language Server";
@@ -47,17 +54,13 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
     public IEnumerable<string> FilesToWatch => new[]
     {
         "**/wc.config.js",
-        "**/wc.config.cjs",
-        "**/wc.config.mjs",
-        "**/wc.config.ts",
-        "**/wc.config.json",
         "**/custom-elements.json",
         "**/package.json"
     };
 
-    public object? CustomMessageTarget => null;
+    public object? CustomMessageTarget => VsCustomMessageTarget.Instance;
 
-    public object? MiddleLayer => null;
+    public object? MiddleLayer => VsCompatMiddleLayer.Instance;
 
     public bool ShowNotificationOnInitializeFailed => true;
 
@@ -65,10 +68,18 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
 
     public event AsyncEventHandler<EventArgs>? StopAsync;
 
+    public Task AttachForCustomMessageAsync(JsonRpc rpc)
+    {
+        return Task.CompletedTask;
+    }
+
     public async Task OnLoadedAsync()
     {
+        Log($"OnLoadedAsync called, StartAsync={(this.StartAsync is null ? "null" : "subscribed")}");
+
         if (this.StartAsync is null)
         {
+            Log("StartAsync is null - language client broker has not subscribed. Client will not start.");
             return;
         }
 
@@ -118,11 +129,15 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
 
     public async Task<Connection?> ActivateAsync(CancellationToken token)
     {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
+        var workspaceRoot = ResolveWorkspaceRoot();
+        Log($"ActivateAsync: workspaceRoot={( string.IsNullOrWhiteSpace(workspaceRoot) ? "(none)" : workspaceRoot)}");
         await TaskScheduler.Default;
 
         try
         {
             var launch = ResolveLaunchCommand();
+            Log($"ActivateAsync: resolved command={launch.Command} args={launch.Arguments}");
 
             _lastLaunchCommand = launch.Command;
             _lastLaunchArguments = launch.Arguments;
@@ -137,7 +152,9 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                WorkingDirectory = Path.GetDirectoryName(launch.ResolvedServerPath) ?? AppContext.BaseDirectory
+                WorkingDirectory = !string.IsNullOrWhiteSpace(workspaceRoot)
+                    ? workspaceRoot
+                    : Path.GetDirectoryName(launch.ResolvedServerPath) ?? AppContext.BaseDirectory
             };
 
             _serverProcess = new System.Diagnostics.Process { StartInfo = startInfo, EnableRaisingEvents = true };
@@ -157,21 +174,102 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
 
             _serverProcess.BeginErrorReadLine();
 
-            Log($"started language server: {launch.Command} {launch.Arguments}".Trim());
+            var launched = $"started language server: {launch.Command} {launch.Arguments}".Trim();
+            Log(launched);
 
             return new Connection(_serverProcess.StandardOutput.BaseStream, _serverProcess.StandardInput.BaseStream);
         }
         catch (Exception ex)
         {
-            Log($"failed to activate language server: {ex}");
+            var msg = $"failed to activate language server: {ex.Message}";
+            Log(msg);
+            Log($"Full exception: {ex}");
             return null;
         }
     }
 
-    public Task OnServerInitializedAsync()
+    public async Task OnServerInitializedAsync()
     {
         Log("server initialized");
-        return Task.CompletedTask;
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var workspaceRoot = ResolveWorkspaceRoot();
+        SetupFileWatchers(workspaceRoot);
+    }
+
+    private void SetupFileWatchers(string workspaceRoot)
+    {
+        DisposeFileWatchers();
+
+        if (string.IsNullOrWhiteSpace(workspaceRoot) || !Directory.Exists(workspaceRoot))
+        {
+            return;
+        }
+
+        var patterns = new[] { "wc.config.*", "custom-elements.json", "package.json" };
+        foreach (var pattern in patterns)
+        {
+            try
+            {
+                var watcher = new FileSystemWatcher(workspaceRoot, pattern)
+                {
+                    IncludeSubdirectories = true,
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
+                    EnableRaisingEvents = true
+                };
+                watcher.Changed += OnWatchedFileChanged;
+                watcher.Created += OnWatchedFileChanged;
+                watcher.Deleted += OnWatchedFileChanged;
+                watcher.Renamed += (s, e) => OnWatchedFileChanged(s, e);
+                _fileWatchers.Add(watcher);
+            }
+            catch (Exception ex)
+            {
+                Log($"failed to set up file watcher for {pattern}: {ex.Message}");
+            }
+        }
+
+        Log($"watching {workspaceRoot} for config/manifest changes");
+    }
+
+    private void OnWatchedFileChanged(object sender, FileSystemEventArgs e)
+    {
+        Log($"watched file changed: {e.Name}");
+        ScheduleRestart($"file changed: {e.Name}");
+    }
+
+    private void ScheduleRestart(string reason)
+    {
+        Log($"restart scheduled: {reason}");
+        lock (_restartTimerLock)
+        {
+            _restartDebounceTimer?.Dispose();
+            _restartDebounceTimer = new Timer(
+                _ => ThreadHelper.JoinableTaskFactory.Run(async () => await RequestRestartAsync()),
+                null,
+                RestartDebounceMs,
+                Timeout.Infinite);
+        }
+    }
+
+    private void DisposeFileWatchers()
+    {
+        lock (_restartTimerLock)
+        {
+            _restartDebounceTimer?.Dispose();
+            _restartDebounceTimer = null;
+        }
+
+        foreach (var watcher in _fileWatchers)
+        {
+            try
+            {
+                watcher.EnableRaisingEvents = false;
+                watcher.Dispose();
+            }
+            catch { }
+        }
+
+        _fileWatchers.Clear();
     }
 
     public Task<InitializationFailureContext?> OnServerInitializeFailedAsync(ILanguageClientInitializationInfo initializationState)
@@ -183,6 +281,7 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
     public async Task RequestRestartAsync()
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        DisposeFileWatchers();
         UnsubscribeDocumentOpenEvents();
 
         if (this.StopAsync is not null)
@@ -322,6 +421,33 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
         _waitingForSupportedDocument = false;
     }
 
+    private string ResolveWorkspaceRoot()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        try
+        {
+            var dte = _dte;
+            if (dte is null)
+            {
+                dte = Package.GetGlobalService(typeof(DTE)) as DTE2;
+            }
+
+            var solutionPath = dte?.Solution?.FullName;
+            if (!string.IsNullOrWhiteSpace(solutionPath))
+            {
+                // In Open Folder mode (no .sln) VS sets Solution.FullName to the folder
+                // itself, so we use it directly. For a real .sln file we take its parent.
+                return Directory.Exists(solutionPath)
+                    ? solutionPath
+                    : Path.GetDirectoryName(solutionPath) ?? string.Empty;
+            }
+        }
+        catch { }
+
+        return string.Empty;
+    }
+
     private (string Command, string Arguments, string ResolvedServerPath) ResolveLaunchCommand()
     {
         var options = WebComponentsPackage.Instance?.GetOptions();
@@ -334,9 +460,9 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
         var binDirectory = Path.Combine(extensionRoot, "LanguageServer", "bin");
 
         var nativePath = ResolveNativeBinaryPath(binDirectory);
-        if (preferNative && nativePath is not null && File.Exists(nativePath))
+        if (preferNative && IsValidNativeBinary(nativePath))
         {
-            return (nativePath, string.Empty, nativePath);
+            return (nativePath!, "--stdio", nativePath!);
         }
 
         var jsPath = Path.Combine(binDirectory, "wc-language-server.js");
@@ -346,7 +472,7 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
         }
 
         var quotedJsPath = QuoteIfNeeded(jsPath);
-        return (nodePath, quotedJsPath, jsPath);
+        return (nodePath, $"{quotedJsPath} --stdio", jsPath);
     }
 
     private static string? ResolveNativeBinaryPath(string binDirectory)
@@ -364,11 +490,38 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
         return Path.Combine(binDirectory, fileName);
     }
 
+    private static bool IsValidNativeBinary(string? path)
+    {
+        if (path is null || !File.Exists(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+            if (fs.Length < 64)
+            {
+                return false;
+            }
+
+            var header = new byte[2];
+            fs.Read(header, 0, 2);
+            return header[0] == 0x4D && header[1] == 0x5A; // MZ
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static string? GetPlatformSuffix()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            return "windows-x64";
+            return RuntimeInformation.OSArchitecture == Architecture.Arm64
+                ? "windows-arm64"
+                : "windows-x64";
         }
 
         var architecture = RuntimeInformation.OSArchitecture;
@@ -396,12 +549,63 @@ public sealed class WebComponentsLanguageClient : ILanguageClient
         return value.IndexOf(' ') >= 0 ? $"\"{value}\"" : value;
     }
 
+    // VS does not support pull-based diagnostics (LSP 3.17 textDocument/diagnostic) nor
+    // client/registerCapability.  Volar advertises diagnosticProvider in the initialize
+    // response which causes VS to expect the pull model and never show any diagnostics.
+    // This layer removes that capability so Volar falls back to push-based
+    // textDocument/publishDiagnostics which VS does support.
+    private sealed class VsCompatMiddleLayer : ILanguageClientMiddleLayer
+    {
+        internal static readonly VsCompatMiddleLayer Instance = new VsCompatMiddleLayer();
+        private VsCompatMiddleLayer() { }
+
+        // Handle every method so we can intercept initialize and log unknown notifications.
+        public bool CanHandle(string methodName) => true;
+
+        public Task HandleNotificationAsync(string methodName, JToken methodParam, Func<JToken, Task> sendNotification)
+        {
+            Log($"server notification: {methodName}");
+            return sendNotification(methodParam);
+        }
+
+        public async Task<JToken> HandleRequestAsync(string methodName, JToken methodParam, Func<JToken, Task<JToken>> sendRequest)
+        {
+            Log($"server request: {methodName}");
+            var result = await sendRequest(methodParam);
+            if (methodName == "initialize" && result is JObject resultObj)
+            {
+                // VS only supports push-based textDocument/publishDiagnostics, not the
+                // pull-based diagnosticProvider (LSP 3.17 textDocument/diagnostic).
+                // Removing this capability causes Volar to fall back to push-based diagnostics.
+                (resultObj["capabilities"] as JObject)?.Remove("diagnosticProvider");
+                Log($"initialize result capabilities: {resultObj["capabilities"]}");
+            }
+            return result;
+        }
+    }
+
+    private sealed class VsCustomMessageTarget
+    {
+        internal static readonly VsCustomMessageTarget Instance = new VsCustomMessageTarget();
+        private VsCustomMessageTarget() { }
+
+        public void NotificationReceived(JToken payload)
+        {
+            Log($"custom notification payload: {payload}");
+        }
+    }
+
     private static void Log(string message)
     {
-        var options = WebComponentsPackage.Instance?.GetOptions();
-        if (options?.EnableTraceLogging == true)
+        ActivityLog.TryLogInformation("WebComponentsLanguageServer", message);
+        System.Diagnostics.Debug.WriteLine($"[WCLanguageServer] {message}");
+
+        try
         {
-            ActivityLog.TryLogInformation("WebComponentsLanguageServer", message);
+            var logFile = Path.Combine(Path.GetTempPath(), "wc-language-server-vs.log");
+            var line = $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}";
+            File.AppendAllText(logFile, line);
         }
+        catch { }
     }
 }

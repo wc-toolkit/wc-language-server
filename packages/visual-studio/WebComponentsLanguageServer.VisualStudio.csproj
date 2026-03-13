@@ -11,7 +11,10 @@
     <IncludeDebugSymbolsInLocalVSIXDeployment>false</IncludeDebugSymbolsInLocalVSIXDeployment>
     <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
     <CreateVsixContainer>true</CreateVsixContainer>
-    <DeployExtension>false</DeployExtension>
+    <DeployExtension>true</DeployExtension>
+    <StartAction>Program</StartAction>
+    <StartProgram>$(DevEnvDir)devenv.exe</StartProgram>
+    <StartArguments>/RootSuffix Exp</StartArguments>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
   </PropertyGroup>
 
@@ -45,15 +48,24 @@
     </VSCTCompile>
   </ItemGroup>
 
+  <PropertyGroup>
+    <IntermediateOutputPath Condition="'$(IntermediateOutputPath)' == ''">$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
+    <CreatePkgDefAssemblyToProcess Condition="'$(CreatePkgDefAssemblyToProcess)' == ''">$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).dll</CreatePkgDefAssemblyToProcess>
+  </PropertyGroup>
+
+  <Import Project="$(VsSDKInstall)\Microsoft.VsSDK.targets" />
+
+  <Target Name="PostBuildVsix" AfterTargets="Build" DependsOnTargets="GeneratePkgDef;CreateVsixContainer;DeployVsixExtensionFiles" />
+
   <ItemGroup>
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
     </None>
-    <None Include="LICENSE">
+    <Content Include="LICENSE">
       <IncludeInVSIX>true</IncludeInVSIX>
-    </None>
-    <None Include="assets\icon.png">
+    </Content>
+    <Content Include="assets\icon.png">
       <IncludeInVSIX>true</IncludeInVSIX>
-    </None>
+    </Content>
   </ItemGroup>
 </Project>
