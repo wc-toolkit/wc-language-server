@@ -31,6 +31,7 @@ export default tseslint.config(
       "cjs/",
       "packages/**/dist/",
       "packages/**/build/",
+      "packages/language-server/bin/**",
       "**/server/bin/",
       "npm-debug.log*",
       "yarn-debug.log*",
