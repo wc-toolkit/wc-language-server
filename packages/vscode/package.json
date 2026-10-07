@@ -8,6 +8,10 @@
     "url": "https://github.com/wc-toolkit/wc-language-server.git",
     "directory": "packages/vscode"
   },
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/wc-language-server/issues"
+  },
+  "homepage": "https://github.com/wc-toolkit/wc-language-server",
   "categories": [
     "Programming Languages"
   ],

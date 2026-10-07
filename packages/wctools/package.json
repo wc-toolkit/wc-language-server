@@ -8,7 +8,20 @@
   "bin": {
     "wctools": "dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wc-toolkit/wc-language-server.git",
+    "directory": "packages/wctools"
+  },
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/wc-language-server/issues"
+  },
+  "homepage": "https://github.com/wc-toolkit/wc-language-server",
   "scripts": {
+    "prepack": "pnpm run build",
     "build": "tsup",
     "build:deps": "pnpm --filter @wc-toolkit/language-server run build",
     "prebuild": "npm run build:deps",
