@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [22]
+        node-version: [24]
     steps:
       - uses: actions/checkout@v4
       # Configure git so changesets can commit (version PR) without identity issues
@@ -48,9 +48,8 @@ jobs:
           version: pnpm changeset:version
           publish: pnpm release
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
           OPENVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}
           VSCODE_MARKETPLACE: ${{ secrets.VSCODE_MARKETPLACE }}
       - name: Get language server version
