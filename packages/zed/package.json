@@ -5,6 +5,15 @@
   "private": true,
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wc-toolkit/wc-language-server.git",
+    "directory": "packages/zed"
+  },
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/wc-language-server/issues"
+  },
+  "homepage": "https://github.com/wc-toolkit/wc-language-server",
   "scripts": {
     "bundle": "node ./scripts/bundle-language-server.mjs",
     "build": "node ./scripts/build-extension.mjs",

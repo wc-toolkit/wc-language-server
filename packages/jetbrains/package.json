@@ -3,6 +3,15 @@
   "version": "0.0.9",
   "description": "JetBrains plugin for Web Components Language Server",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wc-toolkit/wc-language-server.git",
+    "directory": "packages/jetbrains"
+  },
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/wc-language-server/issues"
+  },
+  "homepage": "https://github.com/wc-toolkit/wc-language-server",
   "scripts": {
     "build": "export JAVA_HOME=$(/usr/libexec/java_home -v 17) && ./gradlew buildPlugin --no-configuration-cache",
     "clean": "export JAVA_HOME=$(/usr/libexec/java_home -v 17) && ./gradlew clean",

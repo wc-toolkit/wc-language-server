@@ -47,6 +47,7 @@
     "node": ">=18"
   },
   "scripts": {
+    "prepack": "pnpm run build",
     "build": "tsc -p tsconfig.json && pnpm run bundle:single && pnpm run bundle:executable",
     "bundle:single": "node ./scripts/build-single-file.mjs",
     "bundle:executable": "node ./scripts/build-single-executable.mjs",

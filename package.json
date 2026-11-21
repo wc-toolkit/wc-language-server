@@ -4,8 +4,12 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/volarjs/starter.git"
+    "url": "https://github.com/wc-toolkit/wc-language-server.git"
   },
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/wc-language-server/issues"
+  },
+  "homepage": "https://github.com/wc-toolkit/wc-language-server",
   "scripts": {
     "dev": "pnpm --filter @wc-toolkit/zed run dev",
     "build": "pnpm -r run build",
