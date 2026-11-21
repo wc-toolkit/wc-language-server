@@ -1,5 +1,12 @@
 # @wc-toolkit/wctools
 
+## 0.0.20
+
+### Patch Changes
+
+- 1e815b5: Build output is now generated on `prepack`, so published tarballs always include `dist/` (and `bin/`). Previously these packages could be published without their build output, which left the `wctools` and `wc-language-server` `bin` entries pointing at missing files and made the CLIs unusable after install.
+- 1e815b5: Add `repository`, `bugs`, and `homepage` fields so the package links back to the GitHub repository on npm, making it easy to find the source and file issues.
+
 ## 0.0.19
 
 ### Patch Changes

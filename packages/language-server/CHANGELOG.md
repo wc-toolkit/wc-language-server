@@ -1,5 +1,11 @@
 # @wc-toolkit/language-server
 
+## 0.0.8
+
+### Patch Changes
+
+- 1e815b5: Build output is now generated on `prepack`, so published tarballs always include `dist/` (and `bin/`). Previously these packages could be published without their build output, which left the `wctools` and `wc-language-server` `bin` entries pointing at missing files and made the CLIs unusable after install.
+
 ## 0.0.7
 
 ### Patch Changes
