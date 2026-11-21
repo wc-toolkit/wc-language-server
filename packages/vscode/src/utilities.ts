@@ -179,7 +179,10 @@ export async function createClient(): Promise<BaseLanguageClient> {
         ? "wc-language-server-macos-arm64"
         : "wc-language-server-macos-x64";
   } else if (platform === "linux") {
-    executableName = "wc-language-server-linux-x64";
+    executableName =
+      arch === "arm64"
+        ? "wc-language-server-linux-arm64"
+        : "wc-language-server-linux-x64";
   }
 
   const serverExecutable = vscode.Uri.joinPath(
